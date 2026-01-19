@@ -22,14 +22,20 @@ export class BookingService {
   private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
 
   async availability(suiteId: string, start: string, end: string) {
-    let existing: Booking[] = [];
+    let conflict = false;
     if (this.prisma) {
-      const list = await this.prisma.booking.findMany({ where: { suiteId } });
-      existing = list as any;
+      const list = await this.prisma.booking.findMany({
+        where: {
+          suiteId,
+          start: { lte: new Date(end) },
+          end: { gte: new Date(start) }
+        }
+      });
+      conflict = list.length > 0;
     } else {
-      existing = await this.repo.listBySuite(suiteId);
+      const existing = await this.repo.listBySuite(suiteId);
+      conflict = existing.some((b) => overlaps(start, end, b.start, b.end));
     }
-    const conflict = existing.some((b) => overlaps(start, end, b.start, b.end));
     return { available: !conflict };
   }
 
@@ -58,29 +64,31 @@ export class BookingService {
         currency: 'BDT'
       };
       if (this.prisma) {
-        await this.prisma.booking.create({
-          data: {
-            id: b.id,
-            suiteId: b.suiteId,
-            planId: b.planId,
-            investorId: b.investorId,
-            start: new Date(b.start),
-            end: new Date(b.end),
-            status: b.status,
-            amountTotal: b.amountTotal || null
-          }
-        });
-        await this.prisma.paymentScheduleItem.createMany({
-          data: schedule.map((s) => ({
-            id: s.id,
-            bookingId: b.id,
-            type: s.type,
-            dueDate: new Date(s.dueDate),
-            amount: s.amount,
-            status: s.status,
-            gatewayRef: s.gatewayRef || null
-          }))
-        });
+        await this.prisma.$transaction([
+          this.prisma.booking.create({
+            data: {
+              id: b.id,
+              suiteId: b.suiteId,
+              planId: b.planId,
+              investorId: b.investorId,
+              start: new Date(b.start),
+              end: new Date(b.end),
+              status: b.status,
+              amountTotal: b.amountTotal || null
+            }
+          }),
+          this.prisma.paymentScheduleItem.createMany({
+            data: schedule.map((s) => ({
+              id: s.id,
+              bookingId: b.id,
+              type: s.type,
+              dueDate: new Date(s.dueDate),
+              amount: s.amount,
+              status: s.status,
+              gatewayRef: s.gatewayRef || null
+            }))
+          })
+        ]);
         return b;
       }
       const created = await this.repo.create(b);
