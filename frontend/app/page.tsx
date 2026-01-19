@@ -1,6 +1,8 @@
 import Hero from '@/components/Hero';
 import Image from 'next/image';
 import Link from 'next/link';
+import ViewsCarousel from '@/components/ViewsCarousel';
+import FeaturesGrid from '@/components/FeaturesGrid';
 
 export default function HomePage() {
   return (
@@ -35,28 +37,17 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 pb-16">
-        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Features</h2>
-        <p className="mt-2 text-ocean/80">Handpicked amenities for a premium oceanfront experience.</p>
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {[
-            { name: 'Rooftop sunset restaurant', icon: '/images/icons/concierge.svg' },
-            { name: 'Direct beach access', icon: '/images/icons/beach-access.svg' },
-            { name: 'Private balconies', icon: '/images/icons/balcony.svg' },
-            { name: 'High-speed Wi‑Fi', icon: '/images/icons/wifi.svg' },
-            { name: 'Power backup', icon: '/images/icons/power.svg' },
-            { name: 'Concierge', icon: '/images/icons/concierge.svg' },
-            { name: 'Housekeeping', icon: '/images/icons/housekeeping.svg' },
-            { name: 'Security', icon: '/images/icons/security.svg' },
-            { name: 'Parking', icon: '/images/icons/parking.svg' }
-          ].map((f) => (
-            <div key={f.name} className="rounded-lg border border-gold/30 bg-white p-4 hover:shadow-md transition-shadow">
-              <div className="relative h-24 w-full mb-3">
-                <Image src={f.icon} alt={f.name} fill sizes="40vw" />
-              </div>
-              <span className="text-ocean">{f.name}</span>
-            </div>
-          ))}
+        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Views</h2>
+        <p className="mt-2 text-ocean/80">A glimpse of the resort ambiance and oceanfront lifestyle.</p>
+        <div className="mt-6">
+          <ViewsCarousel height={320} />
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-16">
+        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Features</h2>
+        <p className="mt-2 text-ocean/80">Handpicked amenities from your features image set.</p>
+        <FeaturesGrid />
       </section>
     </main>
   );

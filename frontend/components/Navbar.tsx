@@ -14,9 +14,7 @@ export default function Navbar() {
         <nav className="flex items-center gap-6 text-ocean">
           <Link href="/about">About</Link>
           <Link href="/features">Features</Link>
-          <Link href="/investment-plans">Invest</Link>
-          <Link href="/returns-income">Returns</Link>
-          <Link href="/booking">Book</Link>
+          <Link href="/investor">Investor</Link>
           <Link href="/dashboard">Dashboard</Link>
           <span className="rounded border border-ocean/20 px-2 py-1 text-xs text-ocean/70">Unit size: sq ft</span>
         </nav>
