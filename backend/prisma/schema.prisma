@@ -49,4 +49,19 @@ model PaymentScheduleItem {
   gatewayRef String?
   booking    Booking @relation(fields: [bookingId], references: [id])
 }
+model Client {
+  id               String @id
+  name             String
+  fatherName       String
+  nid              String
+  dob              String
+  address          String
+  permanentAddress String
+  contact          String
+  email            String
+  picUrl           String
+  nomineeName      String
+  nomineeNid       String
+  nomineePicUrl    String
+}
 

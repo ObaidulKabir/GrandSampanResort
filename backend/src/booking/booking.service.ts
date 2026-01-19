@@ -3,6 +3,7 @@ import { Booking, PaymentScheduleItem } from '../domain/models';
 import { BookingRepository } from './booking.repository';
 import { TimesharesService } from '../timeshares/timeshares.service';
 import { SuitesRepository } from '../suites/suites.repository';
+import { PrismaClient } from '@prisma/client';
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   const aS = new Date(aStart).getTime();
@@ -18,9 +19,16 @@ export class BookingService {
   private timeshares = new TimesharesService();
   private suites = new SuitesRepository();
   private locks = new Set<string>();
+  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
 
   async availability(suiteId: string, start: string, end: string) {
-    const existing = await this.repo.listBySuite(suiteId);
+    let existing: Booking[] = [];
+    if (this.prisma) {
+      const list = await this.prisma.booking.findMany({ where: { suiteId } });
+      existing = list as any;
+    } else {
+      existing = await this.repo.listBySuite(suiteId);
+    }
     const conflict = existing.some((b) => overlaps(start, end, b.start, b.end));
     return { available: !conflict };
   }
@@ -49,6 +57,32 @@ export class BookingService {
         schedule,
         currency: 'BDT'
       };
+      if (this.prisma) {
+        await this.prisma.booking.create({
+          data: {
+            id: b.id,
+            suiteId: b.suiteId,
+            planId: b.planId,
+            investorId: b.investorId,
+            start: new Date(b.start),
+            end: new Date(b.end),
+            status: b.status,
+            amountTotal: b.amountTotal || null
+          }
+        });
+        await this.prisma.paymentScheduleItem.createMany({
+          data: schedule.map((s) => ({
+            id: s.id,
+            bookingId: b.id,
+            type: s.type,
+            dueDate: new Date(s.dueDate),
+            amount: s.amount,
+            status: s.status,
+            gatewayRef: s.gatewayRef || null
+          }))
+        });
+        return b;
+      }
       const created = await this.repo.create(b);
       return created;
     } finally {
@@ -105,12 +139,20 @@ export class BookingService {
   }
 
   async schedule(id: string) {
+    if (this.prisma) {
+      const items = await this.prisma.paymentScheduleItem.findMany({ where: { bookingId: id } });
+      return items || [];
+    }
     const b = await this.repo.findById(id);
     if (!b) return null;
     return b.schedule || [];
   }
 
   async markPaid(bookingId: string, itemId: string, gatewayRef?: string) {
+    if (this.prisma) {
+      await this.prisma.paymentScheduleItem.update({ where: { id: itemId }, data: { status: 'paid', gatewayRef } });
+      return true;
+    }
     const b = await this.repo.findById(bookingId);
     if (!b || !b.schedule) return false;
     const idx = b.schedule.findIndex((s) => s.id === itemId);

@@ -1,19 +1,20 @@
 import { Controller, Get, Post, Query, Body, Param } from '@nestjs/common';
 import { BookingService } from './booking.service';
+import { ValidationPipe } from '@nestjs/common';
+import { AvailabilityQueryDto, CreateBookingDto } from './dto/booking.dto';
 
 @Controller('booking')
 export class BookingController {
   constructor(private readonly service: BookingService) {}
 
   @Get('availability')
-  async availability(@Query('suiteId') suiteId: string, @Query('start') start: string, @Query('end') end: string) {
-    return this.service.availability(suiteId, start, end);
+  async availability(@Query(new ValidationPipe({ whitelist: true })) q: AvailabilityQueryDto) {
+    return this.service.availability(q.suiteId, q.start, q.end);
   }
 
   @Post()
-  async book(@Body() body: any) {
-    const { suiteId, planId, start, end, investorId } = body || {};
-    const res = await this.service.book(suiteId, planId, start, end, investorId);
+  async book(@Body(new ValidationPipe({ whitelist: true })) body: CreateBookingDto) {
+    const res = await this.service.book(body.suiteId, body.planId, body.start, body.end, body.investorId);
     if (!res) return { ok: false, error: 'conflict' };
     return { ok: true, booking: res };
   }

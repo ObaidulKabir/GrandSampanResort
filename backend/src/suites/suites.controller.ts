@@ -3,6 +3,8 @@ import { SuitesService } from './suites.service';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { TimesharesService } from '../timeshares/timeshares.service';
+import { ValidationPipe } from '@nestjs/common';
+import { CreateSuiteDto, UpdateSuiteDto } from './dto/suite.dto';
 
 @Controller('suites')
 export class SuitesController {
@@ -16,9 +18,8 @@ export class SuitesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('admin')
-  async create(@Body() body: any) {
-    const { id, floor, type, size, view, totalPrice } = body || {};
-    const created = await this.service.create({ id, floor, type, size, view, totalPrice });
+  async create(@Body(new ValidationPipe({ whitelist: true })) body: CreateSuiteDto) {
+    const created = await this.service.create(body as any);
     return { ok: true, suite: created };
   }
 
@@ -32,8 +33,8 @@ export class SuitesController {
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  async update(@Param('id') id: string, @Body() body: any) {
-    const updated = await this.service.update(id, body || {});
+  async update(@Param('id') id: string, @Body(new ValidationPipe({ whitelist: true })) body: UpdateSuiteDto) {
+    const updated = await this.service.update(id, body as any);
     if (!updated) return { ok: false, error: 'not_found' };
     return { ok: true, suite: updated };
   }
