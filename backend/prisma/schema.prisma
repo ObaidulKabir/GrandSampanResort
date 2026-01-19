@@ -1,0 +1,67 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+model Suite {
+  id          String  @id
+  floor       Int
+  type        String
+  size        Int
+  view        String
+  totalPrice  Int
+  currency    String?
+  plans       SharePlan[]
+}
+model SharePlan {
+  id                 String  @id
+  name               String
+  daysPerMonth       Int
+  lockIn             Int
+  price              Int
+  currency           String?
+  suiteId            String?
+  planStatus         String?
+  planType           String?
+  timeFraction       Float?
+  suite              Suite?  @relation(fields: [suiteId], references: [id])
+}
+model Booking {
+  id          String  @id
+  suiteId     String
+  planId      String?
+  investorId  String?
+  start       DateTime
+  end         DateTime
+  status      String
+  amountTotal Int?
+  schedule    PaymentScheduleItem[]
+}
+model PaymentScheduleItem {
+  id         String  @id
+  bookingId  String
+  type       String
+  dueDate    DateTime
+  amount     Int
+  status     String
+  gatewayRef String?
+  booking    Booking @relation(fields: [bookingId], references: [id])
+}
+model Client {
+  id               String @id
+  name             String
+  fatherName       String
+  nid              String
+  dob              String
+  address          String
+  permanentAddress String
+  contact          String
+  email            String
+  picUrl           String
+  nomineeName      String
+  nomineeNid       String
+  nomineePicUrl    String
+}
+
