@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Booking, PaymentScheduleItem } from '../domain/models';
 import { BookingRepository } from './booking.repository';
 import { TimesharesService } from '../timeshares/timeshares.service';
-import { SuitesRepository } from '../suites/suites.repository';
+import { SuitesService } from '../suites/suites.service';
 import { PrismaClient } from '@prisma/client';
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -17,7 +17,7 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
 export class BookingService {
   private repo = new BookingRepository();
   private timeshares = new TimesharesService();
-  private suites = new SuitesRepository();
+  private suites = new SuitesService();
   private locks = new Set<string>();
   private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
 
@@ -47,7 +47,7 @@ export class BookingService {
       if (!av.available) return null;
       const plan = await this.timeshares.get(planId);
       if (!plan) return null;
-      const suite = await this.suites.findById(suiteId);
+      const suite = await this.suites.get(suiteId);
       if (!suite) return null;
       const total = plan.price;
       const schedule = this.generateSchedule(total, new Date(start), plan.lockIn, 'monthly');
