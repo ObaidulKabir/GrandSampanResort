@@ -1,0 +1,64 @@
+name: CI
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: grand_sampan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U app -d grand_sampan"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Prisma generate
+        run: npm run prisma:generate
+      - name: Prisma migrate
+        run: npm run prisma:migrate:deploy
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
+      - name: Seed DB
+        run: npm run prisma:seed
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
+      - run: npm run test
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run test
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -t gs-backend:ci ./backend
+      - name: Build frontend image
+        run: docker build -t gs-frontend:ci ./frontend
+

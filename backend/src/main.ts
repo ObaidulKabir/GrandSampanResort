@@ -4,9 +4,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(4000);
-  // eslint-disable-next-line no-console
-  console.log('API running at http://localhost:4000');
+  app.enableCors({ origin: ['http://localhost:3000', 'http://localhost:3001'], credentials: true });
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+  await app.listen(port);
+  console.log(`API running at http://localhost:${port}`);
 }
 bootstrap();
 

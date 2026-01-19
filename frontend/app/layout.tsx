@@ -1,4 +1,5 @@
 import './styles/globals.css';
+import Navbar from '@/components/Navbar';
 import React from 'react';
 
 export const metadata = {
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="bg-pearl text-ocean">
+        <Navbar />
         {children}
       </body>
     </html>
