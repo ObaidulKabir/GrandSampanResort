@@ -81,7 +81,7 @@ export default function InvestPage() {
                   <div className="text-ocean/70">Size: <span className="text-ocean">{suite.size ?? '—'} sq ft</span></div>
                   <div className="text-ocean/70">Floor: <span className="text-ocean">{suite.floor ?? '—'}</span></div>
                 </div>
-                <p className="mt-3 text-ocean/70">Lock-in {p.lockIn} months • Price: <span className="text-ocean">৳ {p.price}</span></p>
+                <p className="mt-3 text-ocean/70">Price: <span className="text-ocean">৳ {p.price}</span></p>
                 <div className="mt-4 flex gap-2">
                   <Link href={`/pricing/plans/${p.id}`} className="rounded bg-ocean px-4 py-2 text-white">
                     View Details

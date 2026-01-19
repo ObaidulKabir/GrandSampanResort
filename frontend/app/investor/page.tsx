@@ -81,7 +81,7 @@ export default function InvestorPage() {
               {plans.map((p) => (
                 <div key={p.id} className={`rounded-lg border ${selected === p.id ? 'border-gold' : 'border-gold/30'} bg-white p-5`}>
                   <h3 className="text-lg font-['Playfair Display'] text-ocean">{p.name}</h3>
-                  <p className="mt-1 text-ocean/70">{p.daysPerMonth} days/month • Lock-in {p.lockIn} months</p>
+                  <p className="mt-1 text-ocean/70">{p.daysPerMonth} days/month</p>
                   <p className="mt-1 text-ocean/70">Price: ৳ {p.price} • Suite: {p.suiteId ?? '—'}</p>
                   <div className="mt-3 flex gap-2">
                     <button

@@ -6,7 +6,13 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class SuitesService {
   private repo = new SuitesRepository();
-  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
+  private prisma: PrismaClient | null = (() => {
+    try {
+      return process.env.DATABASE_URL ? new PrismaClient() : null;
+    } catch {
+      return null;
+    }
+  })();
   async list() {
     if (this.prisma) return this.prisma.suite.findMany();
     return this.repo.findAll();

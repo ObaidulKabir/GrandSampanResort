@@ -8,8 +8,9 @@ export class CreateSharePlanDto {
   name!: string;
   @IsInt()
   daysPerMonth!: number;
+  @IsOptional()
   @IsInt()
-  lockIn!: number;
+  lockIn?: number;
   @IsInt()
   price!: number;
   @IsOptional()

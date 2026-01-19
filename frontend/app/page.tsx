@@ -3,6 +3,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ViewsCarousel from '@/components/ViewsCarousel';
 import FeaturesGrid from '@/components/FeaturesGrid';
+import Footer from '@/components/Footer';
+import LocationSection from '@/components/LocationSection';
 
 export default function HomePage() {
   return (
@@ -40,7 +42,7 @@ export default function HomePage() {
         <h2 className="font-['Playfair Display'] text-3xl text-ocean">Views</h2>
         <p className="mt-2 text-ocean/80">A glimpse of the resort ambiance and oceanfront lifestyle.</p>
         <div className="mt-6">
-          <ViewsCarousel height={320} />
+          <ViewsCarousel height={500} />
         </div>
       </section>
 
@@ -49,6 +51,10 @@ export default function HomePage() {
         <p className="mt-2 text-ocean/80">Handpicked amenities from your features image set.</p>
         <FeaturesGrid />
       </section>
+
+      <LocationSection />
+
+      <Footer />
     </main>
   );
 }

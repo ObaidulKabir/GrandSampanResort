@@ -19,7 +19,13 @@ export class BookingService {
   private timeshares = new TimesharesService();
   private suites = new SuitesService();
   private locks = new Set<string>();
-  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
+  private prisma: PrismaClient | null = (() => {
+    try {
+      return process.env.DATABASE_URL ? new PrismaClient() : null;
+    } catch {
+      return null;
+    }
+  })();
 
   async availability(suiteId: string, start: string, end: string) {
     let conflict = false;

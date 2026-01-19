@@ -9,11 +9,10 @@ export default function Navbar() {
           <span className="relative h-8 w-8">
             <Image src="/images/logo.svg" alt="Unitech Grand Sampan Resort logo" fill sizes="32px" />
           </span>
-          <span className="font-['Playfair Display'] text-2xl text-ocean">Unitech Grand Sampan Resort</span>
+          <span className="font-['Playfair Display'] text-2xl font-extrabold text-ocean">Unitech Grand Sampan Resort</span>
         </Link>
         <nav className="flex items-center gap-6 text-ocean">
           <Link href="/about">About</Link>
-          <Link href="/features">Features</Link>
           <Link href="/investor">Investor</Link>
           <Link href="/dashboard">Dashboard</Link>
           <span className="rounded border border-ocean/20 px-2 py-1 text-xs text-ocean/70">Unit size: sq ft</span>

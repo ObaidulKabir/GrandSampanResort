@@ -21,8 +21,15 @@ export default function FeaturesGrid() {
     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
       {items.map((name) => (
         <div key={name} className="rounded-lg border border-gold/30 bg-white p-4 hover:shadow-md transition-shadow">
-          <div className="relative h-24 w-full mb-3">
-            <Image src={`/features/${name}`} alt={name.replace(/[-_]/g, ' ')} fill sizes="40vw" />
+          <div className="relative h-40 md:h-56 w-full mb-3 bg-pearl">
+            <Image
+              src={`/features/${name}`}
+              alt={name.replace(/[-_]/g, ' ')}
+              fill
+              sizes="(min-width: 768px) 33vw, 100vw"
+              className="object-contain object-center"
+              priority={false}
+            />
           </div>
           <span className="text-ocean">{name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}</span>
         </div>

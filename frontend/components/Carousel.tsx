@@ -7,7 +7,17 @@ type Slide = {
   alt: string;
 };
 
-export default function Carousel({ slides, height = 320, auto = true, intervalMs = 5000 }: { slides: Slide[]; height?: number; auto?: boolean; intervalMs?: number }) {
+export default function Carousel({
+  slides,
+  height = 320,
+  auto = true,
+  intervalMs = 5000
+}: {
+  slides: Slide[];
+  height?: number | string;
+  auto?: boolean;
+  intervalMs?: number;
+}) {
   const [idx, setIdx] = useState(0);
 
   function next() {

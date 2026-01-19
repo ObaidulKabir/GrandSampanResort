@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Carousel from './Carousel';
 
-export default function ViewsCarousel({ height = 320 }: { height?: number }) {
+export default function ViewsCarousel({ height = '20vh' }: { height?: number | string }) {
   const [slides, setSlides] = useState<{ src: string; alt: string }[]>([
     { src: '/views/ocean.svg', alt: 'Ocean view' },
     { src: '/views/rooms.svg', alt: 'Rooms' },
