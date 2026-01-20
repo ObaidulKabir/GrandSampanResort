@@ -1,18 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { SuitesRepository } from './suites.repository';
-import { Suite } from '../domain/models';
-import { PrismaClient } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { SuitesRepository } from "./suites.repository";
+import { Suite } from "../domain/models";
+import { prisma } from "../../prisma/client";
 
 @Injectable()
 export class SuitesService {
   private repo = new SuitesRepository();
-  private prisma: PrismaClient | null = (() => {
-    try {
-      return process.env.DATABASE_URL ? new PrismaClient() : null;
-    } catch {
-      return null;
-    }
-  })();
+  private prisma = process.env.DATABASE_URL ? prisma : null;
   async list() {
     if (this.prisma) return this.prisma.suite.findMany();
     return this.repo.findAll();
@@ -26,7 +20,8 @@ export class SuitesService {
     return this.repo.create(item);
   }
   async update(id: string, item: Partial<Suite>) {
-    if (this.prisma) return this.prisma.suite.update({ where: { id }, data: item as any });
+    if (this.prisma)
+      return this.prisma.suite.update({ where: { id }, data: item as any });
     return this.repo.update(id, item);
   }
   async remove(id: string) {
@@ -37,4 +32,3 @@ export class SuitesService {
     return this.repo.delete(id);
   }
 }
-

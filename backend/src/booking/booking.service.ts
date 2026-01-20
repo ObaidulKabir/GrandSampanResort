@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { Booking, PaymentScheduleItem } from '../domain/models';
-import { BookingRepository } from './booking.repository';
-import { TimesharesService } from '../timeshares/timeshares.service';
-import { SuitesService } from '../suites/suites.service';
-import { PrismaClient } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { Booking, PaymentScheduleItem } from "../domain/models";
+import { BookingRepository } from "./booking.repository";
+import { TimesharesService } from "../timeshares/timeshares.service";
+import { SuitesService } from "../suites/suites.service";
+import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   const aS = new Date(aStart).getTime();
@@ -19,27 +19,41 @@ export class BookingService {
   private timeshares = new TimesharesService();
   private suites = new SuitesService();
   private locks = new Set<string>();
-  private prisma: PrismaClient | null = (() => {
-    try {
-      return process.env.DATABASE_URL ? new PrismaClient() : null;
-    } catch {
-      return null;
-    }
-  })();
+  private prisma = process.env.DATABASE_URL ? prisma : null;
   async listByInvestor(investorId: string) {
     if (this.prisma) {
-      const bookings = await this.prisma.booking.findMany({ where: { investorId } });
+      const bookings = await this.prisma.booking.findMany({
+        where: { investorId },
+      });
       const suiteIds = Array.from(new Set(bookings.map((b: any) => b.suiteId)));
-      const planIds = Array.from(new Set(bookings.map((b: any) => b.planId).filter(Boolean)));
-      const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
-      const plans = await Promise.all(planIds.map((id) => (id ? this.timeshares.get(id) : null)));
-      const suiteById = Object.fromEntries((suites || []).filter(Boolean).map((s: any) => [s.id, s]));
-      const planById = Object.fromEntries((plans || []).filter(Boolean).map((p: any) => [p.id, p]));
-      return bookings.map((b: any) => ({ booking: b, suite: suiteById[b.suiteId] || null, plan: b.planId ? planById[b.planId] || null : null }));
+      const planIds = Array.from(
+        new Set(bookings.map((b: any) => b.planId).filter(Boolean)),
+      );
+      const suites = await Promise.all(
+        suiteIds.map((id) => this.suites.get(id)),
+      );
+      const plans = await Promise.all(
+        planIds.map((id) => (id ? this.timeshares.get(id) : null)),
+      );
+      const suiteById = Object.fromEntries(
+        (suites || []).filter(Boolean).map((s: any) => [s.id, s]),
+      );
+      const planById = Object.fromEntries(
+        (plans || []).filter(Boolean).map((p: any) => [p.id, p]),
+      );
+      return bookings.map((b: any) => ({
+        booking: b,
+        suite: suiteById[b.suiteId] || null,
+        plan: b.planId ? planById[b.planId] || null : null,
+      }));
     }
     const bookings = await this.repo.listByInvestor(investorId);
     const result = await Promise.all(
-      bookings.map(async (b) => ({ booking: b, suite: await this.suites.get(b.suiteId), plan: b.planId ? await this.timeshares.get(b.planId) : null }))
+      bookings.map(async (b) => ({
+        booking: b,
+        suite: await this.suites.get(b.suiteId),
+        plan: b.planId ? await this.timeshares.get(b.planId) : null,
+      })),
     );
     return result;
   }
@@ -47,10 +61,19 @@ export class BookingService {
     if (this.prisma) {
       const booking = await this.prisma.booking.findUnique({ where: { id } });
       if (!booking) return null;
-      const items = await this.prisma.paymentScheduleItem.findMany({ where: { bookingId: id } });
-      const paidTotal = items.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (i.amount || 0), 0);
+      const items = await this.prisma.paymentScheduleItem.findMany({
+        where: { bookingId: id },
+      });
+      const paidTotal = items
+        .filter((i: any) => i.status === "paid")
+        .reduce((s: number, i: any) => s + (i.amount || 0), 0);
       const outstanding = (booking.amountTotal || 0) - paidTotal;
-      const dueItems = items.filter((i: any) => i.status === 'due').sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      const dueItems = items
+        .filter((i: any) => i.status === "due")
+        .sort(
+          (a: any, b: any) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        );
       const nextDue = dueItems[0] || null;
       const handoverDate = new Date(booking.end).toISOString();
       return { booking, paidTotal, outstanding, nextDue, handoverDate };
@@ -58,9 +81,15 @@ export class BookingService {
     const booking = await this.repo.findById(id);
     if (!booking) return null;
     const items = booking.schedule || [];
-    const paidTotal = items.filter((i) => i.status === 'paid').reduce((s, i) => s + (i.amount || 0), 0);
+    const paidTotal = items
+      .filter((i) => i.status === "paid")
+      .reduce((s, i) => s + (i.amount || 0), 0);
     const outstanding = (booking.amountTotal || 0) - paidTotal;
-    const dueItems = items.filter((i) => i.status === 'due').sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    const dueItems = items
+      .filter((i) => i.status === "due")
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      );
     const nextDue = dueItems[0] || null;
     const handoverDate = new Date(booking.end).toISOString();
     return { booking, paidTotal, outstanding, nextDue, handoverDate };
@@ -73,8 +102,8 @@ export class BookingService {
         where: {
           suiteId,
           start: { lte: new Date(end) },
-          end: { gte: new Date(start) }
-        }
+          end: { gte: new Date(start) },
+        },
       });
       conflict = list.length > 0;
     } else {
@@ -84,7 +113,13 @@ export class BookingService {
     return { available: !conflict };
   }
 
-  async book(suiteId: string, planId: string, start: string, end: string, investorId?: string) {
+  async book(
+    suiteId: string,
+    planId: string,
+    start: string,
+    end: string,
+    investorId?: string,
+  ) {
     if (this.locks.has(suiteId)) return null;
     this.locks.add(suiteId);
     try {
@@ -95,18 +130,23 @@ export class BookingService {
       const suite = await this.suites.get(suiteId);
       if (!suite) return null;
       const total = plan.price;
-      const schedule = this.generateSchedule(total, new Date(start), plan.lockIn, 'monthly');
+      const schedule = this.generateSchedule(
+        total,
+        new Date(start),
+        plan.lockIn,
+        "monthly",
+      );
       const b: Booking = {
-        id: 'B-' + Math.random().toString(36).slice(2, 8),
+        id: "B-" + Math.random().toString(36).slice(2, 8),
         suiteId,
         planId,
         investorId,
         start,
         end,
-        status: 'pending',
+        status: "pending",
         amountTotal: total,
         schedule,
-        currency: 'BDT'
+        currency: "BDT",
       };
       if (this.prisma) {
         await this.prisma.$transaction([
@@ -119,8 +159,8 @@ export class BookingService {
               start: new Date(b.start),
               end: new Date(b.end),
               status: b.status,
-              amountTotal: b.amountTotal || null
-            }
+              amountTotal: b.amountTotal || null,
+            },
           }),
           this.prisma.paymentScheduleItem.createMany({
             data: schedule.map((s) => ({
@@ -130,9 +170,9 @@ export class BookingService {
               dueDate: new Date(s.dueDate),
               amount: s.amount,
               status: s.status,
-              gatewayRef: s.gatewayRef || null
-            }))
-          })
+              gatewayRef: s.gatewayRef || null,
+            })),
+          }),
         ]);
         return b;
       }
@@ -143,49 +183,58 @@ export class BookingService {
     }
   }
 
-  private generateSchedule(total: number, anchor: Date, durationMonths: number, cadence: 'monthly' | 'quarterly') {
-    const deposit = Math.round(total * 0.10 * 100) / 100;
-    const down = Math.round(total * 0.20 * 100) / 100;
+  private generateSchedule(
+    total: number,
+    anchor: Date,
+    durationMonths: number,
+    cadence: "monthly" | "quarterly",
+  ) {
+    const deposit = Math.round(total * 0.1 * 100) / 100;
+    const down = Math.round(total * 0.2 * 100) / 100;
     const remainder = Math.round((total - deposit - down) * 100) / 100;
     const items: PaymentScheduleItem[] = [];
-    const bookingId = 'tmp';
+    const bookingId = "tmp";
     items.push({
-      id: 'PS-' + Math.random().toString(36).slice(2, 8),
+      id: "PS-" + Math.random().toString(36).slice(2, 8),
       bookingId,
-      type: 'deposit',
+      type: "deposit",
       dueDate: new Date(anchor).toISOString(),
       amount: deposit,
-      status: 'due',
-      currency: 'BDT'
+      status: "due",
+      currency: "BDT",
     });
     const downDate = new Date(anchor);
     downDate.setMonth(downDate.getMonth() + 3);
     items.push({
-      id: 'PS-' + Math.random().toString(36).slice(2, 8),
+      id: "PS-" + Math.random().toString(36).slice(2, 8),
       bookingId,
-      type: 'downpayment',
+      type: "downpayment",
       dueDate: downDate.toISOString(),
       amount: down,
-      status: 'due',
-      currency: 'BDT'
+      status: "due",
+      currency: "BDT",
     });
-    const stepMonths = cadence === 'monthly' ? 1 : 3;
-    const installments = cadence === 'monthly' ? durationMonths : Math.ceil(durationMonths / 3);
+    const stepMonths = cadence === "monthly" ? 1 : 3;
+    const installments =
+      cadence === "monthly" ? durationMonths : Math.ceil(durationMonths / 3);
     const baseAmount = Math.floor((remainder / installments) * 100) / 100;
     let sum = 0;
     for (let i = 1; i <= installments; i++) {
       const due = new Date(anchor);
       due.setMonth(due.getMonth() + 3 + i * stepMonths);
-      const amt = i === installments ? Math.round((remainder - sum) * 100) / 100 : baseAmount;
+      const amt =
+        i === installments
+          ? Math.round((remainder - sum) * 100) / 100
+          : baseAmount;
       sum += amt;
       items.push({
-        id: 'PS-' + Math.random().toString(36).slice(2, 8),
+        id: "PS-" + Math.random().toString(36).slice(2, 8),
         bookingId,
-        type: 'installment',
+        type: "installment",
         dueDate: due.toISOString(),
         amount: amt,
-        status: 'due',
-        currency: 'BDT'
+        status: "due",
+        currency: "BDT",
       });
     }
     return items;
@@ -193,7 +242,9 @@ export class BookingService {
 
   async schedule(id: string) {
     if (this.prisma) {
-      const items = await this.prisma.paymentScheduleItem.findMany({ where: { bookingId: id } });
+      const items = await this.prisma.paymentScheduleItem.findMany({
+        where: { bookingId: id },
+      });
       return items || [];
     }
     const b = await this.repo.findById(id);
@@ -203,15 +254,17 @@ export class BookingService {
 
   async markPaid(bookingId: string, itemId: string, gatewayRef?: string) {
     if (this.prisma) {
-      await this.prisma.paymentScheduleItem.update({ where: { id: itemId }, data: { status: 'paid', gatewayRef } });
+      await this.prisma.paymentScheduleItem.update({
+        where: { id: itemId },
+        data: { status: "paid", gatewayRef },
+      });
       return true;
     }
     const b = await this.repo.findById(bookingId);
     if (!b || !b.schedule) return false;
     const idx = b.schedule.findIndex((s) => s.id === itemId);
     if (idx === -1) return false;
-    b.schedule[idx] = { ...b.schedule[idx], status: 'paid', gatewayRef };
+    b.schedule[idx] = { ...b.schedule[idx], status: "paid", gatewayRef };
     return true;
   }
 }
-
