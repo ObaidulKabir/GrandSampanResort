@@ -32,5 +32,6 @@ COPY --from=builder /app/docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 ENV NODE_ENV=production
 EXPOSE 3000
-ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "dist/main.js"]
+CMD [ "tail", "-f", "/dev/null" ]
+# ENTRYPOINT ["./docker-entrypoint.sh"]
+# CMD ["node", "dist/main.js"]
