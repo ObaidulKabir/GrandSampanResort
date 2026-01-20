@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["res.cloudinary.com", "localhost", process.env.DOMAIN],
+    domains: ["res.cloudinary.com", "localhost"],
   },
 };
-module.exports = nextConfig;
+export default nextConfig;
