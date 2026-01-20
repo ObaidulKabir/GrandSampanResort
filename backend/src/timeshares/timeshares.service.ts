@@ -6,7 +6,13 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class TimesharesService {
   private repo = new TimesharesRepository();
-  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
+  private prisma: PrismaClient | null = (() => {
+    try {
+      return process.env.DATABASE_URL ? new PrismaClient() : null;
+    } catch {
+      return null;
+    }
+  })();
   async list() {
     if (this.prisma) {
       const items = await this.prisma.sharePlan.findMany();

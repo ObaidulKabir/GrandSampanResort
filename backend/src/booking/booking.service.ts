@@ -19,7 +19,52 @@ export class BookingService {
   private timeshares = new TimesharesService();
   private suites = new SuitesService();
   private locks = new Set<string>();
-  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
+  private prisma: PrismaClient | null = (() => {
+    try {
+      return process.env.DATABASE_URL ? new PrismaClient() : null;
+    } catch {
+      return null;
+    }
+  })();
+  async listByInvestor(investorId: string) {
+    if (this.prisma) {
+      const bookings = await this.prisma.booking.findMany({ where: { investorId } });
+      const suiteIds = Array.from(new Set(bookings.map((b: any) => b.suiteId)));
+      const planIds = Array.from(new Set(bookings.map((b: any) => b.planId).filter(Boolean)));
+      const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
+      const plans = await Promise.all(planIds.map((id) => (id ? this.timeshares.get(id) : null)));
+      const suiteById = Object.fromEntries((suites || []).filter(Boolean).map((s: any) => [s.id, s]));
+      const planById = Object.fromEntries((plans || []).filter(Boolean).map((p: any) => [p.id, p]));
+      return bookings.map((b: any) => ({ booking: b, suite: suiteById[b.suiteId] || null, plan: b.planId ? planById[b.planId] || null : null }));
+    }
+    const bookings = await this.repo.listByInvestor(investorId);
+    const result = await Promise.all(
+      bookings.map(async (b) => ({ booking: b, suite: await this.suites.get(b.suiteId), plan: b.planId ? await this.timeshares.get(b.planId) : null }))
+    );
+    return result;
+  }
+  async summary(id: string) {
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findUnique({ where: { id } });
+      if (!booking) return null;
+      const items = await this.prisma.paymentScheduleItem.findMany({ where: { bookingId: id } });
+      const paidTotal = items.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + (i.amount || 0), 0);
+      const outstanding = (booking.amountTotal || 0) - paidTotal;
+      const dueItems = items.filter((i: any) => i.status === 'due').sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      const nextDue = dueItems[0] || null;
+      const handoverDate = new Date(booking.end).toISOString();
+      return { booking, paidTotal, outstanding, nextDue, handoverDate };
+    }
+    const booking = await this.repo.findById(id);
+    if (!booking) return null;
+    const items = booking.schedule || [];
+    const paidTotal = items.filter((i) => i.status === 'paid').reduce((s, i) => s + (i.amount || 0), 0);
+    const outstanding = (booking.amountTotal || 0) - paidTotal;
+    const dueItems = items.filter((i) => i.status === 'due').sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    const nextDue = dueItems[0] || null;
+    const handoverDate = new Date(booking.end).toISOString();
+    return { booking, paidTotal, outstanding, nextDue, handoverDate };
+  }
 
   async availability(suiteId: string, start: string, end: string) {
     let conflict = false;
