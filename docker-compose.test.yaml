@@ -7,9 +7,9 @@ services:
       target: production
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grand-sampan-resort-backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.grand-sampan-resort-backend.entrypoints=web"
+      - "traefik.http.services.grand-sampan-resort-backend.loadbalancer.server.port=3000"
     networks:
       - traefik-network
     environment:
@@ -23,10 +23,10 @@ services:
       target: production
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)"
-      - "traefik.http.routers.frontend.entrypoints=web"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
-      - "traefik.http.routers.frontend.priority=1"
+      - "traefik.http.routers.grand-sampan-resort-frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.grand-sampan-resort-frontend.entrypoints=web"
+      - "traefik.http.services.grand-sampan-resort-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.grand-sampan-resort-frontend.priority=1"
     networks:
       - traefik-network
     environment:
