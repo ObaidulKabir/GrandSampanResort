@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+
 type Suite = { id: string; floor: number; type: string; size: number; view: string };
 
 export default function AvailableCards() {
@@ -13,7 +15,7 @@ export default function AvailableCards() {
     async function loadSuites() {
       setLoading(true);
       try {
-        const res = await fetch('http://localhost:4000/suites');
+        const res = await fetch(`${API_URL}/suites`);
         const json = await res.json();
         const list: Suite[] = Array.isArray(json) ? json : json?.suites ?? [];
         const pick = list.slice(0, 3);
@@ -24,7 +26,7 @@ export default function AvailableCards() {
         const avPairs = await Promise.all(
           pick.map(async (s) => {
             const aRes = await fetch(
-              `http://localhost:4000/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
+              `${API_URL}/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
             );
             const aJson = await aRes.json();
             return [s.id, !!aJson?.available] as const;

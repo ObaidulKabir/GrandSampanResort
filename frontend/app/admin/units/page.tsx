@@ -1,21 +1,23 @@
-'use client';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 export default function AdminUnitsListPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   async function load() {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const res = await fetch('http://localhost:4000/suites');
+      const res = await fetch(`${API_URL}/suites`);
       const json = await res.json();
-      setItems(Array.isArray(json) ? json : json?.suites ?? []);
+      setItems(Array.isArray(json) ? json : (json?.suites ?? []));
     } catch {
-      setError('Failed to load units');
+      setError("Failed to load units");
     }
     setLoading(false);
   }
@@ -29,16 +31,26 @@ export default function AdminUnitsListPage() {
       <div className="flex items-center justify-between">
         <h1 className="font-['Playfair Display'] text-4xl text-ocean">Units</h1>
         <div className="flex gap-2">
-          <button onClick={load} className="rounded bg-ocean px-4 py-2 text-white">
-            {loading ? 'Refreshing...' : 'Refresh'}
+          <button
+            onClick={load}
+            className="rounded bg-ocean px-4 py-2 text-white"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
-          <Link href="/admin/units/new" className="rounded border border-ocean px-4 py-2 text-ocean">
+          <Link
+            href="/admin/units/new"
+            className="rounded border border-ocean px-4 py-2 text-ocean"
+          >
             Create Unit
           </Link>
         </div>
       </div>
 
-      {error && <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+      {error && (
+        <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="mt-6 overflow-auto rounded border border-gold/30 bg-white">
         <table className="w-full text-sm">
@@ -63,11 +75,17 @@ export default function AdminUnitsListPage() {
                 <td className="p-3">{i.view}</td>
                 <td className="p-3">৳ {i.totalPrice}</td>
                 <td className="p-3">
-                  <Link href={`/admin/units/${i.id}/edit`} className="text-ocean underline">
+                  <Link
+                    href={`/admin/units/${i.id}/edit`}
+                    className="text-ocean underline"
+                  >
                     Edit
                   </Link>
                   <span className="mx-2 text-ocean/30">|</span>
-                  <Link href={`/admin/units/${i.id}/plans`} className="text-ocean underline">
+                  <Link
+                    href={`/admin/units/${i.id}/plans`}
+                    className="text-ocean underline"
+                  >
                     Plans
                   </Link>
                 </td>
@@ -86,4 +104,3 @@ export default function AdminUnitsListPage() {
     </main>
   );
 }
-

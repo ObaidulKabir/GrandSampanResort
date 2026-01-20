@@ -1,34 +1,40 @@
-'use client';
-import { useState } from 'react';
-import Link from 'next/link';
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 export default function AdminCreateUnitPage() {
-  const [id, setId] = useState('');
-  const [floor, setFloor] = useState<number | ''>('');
-  const [type, setType] = useState('Standard');
-  const [size, setSize] = useState<number | ''>('');
-  const [view, setView] = useState('Sea');
-  const [totalPrice, setTotalPrice] = useState<number | ''>('');
+  const [id, setId] = useState("");
+  const [floor, setFloor] = useState<number | "">("");
+  const [type, setType] = useState("Standard");
+  const [size, setSize] = useState<number | "">("");
+  const [view, setView] = useState("Sea");
+  const [totalPrice, setTotalPrice] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const canSubmit = id && floor !== '' && type && size && view && totalPrice !== '';
+  const canSubmit =
+    id && floor !== "" && type && size && view && totalPrice !== "";
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setLoading(true);
     setResult(null);
-    const res = await fetch('http://localhost:4000/suites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer admin' },
+    const res = await fetch(`${API_URL}/suites`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer admin",
+      },
       body: JSON.stringify({
         id,
         floor: Number(floor),
         type,
         size: Number(size),
         view,
-        totalPrice: Number(totalPrice)
-      })
+        totalPrice: Number(totalPrice),
+      }),
     });
     const json = await res.json();
     setResult(json);
@@ -37,10 +43,15 @@ export default function AdminCreateUnitPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-['Playfair Display'] text-4xl text-ocean">Create Unit</h1>
+      <h1 className="font-['Playfair Display'] text-4xl text-ocean">
+        Create Unit
+      </h1>
       <p className="mt-3 text-ocean/80">Add a new suite unit to inventory.</p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-lg border border-gold/30 bg-white p-6">
+      <form
+        onSubmit={onSubmit}
+        className="mt-8 space-y-4 rounded-lg border border-gold/30 bg-white p-6"
+      >
         <div>
           <label className="block text-sm text-ocean">Unit ID</label>
           <input
@@ -56,7 +67,9 @@ export default function AdminCreateUnitPage() {
             <input
               type="number"
               value={floor}
-              onChange={(e) => setFloor(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) =>
+                setFloor(e.target.value === "" ? "" : Number(e.target.value))
+              }
               className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
               placeholder="5"
             />
@@ -80,7 +93,9 @@ export default function AdminCreateUnitPage() {
             <input
               type="number"
               value={size}
-              onChange={(e) => setSize(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) =>
+                setSize(e.target.value === "" ? "" : Number(e.target.value))
+              }
               className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
               placeholder="350 sq ft"
             />
@@ -102,7 +117,9 @@ export default function AdminCreateUnitPage() {
           <input
             type="number"
             value={totalPrice}
-            onChange={(e) => setTotalPrice(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) =>
+              setTotalPrice(e.target.value === "" ? "" : Number(e.target.value))
+            }
             className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
             placeholder="200000"
           />
@@ -114,7 +131,7 @@ export default function AdminCreateUnitPage() {
             disabled={!canSubmit || loading}
             className="rounded bg-ocean px-4 py-2 text-white disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Create Unit'}
+            {loading ? "Creating..." : "Create Unit"}
           </button>
           <Link href="/admin" className="text-ocean underline">
             Back to Admin
@@ -125,7 +142,9 @@ export default function AdminCreateUnitPage() {
       {result && (
         <div className="mt-6 rounded border border-ocean/20 bg-white p-4 text-sm text-ocean">
           <div>Response:</div>
-          <pre className="mt-2 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+          <pre className="mt-2 overflow-auto">
+            {JSON.stringify(result, null, 2)}
+          </pre>
           <div className="mt-3">
             <Link href="/admin/units" className="text-ocean underline">
               View Units
@@ -136,4 +155,3 @@ export default function AdminCreateUnitPage() {
     </main>
   );
 }
-
