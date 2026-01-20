@@ -13,7 +13,7 @@ services:
     networks:
       - traefik-network
     environment:
-      - DATABASE_URL=postgresql://root:toor@postgres:5432/grand_sampan
+      - DATABASE_URL=${DATABASE_URL:-postgresql://root:toor@postgres:5432/grand_sampan}
       - PORT=3000
   # ─── Frontend Service ─────────────────────────────────────────
   frontend:
