@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { ClientsRepository } from './clients.repository';
-import { Client } from '../domain/models';
-import { PrismaClient } from '@prisma/client';
+import { Injectable } from "@nestjs/common";
+import { ClientsRepository } from "./clients.repository";
+import { Client } from "../domain/models";
+import { prisma } from "../../prisma/client";
 
 @Injectable()
 export class ClientsService {
   private repo = new ClientsRepository();
-  private prisma: PrismaClient | null = process.env.DATABASE_URL ? new PrismaClient() : null;
+  private prisma = process.env.DATABASE_URL ? prisma : null;
   async list() {
     if (this.prisma) return this.prisma.client.findMany();
     return this.repo.findAll();
@@ -20,7 +20,8 @@ export class ClientsService {
     return this.repo.create(item);
   }
   async update(id: string, item: Partial<Client>) {
-    if (this.prisma) return this.prisma.client.update({ where: { id }, data: item as any });
+    if (this.prisma)
+      return this.prisma.client.update({ where: { id }, data: item as any });
     return this.repo.update(id, item);
   }
   async remove(id: string) {
@@ -31,4 +32,3 @@ export class ClientsService {
     return this.repo.delete(id);
   }
 }
-

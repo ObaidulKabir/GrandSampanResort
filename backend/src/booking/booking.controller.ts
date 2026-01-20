@@ -19,11 +19,24 @@ export class BookingController {
     return { ok: true, booking: res };
   }
 
+  @Get('investor/:id')
+  async listByInvestor(@Param('id') id: string) {
+    const res = await this.service.listByInvestor(id);
+    return { ok: true, holdings: res };
+  }
+
   @Get(':id/schedule')
   async schedule(@Param('id') id: string) {
     const res = await this.service.schedule(id);
     if (!res) return { ok: false, error: 'not_found' };
     return { ok: true, schedule: res };
+  }
+
+  @Get(':id/summary')
+  async summary(@Param('id') id: string) {
+    const res = await this.service.summary(id);
+    if (!res) return { ok: false, error: 'not_found' };
+    return { ok: true, summary: res };
   }
 }
 

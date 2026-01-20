@@ -6,6 +6,9 @@ export class BookingRepository {
   async listBySuite(suiteId: string) {
     return this.items.filter((b) => b.suiteId === suiteId);
   }
+  async listByInvestor(investorId: string) {
+    return this.items.filter((b) => (b.investorId || '') === investorId);
+  }
 
   async create(item: Booking) {
     this.items.push(item);
