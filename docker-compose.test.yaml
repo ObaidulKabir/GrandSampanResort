@@ -1,0 +1,37 @@
+services:
+  # ─── Backend Service ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=web"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+    networks:
+      - traefik-network
+    environment:
+      - DATABASE_URL=postgresql://root:toor@postgres:5432/grand_sampan
+      - PORT=3000
+  # ─── Frontend Service ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.frontend.priority=1"
+    networks:
+      - traefik-network
+    environment:
+      - PORT=3000
+# ─── Networks ───────────────────────────────────────────────────
+networks:
+  traefik-network:
+    external: true

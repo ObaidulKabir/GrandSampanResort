@@ -12,6 +12,8 @@ services:
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
+      target: development
     ports:
       - "4000:4000"
     environment:
@@ -25,6 +27,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
+      target: development
     ports:
       - "3000:3000"
     environment:
