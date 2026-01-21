@@ -24,8 +24,8 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://${DOMAIN}/api}
-        - DOMAIN=${DOMAIN:-localhost}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        DOMAIN: ${DOMAIN}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-resort-frontend.rule=Host(`${DOMAIN}`)"
@@ -36,7 +36,7 @@ services:
       - traefik-network
     environment:
       - PORT=3000
-      - DOMAIN=${DOMAIN:-localhost}
+      - DOMAIN=${DOMAIN}
 # ─── Networks ───────────────────────────────────────────────────
 networks:
   traefik-network:
