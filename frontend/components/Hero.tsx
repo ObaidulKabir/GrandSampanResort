@@ -1,24 +1,24 @@
-'use client';
-import Button from './Button';
-import Carousel from './Carousel';
-import { useEffect, useState } from 'react';
+"use client";
+import Button from "./Button";
+import Carousel from "./Carousel";
+import { useEffect, useState } from "react";
 
 export default function Hero() {
   const [slides, setSlides] = useState<{ src: string; alt: string }[]>([
-    { src: '/views/ocean.svg', alt: 'Oceanfront luxury resort' },
-    { src: '/views/rooms.svg', alt: 'Rooms with ocean views' },
-    { src: '/views/rooftop.svg', alt: 'Rooftop café ambiance' }
+    { src: "/views/3d_sun_set_view.png", alt: "Oceanfront luxury resort" },
+    { src: "/views/View-03.png", alt: "Rooms with ocean views" },
+    { src: "/views/View-04.png", alt: "Rooftop café ambiance" },
   ]);
   useEffect(() => {
-    fetch('/api/views')
+    fetch("/api/views")
       .then((r) => r.json())
       .then((names: string[]) => {
         if (Array.isArray(names) && names.length) {
           setSlides(
             names.map((n) => ({
               src: `/views/${n}`,
-              alt: n.replace(/[-_]/g, ' ')
-            }))
+              alt: n.replace(/[-_]/g, " "),
+            })),
           );
         }
       })
@@ -34,7 +34,8 @@ export default function Hero() {
           Own the Beach. <span className="text-gold">Earn from It.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-ocean/80">
-          A luxury beachfront resort offering fractional ownership and premium stays.
+          A luxury beachfront resort offering fractional ownership and premium
+          stays.
         </p>
         <div className="mt-10 flex gap-4">
           <Button>Book a Site Visit</Button>
