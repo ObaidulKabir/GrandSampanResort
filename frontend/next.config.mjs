@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 // Required environment variables validation (only at build time)
-if (
-  process.env.NODE_ENV !== "production" ||
-  process.env.npm_lifecycle_event === "build"
-) {
+if (process.env.NODE_ENV !== "production") {
   const requiredEnvVars = ["NEXT_PUBLIC_API_URL", "DOMAIN"];
 
   for (const envVar of requiredEnvVars) {
