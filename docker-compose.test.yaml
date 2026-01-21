@@ -9,6 +9,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-resort-backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.grand-sampan-resort-backend.entrypoints=web"
+      - "traefik.http.routers.grand-sampan-resort-backend.priority=100"
       - "traefik.http.services.grand-sampan-resort-backend.loadbalancer.server.port=3000"
     networks:
       - traefik-network
@@ -21,6 +22,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://${DOMAIN}/api}
+        - DOMAIN=${DOMAIN:-localhost}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-resort-frontend.rule=Host(`${DOMAIN}`)"
@@ -31,7 +35,6 @@ services:
       - traefik-network
     environment:
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
       - DOMAIN=${DOMAIN:-localhost}
 # ─── Networks ───────────────────────────────────────────────────
 networks:
