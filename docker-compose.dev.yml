@@ -26,9 +26,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_USER=app
-      - POSTGRES_PASSWORD=app
-      - POSTGRES_DB=grand_sampan
+      - POSTGRES_USER=${POSTGRES_USER:-app}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-app}
+      - POSTGRES_DB=${POSTGRES_DB:-grand_sampan}
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
@@ -40,12 +40,12 @@ services:
       target: development
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN:-localhost}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.priority=100"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
     environment:
-      - PORT=3000
-      - DATABASE_URL=postgresql://app:app@postgres:5432/grand_sampan
+      - PORT=${PORT:-3000}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://app:app@postgres:5432/grand_sampan}
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -60,15 +60,15 @@ services:
       target: development
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-localhost}`)"
       - "traefik.http.routers.frontend.priority=1"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     ports:
       - "3000:3000"
     environment:
-      - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost/api
-      - DOMAIN=localhost
+      - PORT=${PORT:-3000}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost/api}
+      - DOMAIN=${DOMAIN:-localhost}
     depends_on:
       - backend
     volumes:
