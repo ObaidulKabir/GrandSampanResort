@@ -78,7 +78,7 @@ jobs:
       - name: Build backend image
         run: docker build -t gs-backend:ci ./backend
       - name: Build frontend image
-        run: docker build -t gs-frontend:ci ./frontend
+        run: docker build --build-arg NODE_ENV=production -t gs-frontend:ci ./frontend
 
   # ─── Deploy to Staging ────────────────────────────────────────
   deploy-staging:
