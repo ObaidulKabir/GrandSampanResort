@@ -1,11 +1,24 @@
-name: CI
+name: CI/CD Pipeline
 on:
   push:
     branches: [dev, main]
   pull_request:
     branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy to staging"
+        required: false
+        default: "no"
+        type: choice
+        options:
+          - "yes"
+          - "no"
+
 jobs:
+  # ─── Backend Tests ────────────────────────────────────────────
   backend:
+    name: Backend Tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -38,43 +51,12 @@ jobs:
         run: npm run prisma:seed
         env:
           DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
-      - run: npm run test
-  backend-integration:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: app
-          POSTGRES_PASSWORD: app
-          POSTGRES_DB: grand_sampan
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U app -d grand_sampan"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    defaults:
-      run:
-        working-directory: ./backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - run: npm ci
-      - name: Prisma migrate
-        run: npm run prisma:migrate:deploy
-        env:
-          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
-      - name: Seed DB
-        run: npm run prisma:seed
-        env:
-          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
-      - name: Run integration tests
+      - name: Run tests
         run: npm run test
+
+  # ─── Frontend Tests ───────────────────────────────────────────
   frontend:
+    name: Frontend Tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -86,7 +68,10 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run test
+
+  # ─── Docker Build ─────────────────────────────────────────────
   docker:
+    name: Docker Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,12 +80,38 @@ jobs:
       - name: Build frontend image
         run: docker build -t gs-frontend:ci ./frontend
 
-  # Deploy to staging after all CI jobs pass (only on push to dev branch)
+  # ─── Deploy to Staging ────────────────────────────────────────
   deploy-staging:
     name: Deploy to Staging
-    needs: [backend, backend-integration, frontend, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-    uses: ./.github/workflows/build-and-deploy.yml
-    with:
-      ENVIRONMENT: staging
-    secrets: inherit
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, docker]
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'yes')
+    environment: staging
+    steps:
+      - name: Update Code on Server
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd /home/app/GrandSampanResort
+            git fetch -p
+            git checkout ${{ github.ref_name }}
+            git pull
+
+      - name: Build and Deploy Containers
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd /home/app/GrandSampanResort
+            docker compose -f docker-compose.test.yaml up -d --build
