@@ -7,7 +7,6 @@ export default function FeaturesGrid() {
   const items = [
     "AllDayDinning.png",
     "BusinessCenter.png",
-    "ChatGPT Image Jan 19, 2026, 07_02_33 PM.png",
     "HouseKeeping-2.png",
     "HouseKeeping.png",
     "Reception.png",
