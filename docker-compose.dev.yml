@@ -9,7 +9,7 @@ services:
       - --providers.docker.exposedbydefault=false
       - --providers.file.watch=true
       - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
+      - --entrypoints.webserver.address=:443
       - --log.level=DEBUG
     ports:
       - "80:80"
