@@ -26,7 +26,7 @@ export default function Hero() {
   }, []);
   return (
     <section className="relative overflow-hidden">
-      <div className="relative mx-auto max-w-7xl px-6 py-16">
+      <div className="relative mx-auto max-w-7xl px-6 py-16 mt-10">
         <div className="relative mb-10">
           <Carousel height={384} slides={slides} />
         </div>
