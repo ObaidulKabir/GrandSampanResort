@@ -1,6 +1,7 @@
+import Footer from '@/components/Footer';
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-6 py-16 mt-10">
       <h1 className="font-['Playfair Display'] text-4xl text-ocean">Terms & Conditions</h1>
       <p className="mt-4 text-ocean/80">
         These sample terms govern the use of Unitech Grand Sampan Resort services, bookings, and investor participation.
@@ -65,12 +66,13 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-8 mb-20">
         <h2 className="font-['Playfair Display'] text-2xl text-ocean">8. Contact</h2>
         <p className="mt-2 text-ocean/80">
           For questions or support: info@grandsampan.com • +880 17 0000 0000
         </p>
       </section>
+      <Footer/>
     </main>
   );
 }

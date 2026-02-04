@@ -79,7 +79,7 @@ export default function InvestorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-16">
+    <main className="mx-auto max-w-7xl px-6 py-16 mt-10">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-['Playfair Display'] text-4xl text-ocean">Investor Dashboard</h1>
