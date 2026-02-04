@@ -1,8 +1,9 @@
 import Image from 'next/image';
+import Footer from '@/components/Footer';
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-7xl px-6 py-16">
+    <main className="mx-auto max-w-7xl px-6 py-16 mt-10">
       <section className="mx-auto max-w-4xl">
         <h1 className="font-['Playfair Display'] text-4xl text-ocean">About Project</h1>
         <p className="mt-4 text-ocean/80">
@@ -96,13 +97,14 @@ export default function AboutPage() {
         <p className="mt-4 text-ocean/80">
           Unitech develops hospitality-led coastal projects with an emphasis on durability, guest experience and long-term stewardship. The Grand Sampan initiative brings a refined, small-scale luxury experience to Cox’s Bazar’s iconic shoreline.
         </p>
-        <ul className="mt-6 space-y-2 text-ocean/80">
+        <ul className="mt-6 space-y-2 text-ocean/80 mb-20">
           <li>Experience in coastal developments and boutique hospitality</li>
           <li>Transparent fractional model with investor services</li>
           <li>Local operations team for daily guest excellence</li>
           <li>Commitment to environmental and community standards</li>
         </ul>
       </section>
+      <Footer/>
     </main>
   );
 }

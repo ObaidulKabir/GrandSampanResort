@@ -1,3 +1,4 @@
+import Footer from '@/components/Footer';
 export default function FAQPage() {
   const faqs = [
     {
@@ -22,7 +23,7 @@ export default function FAQPage() {
     }
   ];
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-6 py-16 mt-10">
       <h1 className="font-['Playfair Display'] text-4xl text-ocean">Frequently Asked Questions</h1>
       <div className="mt-8 space-y-6">
         {faqs.map((item, i) => (
@@ -32,6 +33,7 @@ export default function FAQPage() {
           </div>
         ))}
       </div>
+      <Footer/>
     </main>
   );
 }
