@@ -3,22 +3,20 @@ import { useEffect, useState } from 'react';
 import Carousel from './Carousel';
 
 export default function ViewsCarousel({ height = '20vh' }: { height?: number | string }) {
-  const [slides, setSlides] = useState<{ src: string; alt: string }[]>([
-    { src: '/views/ocean.svg', alt: 'Ocean view' },
-    { src: '/views/rooms.svg', alt: 'Rooms' },
-    { src: '/views/rooftop.svg', alt: 'Rooftop' },
-    { src: '/views/beach.svg', alt: 'Beach' }
-  ]);
+  const [slides, setSlides] = useState<{ src: string; alt: string }[]>([]);
   useEffect(() => {
-    fetch('/api/views')
+    fetch('/api/views', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((names: string[]) => {
-        if (Array.isArray(names) && names.length) {
+      .then((urls: string[]) => {
+        if (Array.isArray(urls) && urls.length) {
           setSlides(
-            names.map((n) => ({
-              src: `/views/${n}`,
-              alt: n.replace(/[-_]/g, ' ')
-            }))
+            urls.map((u) => {
+              const name = (u.split('/').pop() || u).replace(/\.[^.]+$/, '');
+              return {
+                src: u.startsWith('/') ? u : `/views/${u}`,
+                alt: name.replace(/[-_]/g, ' ')
+              };
+            })
           );
         }
       })

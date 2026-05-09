@@ -14,11 +14,15 @@ export default function AdminPage() {
           <Link href="/admin/units" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
             View Units
           </Link>
+          <Link href="/admin/homepage" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
+            Homepage Media
+          </Link>
         </div>
       </div>
       <div className="mt-8 grid md:grid-cols-3 gap-6">
         {[
           { label: 'Create Units', href: '/admin/units/new' },
+          { label: 'Homepage Media', href: '/admin/homepage' },
           { label: 'Set Room Type' },
           { label: 'Set Price' },
           { label: 'Set Share Plans' },

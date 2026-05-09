@@ -4,21 +4,20 @@ import Carousel from './Carousel';
 import { useEffect, useState } from 'react';
 
 export default function Hero() {
-  const [slides, setSlides] = useState<{ src: string; alt: string }[]>([
-    { src: '/views/ocean.svg', alt: 'Oceanfront luxury resort' },
-    { src: '/views/rooms.svg', alt: 'Rooms with ocean views' },
-    { src: '/views/rooftop.svg', alt: 'Rooftop café ambiance' }
-  ]);
+  const [slides, setSlides] = useState<{ src: string; alt: string }[]>([]);
   useEffect(() => {
-    fetch('/api/views')
+    fetch('/api/hero', { cache: 'no-store' })
       .then((r) => r.json())
-      .then((names: string[]) => {
-        if (Array.isArray(names) && names.length) {
+      .then((urls: string[]) => {
+        if (Array.isArray(urls) && urls.length) {
           setSlides(
-            names.map((n) => ({
-              src: `/views/${n}`,
-              alt: n.replace(/[-_]/g, ' ')
-            }))
+            urls.map((u) => {
+              const name = (u.split('/').pop() || u).replace(/\.[^.]+$/, '');
+              return {
+                src: u.startsWith('/') ? u : `/views/${u}`,
+                alt: name.replace(/[-_]/g, ' ')
+              };
+            })
           );
         }
       })

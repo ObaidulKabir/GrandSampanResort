@@ -20,11 +20,11 @@ async function listImages(dir: string, baseUrl: string) {
 }
 
 function isSafeDefaultUrl(url: string) {
-  return url.startsWith('/features/');
+  return url.startsWith('/views/');
 }
 
 function isSafeUploadedUrl(url: string) {
-  return url.startsWith('/uploads/features/');
+  return url.startsWith('/uploads/hero/');
 }
 
 function safeBasename(url: string) {
@@ -51,15 +51,15 @@ async function readOverrides(filePath: string): Promise<Overrides> {
 }
 
 async function writeOverrides(filePath: string, overrides: Overrides) {
-  await mkdir(join(process.cwd(), 'public', 'uploads', 'features'), { recursive: true });
+  await mkdir(join(process.cwd(), 'public', 'uploads', 'hero'), { recursive: true });
   await writeFile(filePath, JSON.stringify(overrides, null, 2), 'utf8');
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const dir = join(process.cwd(), 'public', 'features');
-    const urls = await listImages(dir, '/features');
-    const overridesPath = join(process.cwd(), 'public', 'uploads', 'features', '_overrides.json');
+    const dir = join(process.cwd(), 'public', 'views');
+    const urls = await listImages(dir, '/views');
+    const overridesPath = join(process.cwd(), 'public', 'uploads', 'hero', '_overrides.json');
     const overrides = await readOverrides(overridesPath);
     const resolved = urls.map((u) => overrides[u] || u);
 
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Invalid filename' }, { status: 400 });
     }
 
-    const overridesPath = join(process.cwd(), 'public', 'uploads', 'features', '_overrides.json');
+    const overridesPath = join(process.cwd(), 'public', 'uploads', 'hero', '_overrides.json');
     const overrides = await readOverrides(overridesPath);
 
     const existing = overrides[originalUrl];
@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest) {
     if (existing && isSafeUploadedUrl(existing)) {
       const existingName = safeBasename(existing);
       if (existingName) {
-        const existingFile = join(process.cwd(), 'public', 'uploads', 'features', existingName);
+        const existingFile = join(process.cwd(), 'public', 'uploads', 'hero', existingName);
         await unlink(existingFile).catch(() => {});
       }
     }
@@ -115,7 +115,7 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json().catch(() => null);
     const originalUrl = typeof body?.originalUrl === 'string' ? body.originalUrl : '';
     const url = typeof body?.url === 'string' ? body.url : '';
-    const overridesPath = join(process.cwd(), 'public', 'uploads', 'features', '_overrides.json');
+    const overridesPath = join(process.cwd(), 'public', 'uploads', 'hero', '_overrides.json');
 
     if (originalUrl) {
       if (!isSafeDefaultUrl(originalUrl) || !safeBasename(originalUrl)) {
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest) {
         await writeOverrides(overridesPath, overrides);
         const existingName = safeBasename(existing);
         if (existingName) {
-          const existingFile = join(process.cwd(), 'public', 'uploads', 'features', existingName);
+          const existingFile = join(process.cwd(), 'public', 'uploads', 'hero', existingName);
           await unlink(existingFile).catch(() => {});
         }
       }
@@ -136,11 +136,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!isSafeUploadedUrl(url) || !safeBasename(url)) {
-      return NextResponse.json({ ok: false, error: 'Only uploaded feature images can be deleted' }, { status: 400 });
+      return NextResponse.json({ ok: false, error: 'Only uploaded hero images can be deleted' }, { status: 400 });
     }
 
     const name = safeBasename(url);
-    const filePath = join(process.cwd(), 'public', 'uploads', 'features', name);
+    const filePath = join(process.cwd(), 'public', 'uploads', 'hero', name);
     await unlink(filePath);
 
     const overrides = await readOverrides(overridesPath);

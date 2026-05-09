@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.formData();
     const file: File | null = data.get('file') as unknown as File;
+    const folderRaw = data.get('folder');
+    const folder = typeof folderRaw === 'string' ? folderRaw.trim() : '';
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -18,7 +20,10 @@ export async function POST(request: NextRequest) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const filename = uniqueSuffix + '-' + file.name.replace(/[^a-zA-Z0-9.-]/g, '');
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
+    const allowedFolders = new Set(['views', 'features', 'hero']);
+    const uploadDir = allowedFolders.has(folder)
+      ? join(process.cwd(), 'public', 'uploads', folder)
+      : join(process.cwd(), 'public', 'uploads');
     
     // Ensure directory exists
     try {
@@ -30,7 +35,8 @@ export async function POST(request: NextRequest) {
     const path = join(uploadDir, filename);
     await writeFile(path, buffer);
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    const url = allowedFolders.has(folder) ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
+    return NextResponse.json({ url });
   } catch (e) {
     console.error('Upload error:', e);
     return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
