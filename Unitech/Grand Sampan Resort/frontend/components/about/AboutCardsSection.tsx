@@ -29,6 +29,7 @@ export default function AboutCardsSection({
                 alt={card.imageAlt || card.title}
                 fill
                 priority={index === 0}
+                unoptimized={(card.imageUrl || '/images/logo.svg').toLowerCase().endsWith('.svg')}
                 sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                 className="object-cover"
               />

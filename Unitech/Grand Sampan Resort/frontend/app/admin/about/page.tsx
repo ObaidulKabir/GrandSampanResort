@@ -439,6 +439,7 @@ export default function AdminAboutPage() {
                       src={card.imageUrl || '/images/logo.svg'}
                       alt={card.imageAlt || card.title}
                       fill
+                      unoptimized={(card.imageUrl || '/images/logo.svg').toLowerCase().endsWith('.svg')}
                       sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover"
                     />

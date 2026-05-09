@@ -240,6 +240,18 @@ export default function TermsPage() {
           </ul>
         </div>
       </section>
+
+      <section className="mt-10 space-y-4 text-ocean/80">
+        <h2 className="font-['Playfair Display'] text-2xl text-ocean">Changes to Terms</h2>
+        <p>
+          The company may update these terms periodically. Continued use of services indicates acceptance of changes.
+        </p>
+      </section>
+
+      <section className="mt-10 space-y-4 text-ocean/80">
+        <h2 className="font-['Playfair Display'] text-2xl text-ocean">Contact</h2>
+        <p>For questions or support: info@grandsampan.com • +880 17 0000 0000</p>
+      </section>
     </main>
   );
 }

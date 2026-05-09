@@ -1,7 +1,6 @@
 import Hero from '@/components/Hero';
 import ViewsCarousel from '@/components/ViewsCarousel';
 import FeaturesGrid from '@/components/FeaturesGrid';
-import Footer from '@/components/Footer';
 import LocationSection from '@/components/LocationSection';
 import AvailableCards from '@/components/AvailableCards';
 import ChatBot from '@/components/ChatBot';
@@ -37,7 +36,6 @@ export default function HomePage() {
 
       <LocationSection />
 
-      <Footer />
       <ChatBot />
     </main>
   );
