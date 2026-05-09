@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8F8F6"/>
+      <stop offset="1" stop-color="#EDECE8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="80" y="120" width="1040" height="460" fill="#0E3A5A" opacity="0.08" rx="12"/>
+  <rect x="100" y="160" width="300" height="200" fill="#0E3A5A" opacity="0.12" rx="8"/>
+  <rect x="440" y="160" width="300" height="200" fill="#0E3A5A" opacity="0.12" rx="8"/>
+  <rect x="780" y="160" width="300" height="200" fill="#0E3A5A" opacity="0.12" rx="8"/>
+  <rect x="100" y="380" width="300" height="160" fill="#FF7A3D" opacity="0.14" rx="8"/>
+  <rect x="440" y="380" width="300" height="160" fill="#D4AF37" opacity="0.18" rx="8"/>
+  <rect x="780" y="380" width="300" height="160" fill="#0E3A5A" opacity="0.18" rx="8"/>
+  <text x="100" y="680" font-family="Inter, sans-serif" font-size="28" fill="#0E3A5A">Boutique rooms with private balconies and ocean views</text>
+</svg>
+

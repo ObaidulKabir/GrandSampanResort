@@ -1,0 +1,12 @@
+node_modules/
+.next/
+dist/
+.DS_Store
+*.log
+coverage/
+tmp/
+.env*
+**/public/uploads/
+.trae/
+.vscode/
+
