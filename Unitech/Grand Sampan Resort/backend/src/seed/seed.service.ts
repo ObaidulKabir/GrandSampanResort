@@ -22,7 +22,7 @@ export class SeedService {
       id: 'S-303',
       floor: 3,
       type: 'Deluxe',
-      size: '30m²',
+      size: 30,
       view: 'Ocean',
       totalPrice: 185000,
       currency: 'BDT'
@@ -31,7 +31,7 @@ export class SeedService {
       id: 'S-404',
       floor: 4,
       type: 'Premium',
-      size: '34m²',
+      size: 34,
       view: 'Hill',
       totalPrice: 225000,
       currency: 'BDT'
