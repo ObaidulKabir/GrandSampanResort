@@ -13,6 +13,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+    if (!allowedTypes.has(file.type)) {
+      return NextResponse.json({ error: 'Unsupported image type' }, { status: 400 });
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Image size must be 5MB or less' }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
@@ -20,7 +28,7 @@ export async function POST(request: NextRequest) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const filename = uniqueSuffix + '-' + file.name.replace(/[^a-zA-Z0-9.-]/g, '');
 
-    const allowedFolders = new Set(['views', 'features', 'hero']);
+    const allowedFolders = new Set(['views', 'features', 'hero', 'about']);
     const uploadDir = allowedFolders.has(folder)
       ? join(process.cwd(), 'public', 'uploads', folder)
       : join(process.cwd(), 'public', 'uploads');

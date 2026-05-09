@@ -11,6 +11,9 @@ export default function AdminPage() {
           <Link href="/admin/units/new" className="inline-block rounded bg-ocean px-4 py-2 text-white">
             Create Unit
           </Link>
+          <Link href="/admin/about" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
+            About CMS
+          </Link>
           <Link href="/admin/units" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
             View Units
           </Link>
@@ -22,6 +25,7 @@ export default function AdminPage() {
       <div className="mt-8 grid md:grid-cols-3 gap-6">
         {[
           { label: 'Create Units', href: '/admin/units/new' },
+          { label: 'About CMS', href: '/admin/about' },
           { label: 'Homepage Media', href: '/admin/homepage' },
           { label: 'Set Room Type' },
           { label: 'Set Price' },

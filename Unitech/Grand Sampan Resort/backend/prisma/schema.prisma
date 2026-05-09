@@ -9,6 +9,11 @@ enum Role {
   ADMIN
   INVESTOR
 }
+enum AboutSection {
+  ABOUT_PROJECT
+  ABOUT_COMPOUND
+  ABOUT_COMPANY
+}
 model User {
   id           String         @id @default(uuid())
   email        String         @unique
@@ -90,5 +95,18 @@ model Client {
   nomineeName      String
   nomineeNid       String
   nomineePicUrl    String
+}
+model AboutCard {
+  id         String       @id @default(uuid())
+  section    AboutSection
+  title      String
+  bodyHtml   String
+  imageUrl   String?
+  imageAlt   String?
+  sortOrder  Int
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([section, sortOrder])
 }
 
