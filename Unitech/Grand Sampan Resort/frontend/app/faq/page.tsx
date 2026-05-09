@@ -1,38 +1,56 @@
-export default function FAQPage() {
-  const faqs = [
-    {
-      q: 'How does fractional ownership work?',
-      a: 'You purchase a share plan that entitles you to usage days per month and potential revenue share per policy.'
-    },
-    {
-      q: 'Can I transfer or resell my plan?',
-      a: 'Transfers and resales are subject to company review and compliance; please contact support for procedures.'
-    },
-    {
-      q: 'What payment schedule applies?',
-      a: 'Typical schedules include deposit, downpayment and monthly installments. Due dates appear in your investor dashboard.'
-    },
-    {
-      q: 'Where is the resort located?',
-      a: 'Marine Dirve Road, Rupayan Beach View Innani, Cox\'s Bazar.'
-    },
-    {
-      q: 'What amenities are available in the compound?',
-      a: 'As part of Rupayan Beach View: secured boundary, CC surveillance, amusement and water parks, mall, mosque, children play area, boat club, beach security, restaurant, pickup/drop-off and hospital.'
-    }
-  ];
+import FaqClient from '@/components/faq/FaqClient';
+import { normalizeCategory, stripHtml, type FaqEntry } from '@/lib/faqContent';
+
+export const dynamic = 'force-dynamic';
+
+async function getFaqItems(): Promise<FaqEntry[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  try {
+    const res = await fetch(`${baseUrl}/faq`, {
+      next: { tags: ['faq-content'], revalidate: 3600 }
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.items || !Array.isArray(json.items)) return [];
+    return json.items;
+  } catch {
+    return [];
+  }
+}
+
+function buildFaqJsonLd(items: FaqEntry[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: stripHtml(item.answerHtml)
+      }
+    }))
+  };
+}
+
+export default async function FaqPage() {
+  const items = await getFaqItems();
+  const sorted = [...items].sort(
+    (a, b) => normalizeCategory(a.category).localeCompare(normalizeCategory(b.category)) || a.sortOrder - b.sortOrder
+  );
+  const jsonLd = buildFaqJsonLd(sorted);
+
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      <h1 className="font-['Playfair Display'] text-4xl text-ocean">Frequently Asked Questions</h1>
-      <div className="mt-8 space-y-6">
-        {faqs.map((item, i) => (
-          <div key={i} className="rounded-lg border border-gold/30 bg-white p-5">
-            <div className="text-xl text-ocean">{item.q}</div>
-            <div className="mt-2 text-ocean/80">{item.a}</div>
-          </div>
-        ))}
-      </div>
+    <main className="mx-auto max-w-7xl px-6 py-16">
+      <section className="mx-auto max-w-4xl text-center">
+        <h1 className="font-['Playfair Display'] text-4xl text-ocean md:text-5xl">Frequently Asked Questions</h1>
+        <p className="mt-4 text-lg text-ocean/80">
+          Find answers quickly by browsing categories or searching by keywords.
+        </p>
+      </section>
+
+      <FaqClient items={sorted} />
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </main>
   );
 }
-

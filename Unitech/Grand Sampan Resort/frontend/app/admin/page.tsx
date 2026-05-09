@@ -14,6 +14,9 @@ export default function AdminPage() {
           <Link href="/admin/about" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
             About CMS
           </Link>
+          <Link href="/admin/faq" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
+            FAQ CMS
+          </Link>
           <Link href="/admin/units" className="inline-block rounded border border-ocean px-4 py-2 text-ocean">
             View Units
           </Link>
@@ -26,6 +29,7 @@ export default function AdminPage() {
         {[
           { label: 'Create Units', href: '/admin/units/new' },
           { label: 'About CMS', href: '/admin/about' },
+          { label: 'FAQ CMS', href: '/admin/faq' },
           { label: 'Homepage Media', href: '/admin/homepage' },
           { label: 'Set Room Type' },
           { label: 'Set Price' },

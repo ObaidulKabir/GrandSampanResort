@@ -110,3 +110,26 @@ model AboutCard {
   @@index([section, sortOrder])
 }
 
+model FaqEntry {
+  id         String   @id @default(uuid())
+  category   String   @default("General")
+  question   String
+  answerHtml String
+  sortOrder  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([category, sortOrder])
+  @@index([question])
+}
+
+model FaqCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+

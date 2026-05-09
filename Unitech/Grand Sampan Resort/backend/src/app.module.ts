@@ -13,9 +13,10 @@ import { ClientsModule } from './clients/clients.module';
 import { SeedModule } from './seed/seed.module';
 import { SettingsModule } from './settings/settings.module';
 import { AboutModule } from './about/about.module';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
-  imports: [SuitesModule, PaymentsModule, AuthModule, BookingModule, TimesharesModule, AvailabilityModule, PricingModule, ClientsModule, SeedModule, SettingsModule, AboutModule],
+  imports: [SuitesModule, PaymentsModule, AuthModule, BookingModule, TimesharesModule, AvailabilityModule, PricingModule, ClientsModule, SeedModule, SettingsModule, AboutModule, FaqModule],
   controllers: [AppController],
   providers: [AppService]
 })
