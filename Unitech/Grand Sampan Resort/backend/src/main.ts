@@ -9,6 +9,7 @@ async function bootstrap() {
   (app.getHttpAdapter().getInstance() as any)?.disable?.('etag');
   app.enableCors({ origin: ['http://localhost:3000', 'http://localhost:3001'], credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.setGlobalPrefix('api');
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
   await app.listen(port);
   console.log(`API running at http://localhost:${port}`);

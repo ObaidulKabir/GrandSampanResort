@@ -26,7 +26,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grand-sampan-backend.rule=Host(`api.grand-sampan.gkibria121.com`)"
+      - "traefik.http.routers.grand-sampan-backend.rule=Host(`grand-sampan.gkibria121.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
       - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000"
 
