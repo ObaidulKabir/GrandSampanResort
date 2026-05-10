@@ -2,6 +2,8 @@ services:
   frontend:
     build:
       context: ./Unitech/Grand Sampan Resort/frontend
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       target: production
     container_name: grand-sampan-frontend
     restart: unless-stopped
