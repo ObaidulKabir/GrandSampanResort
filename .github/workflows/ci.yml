@@ -94,3 +94,35 @@ jobs:
         run: docker build -t gs-backend:ci ./backend
       - name: Build frontend image
         run: docker build -t gs-frontend:ci ./frontend
+  # ─── Deploy to Production ────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Update Code on Server
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd /home/app/GrandSampanResort
+            git fetch -p
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+
+      - name: Build and Deploy Containers
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+            cd /home/app/GrandSampanResort
+            docker compose -f docker-compose.production.yaml up -d --build
