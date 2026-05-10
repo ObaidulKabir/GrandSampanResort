@@ -29,8 +29,8 @@ export class BookingService {
   async listByInvestor(investorId: string) {
     if (this.prisma) {
       const bookings = await this.prisma.booking.findMany({ where: { investorId } });
-      const suiteIds = Array.from(new Set(bookings.map((b: any) => b.suiteId)));
-      const planIds = Array.from(new Set(bookings.map((b: any) => b.planId).filter(Boolean)));
+      const suiteIds = Array.from(new Set(bookings.map((b: any) => b.suiteId as string)));
+      const planIds = Array.from(new Set(bookings.map((b: any) => b.planId as string).filter(Boolean)));
       const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
       const plans = await Promise.all(planIds.map((id) => (id ? this.timeshares.get(id) : null)));
       const suiteById = Object.fromEntries((suites || []).filter(Boolean).map((s: any) => [s.id, s]));
