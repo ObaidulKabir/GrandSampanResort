@@ -1,8 +1,23 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminEmail = 'admin@grandsampan.com';
+  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!existingAdmin) {
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        passwordHash,
+        role: 'ADMIN',
+      },
+    });
+    console.log('Admin user created');
+  }
+
   await prisma.suite.upsert({
     where: { id: 'S-101' },
     update: {},
