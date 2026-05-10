@@ -125,4 +125,4 @@ jobs:
           script: |
             set -euo pipefail
             cd /home/app/GrandSampanResort
-            docker compose -f docker-compose.production.yaml up -d --build
+            docker compose -f docker-compose.production.yml up -d --build
