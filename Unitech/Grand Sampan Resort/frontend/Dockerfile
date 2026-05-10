@@ -10,6 +10,8 @@ EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 FROM base AS production
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NODE_ENV=production
 RUN npm run build
 EXPOSE 3000
