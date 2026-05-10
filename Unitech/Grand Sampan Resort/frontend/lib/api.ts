@@ -1,5 +1,5 @@
 export async function api(path: string, init?: RequestInit) {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...((init?.headers as any) || {}) };
   if (token && !headers.Authorization) headers.Authorization = `Bearer ${token}`;

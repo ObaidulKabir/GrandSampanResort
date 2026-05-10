@@ -12,7 +12,7 @@ export default function AdminUnitsListPage() {
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch('http://localhost:4000/suites', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites`, {
         cache: 'no-store',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });

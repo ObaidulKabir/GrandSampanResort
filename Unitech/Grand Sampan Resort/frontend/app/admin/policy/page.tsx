@@ -19,7 +19,7 @@ export default function AdminPolicyPage() {
     setError('');
     setOk('');
     try {
-      const res = await fetch('http://localhost:4000/settings/revenue-policy');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/revenue-policy`);
       const json = await res.json();
       setPolicy(json);
     } catch {
@@ -39,7 +39,7 @@ export default function AdminPolicyPage() {
     setOk('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch('http://localhost:4000/settings/revenue-policy', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings/revenue-policy`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(policy)

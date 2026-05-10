@@ -38,7 +38,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://localhost:4000/suites/${suiteId}/plans`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites/${suiteId}/plans`);
       const json = await res.json();
       setItems(json?.plans ?? []);
     } catch {
@@ -63,7 +63,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch('http://localhost:4000/timeshares', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`http://localhost:4000/timeshares/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
@@ -117,7 +117,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`http://localhost:4000/timeshares/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(editForm)
