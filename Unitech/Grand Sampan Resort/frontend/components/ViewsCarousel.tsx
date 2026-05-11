@@ -5,7 +5,7 @@ import Carousel from './Carousel';
 export default function ViewsCarousel({ height = '20vh' }: { height?: number | string }) {
   const [slides, setSlides] = useState<{ src: string; alt: string }[]>([]);
   useEffect(() => {
-    fetch('/api/views', { cache: 'no-store' })
+    fetch('/cms/views', { cache: 'no-store' })
       .then((r) => r.json())
       .then((urls: string[]) => {
         if (Array.isArray(urls) && urls.length) {

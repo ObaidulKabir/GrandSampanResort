@@ -17,7 +17,7 @@ export default function AdminUnitDashboardPage({ params }: { params: { id: strin
   const uploadFile = async (file: File, label: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const res = await fetch('/cms/upload', { method: 'POST', body: formData });
     if (!res.ok) throw new Error(`Failed to upload ${label}`);
     const json = await res.json().catch(() => null);
     const url = json?.url;

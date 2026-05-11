@@ -8,7 +8,7 @@ export default function FeaturesGrid() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/features', { cache: 'no-store' })
+    fetch('/cms/features', { cache: 'no-store' })
       .then((r) => r.json())
       .then((urls: string[]) => {
         setItems(Array.isArray(urls) ? urls : []);

@@ -32,7 +32,7 @@ export default function AdminCreateUnitPage() {
       const uploadFile = async (file: File, label: string) => {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const res = await fetch('/cms/upload', { method: 'POST', body: formData });
         if (res.ok) {
           const { url } = await res.json();
           return url;

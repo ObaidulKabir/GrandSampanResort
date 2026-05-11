@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 export default function Hero() {
   const [slides, setSlides] = useState<{ src: string; alt: string }[]>([]);
   useEffect(() => {
-    fetch('/api/hero', { cache: 'no-store' })
+    fetch('/cms/hero', { cache: 'no-store' })
       .then((r) => r.json())
       .then((urls: string[]) => {
         if (Array.isArray(urls) && urls.length) {

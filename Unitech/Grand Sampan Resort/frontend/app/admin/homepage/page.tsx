@@ -8,7 +8,7 @@ async function uploadToFolder(folder: Mode, file: File) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('folder', folder);
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  const res = await fetch('/cms/upload', { method: 'POST', body: formData });
   if (!res.ok) throw new Error('Upload failed');
   const json = await res.json().catch(() => null);
   if (!json?.url) throw new Error('Upload returned no URL');
@@ -21,7 +21,7 @@ function authHeaders(): Record<string, string> {
 }
 
 async function replaceCarousel(originalUrl: string, fileUrl: string) {
-  const res = await fetch('/api/views', {
+  const res = await fetch('/cms/views', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -34,7 +34,7 @@ async function replaceCarousel(originalUrl: string, fileUrl: string) {
 }
 
 async function resetCarousel(originalUrl: string) {
-  const res = await fetch('/api/views', {
+  const res = await fetch('/cms/views', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -47,7 +47,7 @@ async function resetCarousel(originalUrl: string) {
 }
 
 async function replaceFeature(originalUrl: string, fileUrl: string) {
-  const res = await fetch('/api/features', {
+  const res = await fetch('/cms/features', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -60,7 +60,7 @@ async function replaceFeature(originalUrl: string, fileUrl: string) {
 }
 
 async function resetFeature(originalUrl: string) {
-  const res = await fetch('/api/features', {
+  const res = await fetch('/cms/features', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -73,7 +73,7 @@ async function resetFeature(originalUrl: string) {
 }
 
 async function replaceHero(originalUrl: string, fileUrl: string) {
-  const res = await fetch('/api/hero', {
+  const res = await fetch('/cms/hero', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -86,7 +86,7 @@ async function replaceHero(originalUrl: string, fileUrl: string) {
 }
 
 async function resetHero(originalUrl: string) {
-  const res = await fetch('/api/hero', {
+  const res = await fetch('/cms/hero', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     cache: 'no-store',
@@ -142,9 +142,9 @@ export default function AdminHomepageMediaPage() {
     setError('');
     try {
       const [h, v, f] = await Promise.all([
-        fetch('/api/hero?admin=1', { cache: 'no-store' }),
-        fetch('/api/views?admin=1', { cache: 'no-store' }),
-        fetch('/api/features?admin=1', { cache: 'no-store' })
+        fetch('/cms/hero?admin=1', { cache: 'no-store' }),
+        fetch('/cms/views?admin=1', { cache: 'no-store' }),
+        fetch('/cms/features?admin=1', { cache: 'no-store' })
       ]);
       const hJson = await h.json().catch(() => []);
       const vJson = await v.json().catch(() => []);
@@ -291,7 +291,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy('reset-views-all');
     try {
-      const res = await fetch('/api/views', {
+      const res = await fetch('/cms/views', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -324,7 +324,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy('reset-hero-all');
     try {
-      const res = await fetch('/api/hero', {
+      const res = await fetch('/cms/hero', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -344,7 +344,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy('reset-features-all');
     try {
-      const res = await fetch('/api/features', {
+      const res = await fetch('/cms/features', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -366,7 +366,7 @@ export default function AdminHomepageMediaPage() {
     setBusy('add-hero');
     try {
       const fileUrl = await uploadToFolder('hero', addHeroFile);
-      const res = await fetch('/api/hero', {
+      const res = await fetch('/cms/hero', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -389,7 +389,7 @@ export default function AdminHomepageMediaPage() {
     setBusy('add-views');
     try {
       const fileUrl = await uploadToFolder('views', addCarouselFile);
-      const res = await fetch('/api/views', {
+      const res = await fetch('/cms/views', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -412,7 +412,7 @@ export default function AdminHomepageMediaPage() {
     setBusy('add-features');
     try {
       const fileUrl = await uploadToFolder('features', addFeatureFile);
-      const res = await fetch('/api/features', {
+      const res = await fetch('/cms/features', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -433,7 +433,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`remove-hero-${url}`);
     try {
-      const res = await fetch('/api/hero', {
+      const res = await fetch('/cms/hero', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -453,7 +453,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`show-hero-${url}`);
     try {
-      const res = await fetch('/api/hero', {
+      const res = await fetch('/cms/hero', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -473,7 +473,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`remove-views-${url}`);
     try {
-      const res = await fetch('/api/views', {
+      const res = await fetch('/cms/views', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -493,7 +493,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`show-views-${url}`);
     try {
-      const res = await fetch('/api/views', {
+      const res = await fetch('/cms/views', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -513,7 +513,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`remove-features-${url}`);
     try {
-      const res = await fetch('/api/features', {
+      const res = await fetch('/cms/features', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',
@@ -533,7 +533,7 @@ export default function AdminHomepageMediaPage() {
     setError('');
     setBusy(`show-features-${url}`);
     try {
-      const res = await fetch('/api/features', {
+      const res = await fetch('/cms/features', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         cache: 'no-store',

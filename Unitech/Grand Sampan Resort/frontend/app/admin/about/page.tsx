@@ -68,7 +68,7 @@ async function uploadAboutImage(file: File) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('folder', 'about');
-  const res = await fetch('/api/upload', { method: 'POST', body: formData });
+  const res = await fetch('/cms/upload', { method: 'POST', body: formData });
   const json = await res.json().catch(() => null);
   if (!res.ok || !json?.url) {
     throw new Error(json?.error || 'Image upload failed');
