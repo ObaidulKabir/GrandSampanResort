@@ -10,3 +10,4 @@ tmp/
 .trae/
 .vscode/
 
+!.env.example
