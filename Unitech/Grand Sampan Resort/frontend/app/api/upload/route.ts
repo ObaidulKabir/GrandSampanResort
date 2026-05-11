@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { isCloudinaryConfigured, uploadImageToCloudinary } from '@/lib/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,9 +30,14 @@ export async function POST(request: NextRequest) {
     const filename = uniqueSuffix + '-' + file.name.replace(/[^a-zA-Z0-9.-]/g, '');
 
     const allowedFolders = new Set(['views', 'features', 'hero', 'about']);
-    const uploadDir = allowedFolders.has(folder)
-      ? join(process.cwd(), 'public', 'uploads', folder)
-      : join(process.cwd(), 'public', 'uploads');
+    const safeFolder = allowedFolders.has(folder) ? folder : '';
+
+    if (safeFolder && isCloudinaryConfigured()) {
+      const uploaded = await uploadImageToCloudinary(file, safeFolder);
+      return NextResponse.json({ url: uploaded.url });
+    }
+
+    const uploadDir = safeFolder ? join(process.cwd(), 'public', 'uploads', safeFolder) : join(process.cwd(), 'public', 'uploads');
     
     // Ensure directory exists
     try {
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
     const path = join(uploadDir, filename);
     await writeFile(path, buffer);
 
-    const url = allowedFolders.has(folder) ? `/uploads/${folder}/${filename}` : `/uploads/${filename}`;
+    const url = safeFolder ? `/uploads/${safeFolder}/${filename}` : `/uploads/${filename}`;
     return NextResponse.json({ url });
   } catch (e) {
     console.error('Upload error:', e);

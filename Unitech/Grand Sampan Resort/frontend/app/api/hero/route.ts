@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { mkdir, readFile, readdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { requireAdmin } from '@/lib/adminAuth';
+import { deleteManagedAsset, extractFilename, isCloudinaryUrl } from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,13 +27,11 @@ function isSafeDefaultUrl(url: string) {
 }
 
 function isSafeUploadedUrl(url: string) {
-  return url.startsWith('/uploads/hero/');
+  return url.startsWith('/uploads/hero/') || isCloudinaryUrl(url, 'hero');
 }
 
 function safeBasename(url: string) {
-  const name = url.split('/').pop() || '';
-  if (!name || name.includes('..') || name.includes('/') || !/\.(png|jpe?g|svg|webp)$/i.test(name)) return '';
-  return name;
+  return extractFilename(url);
 }
 
 async function readOverrides(filePath: string): Promise<Overrides> {
@@ -158,13 +157,7 @@ export async function PUT(request: NextRequest) {
     overrides[originalUrl] = fileUrl;
     await writeOverrides(overridesPath, overrides);
 
-    if (existing && isSafeUploadedUrl(existing)) {
-      const existingName = safeBasename(existing);
-      if (existingName) {
-        const existingFile = join(process.cwd(), 'public', 'uploads', 'hero', existingName);
-        await unlink(existingFile).catch(() => {});
-      }
-    }
+    if (existing && isSafeUploadedUrl(existing)) await deleteManagedAsset(existing, 'hero');
 
     return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
@@ -190,11 +183,7 @@ export async function DELETE(request: NextRequest) {
       const extras = await readList(extrasPath, (u) => isSafeUploadedUrl(u) && !!safeBasename(u));
       const toDelete = new Set<string>([...Object.values(overrides), ...extras]);
       for (const u of toDelete) {
-        const name = safeBasename(u);
-        if (name && isSafeUploadedUrl(u)) {
-          const fp = join(process.cwd(), 'public', 'uploads', 'hero', name);
-          await unlink(fp).catch(() => {});
-        }
+        if (isSafeUploadedUrl(u)) await deleteManagedAsset(u, 'hero');
       }
       await writeOverrides(overridesPath, {});
       await writeList(extrasPath, []);
@@ -211,11 +200,7 @@ export async function DELETE(request: NextRequest) {
       if (existing) {
         delete overrides[originalUrl];
         await writeOverrides(overridesPath, overrides);
-        const existingName = safeBasename(existing);
-        if (existingName) {
-          const existingFile = join(process.cwd(), 'public', 'uploads', 'hero', existingName);
-          await unlink(existingFile).catch(() => {});
-        }
+        await deleteManagedAsset(existing, 'hero');
       }
       return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
     }
@@ -226,11 +211,7 @@ export async function DELETE(request: NextRequest) {
       if (existing) {
         delete overrides[url];
         await writeOverrides(overridesPath, overrides);
-        const existingName = safeBasename(existing);
-        if (existingName) {
-          const existingFile = join(process.cwd(), 'public', 'uploads', 'hero', existingName);
-          await unlink(existingFile).catch(() => {});
-        }
+        await deleteManagedAsset(existing, 'hero');
       }
       const hidden = await readList(hiddenPath, (u) => isSafeDefaultUrl(u) && !!safeBasename(u));
       if (!hidden.includes(url)) {
@@ -244,9 +225,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Only uploaded hero images can be deleted' }, { status: 400 });
     }
 
-    const name = safeBasename(url);
-    const filePath = join(process.cwd(), 'public', 'uploads', 'hero', name);
-    await unlink(filePath);
+    await deleteManagedAsset(url, 'hero');
 
     const overrides = await readOverrides(overridesPath);
     const next: Overrides = {};
