@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Mode = 'views' | 'features' | 'hero';
 
@@ -98,6 +99,8 @@ async function resetHero(originalUrl: string) {
 }
 
 export default function AdminHomepageMediaPage() {
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   const [heroDefaults, setHeroDefaults] = useState<string[]>([]);
   const [heroResolved, setHeroResolved] = useState<string[]>([]);
   const [heroOverrides, setHeroOverrides] = useState<Record<string, string>>({});
@@ -194,8 +197,18 @@ export default function AdminHomepageMediaPage() {
   }
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token) {
+      router.replace('/admin/login');
+      return;
+    }
+    setAuthChecked(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!authChecked) return;
     load();
-  }, []);
+  }, [authChecked]);
 
   async function replaceOneHero(originalUrl: string) {
     const file = replaceHeroFiles[originalUrl];
@@ -535,6 +548,8 @@ export default function AdminHomepageMediaPage() {
       setBusy(null);
     }
   }
+
+  if (!authChecked) return null;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-16">

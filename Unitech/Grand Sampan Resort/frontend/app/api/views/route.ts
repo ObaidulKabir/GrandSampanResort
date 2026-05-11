@@ -9,7 +9,7 @@ function pickImageNames(entries: { name: string; isFile(): boolean }[]) {
   return entries
     .filter((d) => d.isFile())
     .map((d) => d.name)
-    .filter((n) => /\.(png|jpe?g|svg)$/i.test(n));
+    .filter((n) => /\.(png|jpe?g|svg|webp)$/i.test(n));
 }
 
 async function listImages(dir: string, baseUrl: string) {
@@ -35,7 +35,7 @@ function isSafeUploadedUrl(url: string) {
 
 function safeBasename(url: string) {
   const name = url.split('/').pop() || '';
-  if (!name || name.includes('..') || name.includes('/') || !/\.(png|jpe?g|svg)$/i.test(name)) return '';
+  if (!name || name.includes('..') || name.includes('/') || !/\.(png|jpe?g|svg|webp)$/i.test(name)) return '';
   return name;
 }
 
