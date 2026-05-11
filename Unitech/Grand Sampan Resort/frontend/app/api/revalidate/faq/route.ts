@@ -1,5 +1,6 @@
 import { revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 export async function POST(request: NextRequest) {
   const authorization = request.headers.get('authorization') || '';
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const baseUrl = apiBaseUrl();
   let meRes: Response;
   let me: any;
   try {
@@ -31,4 +32,3 @@ export async function POST(request: NextRequest) {
   revalidateTag('faq-content');
   return NextResponse.json({ ok: true });
 }
-

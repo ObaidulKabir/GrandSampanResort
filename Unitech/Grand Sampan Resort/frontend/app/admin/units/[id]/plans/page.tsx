@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 type Plan = {
   id: string;
@@ -38,7 +39,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites/${suiteId}/plans`);
+      const res = await fetch(`${apiBaseUrl()}/suites/${suiteId}/plans`);
       const json = await res.json();
       setItems(json?.plans ?? []);
     } catch {
@@ -63,7 +64,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares`, {
+      const res = await fetch(`${apiBaseUrl()}/timeshares`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({
@@ -98,7 +99,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${id}`, {
+      const res = await fetch(`${apiBaseUrl()}/timeshares/${id}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
@@ -117,7 +118,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${id}`, {
+      const res = await fetch(`${apiBaseUrl()}/timeshares`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(editForm)

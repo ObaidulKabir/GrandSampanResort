@@ -1,10 +1,11 @@
 import FaqClient from '@/components/faq/FaqClient';
 import { normalizeCategory, stripHtml, type FaqEntry } from '@/lib/faqContent';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 export const dynamic = 'force-dynamic';
 
 async function getFaqItems(): Promise<FaqEntry[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const baseUrl = apiBaseUrl();
   try {
     const res = await fetch(`${baseUrl}/faq`, {
       next: { tags: ['faq-content'], revalidate: 3600 }

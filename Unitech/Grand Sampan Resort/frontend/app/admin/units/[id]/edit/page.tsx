@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 export default function AdminEditUnitPage({ params }: { params: { id: string } }) {
   const unitId = params.id;
@@ -17,7 +18,7 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites/${unitId}`);
+      const res = await fetch(`${apiBaseUrl()}/suites/${unitId}`);
       const json = await res.json();
       const s = json?.suite ?? json;
       if (s && s.id) {
@@ -98,7 +99,7 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
       };
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites/${unitId}`, {
+      const res = await fetch(`${apiBaseUrl()}/suites/${unitId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload)

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 type Plan = {
   id: string;
@@ -29,7 +30,7 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${planId}`);
+      const res = await fetch(`${apiBaseUrl()}/timeshares/${planId}`);
       const json = await res.json();
       const p = json?.plan ?? json;
       if (p && p.id) {
@@ -70,14 +71,14 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         return;
       }
       if (targetId !== planId) {
-        const existsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${targetId}`);
+        const existsRes = await fetch(`${apiBaseUrl()}/timeshares/${targetId}`);
         const existsJson = await existsRes.json();
         if (existsJson && (existsJson.plan || existsJson.id)) {
           setError('Plan ID already exists');
           setSaving(false);
           return;
         }
-        const createRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares`, {
+        const createRes = await fetch(`${apiBaseUrl()}/timeshares`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({
@@ -98,14 +99,14 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
           setSaving(false);
           return;
         }
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${planId}`, {
+        await fetch(`${apiBaseUrl()}/timeshares/${planId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         setResult({ ok: true, plan: createJson.plan });
         router.replace(`/admin/units/${suiteId}/plans/${targetId}/edit`);
       } else {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${planId}`, {
+        const res = await fetch(`${apiBaseUrl()}/timeshares/${planId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({
@@ -134,7 +135,7 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
     if (!ok) return;
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/timeshares/${planId}`, {
+      await fetch(`${apiBaseUrl()}/timeshares/${planId}`, {
         method: 'DELETE',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });

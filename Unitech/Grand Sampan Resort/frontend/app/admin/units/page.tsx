@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 export default function AdminUnitsListPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function AdminUnitsListPage() {
     setError('');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/suites`, {
+      const res = await fetch(`${apiBaseUrl()}/suites`, {
         cache: 'no-store',
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });

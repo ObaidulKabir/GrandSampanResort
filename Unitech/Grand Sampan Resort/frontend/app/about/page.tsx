@@ -1,10 +1,11 @@
 import AboutCardsSection from '@/components/about/AboutCardsSection';
 import { ABOUT_SECTION_META, ABOUT_SECTIONS, EMPTY_ABOUT_SECTIONS, type AboutSectionsMap } from '@/lib/aboutContent';
+import { apiBaseUrl } from '@/lib/apiBase';
 
 export const dynamic = 'force-dynamic';
 
 async function getAboutSections(): Promise<AboutSectionsMap> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const baseUrl = apiBaseUrl();
   try {
     const res = await fetch(`${baseUrl}/about-content`, {
       next: { tags: ['about-content'], revalidate: 3600 }
