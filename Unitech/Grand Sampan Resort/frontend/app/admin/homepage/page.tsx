@@ -14,7 +14,7 @@ async function uploadToFolder(folder: Mode, file: File) {
   return json.url as string;
 }
 
-function authHeaders() {
+function authHeaders(): Record<string, string> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
