@@ -7,6 +7,7 @@ coverage/
 tmp/
 .env*
 **/public/uploads/
+backend/uploads/
 .trae/
 .vscode/
 

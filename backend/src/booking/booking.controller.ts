@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Query, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Param, UseGuards } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { ValidationPipe } from '@nestjs/common';
 import { AvailabilityQueryDto, CreateBookingDto } from './dto/booking.dto';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('booking')
 export class BookingController {
@@ -10,6 +12,14 @@ export class BookingController {
   @Get('availability')
   async availability(@Query(new ValidationPipe({ whitelist: true })) q: AvailabilityQueryDto) {
     return this.service.availability(q.suiteId, q.start, q.end);
+  }
+
+  @Get('admin/all')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async listAll() {
+    const sales = await this.service.listAll();
+    return { ok: true, sales };
   }
 
   @Post()
@@ -39,4 +49,3 @@ export class BookingController {
     return { ok: true, summary: res };
   }
 }
-

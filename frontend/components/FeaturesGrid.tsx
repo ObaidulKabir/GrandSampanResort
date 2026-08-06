@@ -1,44 +1,60 @@
-'use client';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+
+const amenities = [
+  {
+    icon: '/images/icons/beach-access.svg',
+    title: 'Private beach access',
+    desc: 'Step straight onto Cox\u2019s Bazar\u2019s shoreline from the resort grounds.'
+  },
+  {
+    icon: '/images/icons/balcony.svg',
+    title: 'Sea-facing balconies',
+    desc: 'Every suite is designed to frame an unobstructed ocean view.'
+  },
+  {
+    icon: '/images/icons/concierge.svg',
+    title: '24/7 concierge',
+    desc: 'Dedicated staff for reservations, transfers, and daily requests.'
+  },
+  {
+    icon: '/images/icons/security.svg',
+    title: 'Round-the-clock security',
+    desc: 'Gated access and monitored grounds for total peace of mind.'
+  },
+  {
+    icon: '/images/icons/housekeeping.svg',
+    title: 'Daily housekeeping',
+    desc: 'Suites are maintained to a five-star standard year-round.'
+  },
+  {
+    icon: '/images/icons/wifi.svg',
+    title: 'High-speed Wi-Fi',
+    desc: 'Fibre connectivity throughout guest and owner areas.'
+  },
+  {
+    icon: '/images/icons/power.svg',
+    title: 'Backup power',
+    desc: 'Uninterrupted comfort with full-site generator backup.'
+  },
+  {
+    icon: '/images/icons/parking.svg',
+    title: 'Secure parking',
+    desc: 'On-site parking reserved for owners and guests.'
+  }
+];
 
 export default function FeaturesGrid() {
-  const [items, setItems] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch('/api/features')
-      .then((r) => r.json())
-      .then((names: string[]) => {
-        setItems(Array.isArray(names) ? names : []);
-      })
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, []);
-
   return (
-    <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-      {items.map((name) => (
-        <div key={name} className="rounded-lg border border-gold/30 bg-white p-4 hover:shadow-md transition-shadow">
-          <div className="relative h-40 md:h-56 w-full mb-3 bg-pearl">
-            <Image
-              src={`/features/${name}`}
-              alt={name.replace(/[-_]/g, ' ')}
-              fill
-              sizes="(min-width: 768px) 33vw, 100vw"
-              className="object-contain object-center"
-              priority={false}
-            />
+    <div className="grid grid-cols-1 gap-px overflow-hidden border border-ocean/10 bg-ocean/10 sm:grid-cols-2 md:grid-cols-4">
+      {amenities.map((a) => (
+        <div key={a.title} className="group bg-white p-6 transition-colors hover:bg-pearl">
+          <div className="relative h-9 w-9">
+            <Image src={a.icon} alt="" fill sizes="36px" />
           </div>
-          <span className="text-ocean">{name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}</span>
+          <div className="font-display mt-4 text-lg text-ocean">{a.title}</div>
+          <p className="mt-1.5 text-sm leading-relaxed text-ocean/70">{a.desc}</p>
         </div>
       ))}
-      {items.length === 0 && !loading && (
-        <div className="rounded border border-ocean/10 p-4 text-ocean/70">No features images found</div>
-      )}
-      {loading && <div className="rounded border border-ocean/10 p-4 text-ocean/70">Loading features...</div>}
     </div>
   );
 }
-

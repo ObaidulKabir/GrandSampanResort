@@ -9,9 +9,12 @@ const config: Config = {
         gold: '#D4AF37',
         pearl: '#F8F8F6',
         sunset: '#FF7A3D'
+      },
+      fontFamily: {
+        sans: ['Manrope', 'system-ui', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif']
       }
     }
   }
 };
 export default config;
-

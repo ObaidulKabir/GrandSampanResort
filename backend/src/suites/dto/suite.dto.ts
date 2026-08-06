@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsInt, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateSuiteDto {
   @IsNotEmpty()
@@ -17,15 +17,19 @@ export class CreateSuiteDto {
 }
 
 export class UpdateSuiteDto {
+  @IsOptional()
   @IsInt()
   floor?: number;
+  @IsOptional()
   @IsString()
   type?: string;
+  @IsOptional()
   @IsNumber()
   size?: number;
+  @IsOptional()
   @IsString()
   view?: string;
+  @IsOptional()
   @IsInt()
   totalPrice?: number;
 }
-

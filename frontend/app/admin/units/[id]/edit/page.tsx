@@ -1,6 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { api } from '@/lib/api';
+import Button from '@/components/Button';
+import MediaManager from '@/components/admin/MediaManager';
+
+const adminHeaders = { Authorization: 'Bearer admin' };
 
 export default function AdminEditUnitPage({ params }: { params: { id: string } }) {
   const unitId = params.id;
@@ -8,24 +13,16 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [notice, setNotice] = useState('');
 
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://localhost:4000/suites/${unitId}`);
-      const json = await res.json();
+      const json = await api(`/suites/${unitId}`);
       const s = json?.suite ?? json;
       if (s && s.id) {
-        setForm({
-          id: s.id,
-          floor: s.floor,
-          type: s.type,
-          size: s.size,
-          view: s.view,
-          totalPrice: s.totalPrice
-        });
+        setForm({ id: s.id, floor: s.floor, type: s.type, size: s.size, view: s.view, totalPrice: s.totalPrice });
       } else {
         setError('Unit not found');
       }
@@ -42,108 +39,133 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setResult(null);
-    const res = await fetch(`http://localhost:4000/suites/${unitId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer admin' },
-      body: JSON.stringify({
-        floor: Number(form.floor),
-        type: form.type,
-        size: form.size,
-        view: form.view,
-        totalPrice: Number(form.totalPrice)
-      })
-    });
-    const json = await res.json();
-    setResult(json);
+    setError('');
+    setNotice('');
+    try {
+      const json = await api(`/suites/${unitId}`, {
+        method: 'PUT',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          floor: Number(form.floor),
+          type: form.type,
+          size: Number(form.size),
+          view: form.view,
+          totalPrice: Number(form.totalPrice)
+        })
+      });
+      if (json?.ok || json?.suite || json?.id) {
+        setNotice('Changes saved.');
+      } else {
+        setError(json?.error || 'Failed to save changes');
+      }
+    } catch {
+      setError('Failed to save changes');
+    }
     setSaving(false);
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="font-['Playfair Display'] text-4xl text-ocean">Edit Unit</h1>
-        <Link href="/admin/units" className="rounded border border-ocean px-4 py-2 text-ocean">
-          View Units
-        </Link>
-      </div>
-      <p className="mt-3 text-ocean/80">Update suite details.</p>
-
-      {error && <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
-
-      <form onSubmit={save} className="mt-8 space-y-4 rounded-lg border border-gold/30 bg-white p-6">
+    <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <label className="block text-sm text-ocean">Unit ID</label>
-          <input value={form.id} disabled className="mt-1 w-full rounded border border-ocean/20 bg-ocean/5 px-2 py-1" />
+          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
+          <h1 className="font-display mt-1 text-4xl text-ocean">Edit unit · {unitId}</h1>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-ocean">Floor</label>
+        <div className="flex gap-2">
+          <Link href={`/admin/units/${unitId}/plans`}>
+            <Button variant="outline">Share plans</Button>
+          </Link>
+          <Link href="/admin/units">
+            <Button variant="ghost">All units</Button>
+          </Link>
+        </div>
+      </div>
+
+      {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+      {notice && <div className="mt-4 border border-gold/40 bg-gold/10 p-3 text-ocean">{notice}</div>}
+
+      <form onSubmit={save} className="mt-6 space-y-5 border border-ocean/10 bg-white p-6">
+        <label className="block text-sm font-medium text-ocean">
+          Unit ID
+          <input value={form.id} disabled className="field mt-1 bg-pearl text-ocean/60" />
+        </label>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <label className="block text-sm font-medium text-ocean">
+            Floor
             <input
               type="number"
               value={form.floor}
               onChange={(e) => setForm({ ...form, floor: e.target.value })}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
+              className="field mt-1"
             />
-          </div>
-          <div>
-            <label className="block text-sm text-ocean">Category</label>
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            >
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Category
+            <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="field mt-1">
               <option>Standard</option>
               <option>Delux</option>
               <option>Premium</option>
             </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-ocean">Size (sq ft)</label>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Size (sq ft)
             <input
               type="number"
               value={form.size}
               onChange={(e) => setForm({ ...form, size: e.target.value === '' ? '' : Number(e.target.value) })}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
+              className="field mt-1"
             />
-          </div>
-          <div>
-            <label className="block text-sm text-ocean">View</label>
-            <select
-              value={form.view}
-              onChange={(e) => setForm({ ...form, view: e.target.value })}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            >
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            View
+            <select value={form.view} onChange={(e) => setForm({ ...form, view: e.target.value })} className="field mt-1">
               <option>Sea</option>
               <option>Hill</option>
             </select>
-          </div>
+          </label>
         </div>
-        <div>
-          <label className="block text-sm text-ocean">Price (BDT)</label>
+        <label className="block text-sm font-medium text-ocean">
+          Total price (BDT)
           <input
             type="number"
             value={form.totalPrice}
             onChange={(e) => setForm({ ...form, totalPrice: e.target.value })}
-            className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
+            className="field mt-1"
           />
-        </div>
-        <div className="pt-2">
-          <button type="submit" disabled={saving} className="rounded bg-ocean px-4 py-2 text-white disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+        </label>
+        <div className="border-t border-ocean/10 pt-5">
+          <Button type="submit" disabled={saving || loading}>
+            {saving ? 'Saving...' : 'Save changes'}
+          </Button>
         </div>
       </form>
 
-      {result && (
-        <div className="mt-6 rounded border border-ocean/20 bg-white p-4 text-sm text-ocean">
-          <div>Response:</div>
-          <pre className="mt-2 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+      <div className="mt-10">
+        <p className="text-sm font-semibold uppercase tracking-wide text-gold">Architectural plans</p>
+        <h2 className="font-display mt-1 text-2xl text-ocean">Plans buyers see for this unit</h2>
+        <p className="mt-2 text-sm text-ocean/75">
+          Shown on the buyer&apos;s plan page so they can review the unit layout and its position on the floor before
+          purchasing.
+        </p>
+        <div className="mt-5 space-y-6">
+          <MediaManager
+            category="suite_plan"
+            suiteId={unitId}
+            singleImage
+            title="Unit floor plan"
+            help="Architectural drawing of this suite's interior layout. A clear, high-resolution image or scan works best."
+            emptyHint="No unit plan uploaded yet — buyers won't see a floor plan for this unit until you add one."
+          />
+          <MediaManager
+            category="suite_keymap"
+            suiteId={unitId}
+            singleImage
+            title="Key map — location on floor"
+            help="Floor key map highlighting where this suite sits within the building floor."
+            emptyHint="No key map uploaded yet — buyers won't see the suite's floor location until you add one."
+          />
         </div>
-      )}
+      </div>
     </main>
   );
 }
-

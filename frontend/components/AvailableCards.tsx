@@ -1,20 +1,40 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { api } from '@/lib/api';
+import { suitePhoto } from '@/lib/photos';
+import { fetchMedia, resolveMediaUrl } from '@/lib/media';
 
 type Suite = { id: string; floor: number; type: string; size: number; view: string };
 
 export default function AvailableCards() {
   const [suites, setSuites] = useState<Suite[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [suitePhotos, setSuitePhotos] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchMedia('suites').then((items) => {
+      const byLabel: Record<string, string> = {};
+      items.forEach((item) => {
+        const key = (item.label || '').toLowerCase().trim();
+        if (key && !byLabel[key]) byLabel[key] = resolveMediaUrl(item.url);
+      });
+      setSuitePhotos(byLabel);
+    });
+  }, []);
+
+  function photoFor(type: string) {
+    const uploaded = suitePhotos[type.toLowerCase().trim()];
+    return uploaded ? { src: uploaded, unoptimized: true } : { src: suitePhoto(type), unoptimized: false };
+  }
 
   useEffect(() => {
     async function loadSuites() {
       setLoading(true);
       try {
-        const res = await fetch('http://localhost:4000/suites');
-        const json = await res.json();
+        const json = await api('/suites');
         const list: Suite[] = Array.isArray(json) ? json : json?.suites ?? [];
         const pick = list.slice(0, 3);
         setSuites(pick);
@@ -23,10 +43,9 @@ export default function AvailableCards() {
         end.setDate(end.getDate() + 30);
         const avPairs = await Promise.all(
           pick.map(async (s) => {
-            const aRes = await fetch(
-              `http://localhost:4000/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
+            const aJson = await api(
+              `/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
             );
-            const aJson = await aRes.json();
             return [s.id, !!aJson?.available] as const;
           })
         );
@@ -40,39 +59,58 @@ export default function AvailableCards() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
       {suites.map((s) => {
         const ok = availability[s.id];
         return (
-          <div key={s.id} className="rounded-lg border border-gold/30 bg-white p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="relative h-10 w-10">
-                  <Image src="/images/icons/balcony.svg" alt={s.type} fill sizes="40px" />
-                </div>
-                <div>
-                  <div className="text-ocean">{s.type} • {s.view}</div>
-                  <div className="text-ocean/70 text-sm">Floor {s.floor} • {s.size} sq ft</div>
-                </div>
-              </div>
-              <span className={`rounded px-2 py-1 text-xs ${ok ? 'bg-teal-600 text-white' : 'bg-red-600 text-white'}`}>
-                {ok ? 'Available' : 'Unavailable'}
+          <article key={s.id} className="group border border-ocean/10 bg-white transition hover:border-gold/50">
+            <div className="relative h-44 w-full overflow-hidden">
+              <Image
+                src={photoFor(s.type).src}
+                alt={`${s.type} suite`}
+                fill
+                sizes="(min-width: 768px) 33vw, 100vw"
+                unoptimized={photoFor(s.type).unoptimized}
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <span
+                className={`absolute right-3 top-3 border px-2 py-0.5 text-xs font-semibold ${
+                  ok ? 'border-gold bg-gold/90 text-ocean' : 'border-white/40 bg-ocean/80 text-white'
+                }`}
+              >
+                {ok ? 'Available' : 'Fully booked'}
               </span>
             </div>
-            <div className="mt-3 text-sm text-ocean/70">
-              {ok ? 'This unit has open dates in the next 30 days.' : 'No open dates found for the next 30 days.'}
+            <div className="p-5">
+              <div className="font-display text-lg text-ocean">
+                {s.type} &middot; {s.view} view
+              </div>
+              <div className="mt-1 text-sm text-ocean/70">
+                Floor {s.floor} &middot; {s.size} sq ft
+              </div>
+              <p className="mt-3 text-sm text-ocean/70">
+                {ok ? 'Open dates in the next 30 days.' : 'No open dates in the next 30 days.'}
+              </p>
+              <Link
+                href="/invest"
+                className="mt-4 inline-flex text-sm font-semibold text-ocean underline decoration-gold underline-offset-4 hover:text-gold"
+              >
+                View investment plans
+              </Link>
             </div>
-            <div className="mt-4">
-              <a href="/investor" className="rounded bg-ocean px-3 py-2 text-white">View Details</a>
-            </div>
-          </div>
+          </article>
         );
       })}
       {suites.length === 0 && !loading && (
-        <div className="rounded border border-ocean/10 p-4 text-ocean/70">No units to display</div>
+        <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
+          No units to display
+        </div>
       )}
-      {loading && <div className="rounded border border-ocean/10 p-4 text-ocean/70">Loading availability...</div>}
+      {loading && (
+        <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
+          Loading availability...
+        </div>
+      )}
     </div>
   );
 }
-

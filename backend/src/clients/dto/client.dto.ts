@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateClientDto {
   @IsNotEmpty()
@@ -32,29 +32,40 @@ export class CreateClientDto {
 }
 
 export class UpdateClientDto {
+  @IsOptional()
   @IsString()
   name?: string;
+  @IsOptional()
   @IsString()
   fatherName?: string;
+  @IsOptional()
   @IsString()
   nid?: string;
+  @IsOptional()
   @IsString()
   dob?: string;
+  @IsOptional()
   @IsString()
   address?: string;
+  @IsOptional()
   @IsString()
   permanentAddress?: string;
+  @IsOptional()
   @IsString()
   contact?: string;
+  @IsOptional()
   @IsEmail()
   email?: string;
+  @IsOptional()
   @IsString()
   picUrl?: string;
+  @IsOptional()
   @IsString()
   nomineeName?: string;
+  @IsOptional()
   @IsString()
   nomineeNid?: string;
+  @IsOptional()
   @IsString()
   nomineePicUrl?: string;
 }
-

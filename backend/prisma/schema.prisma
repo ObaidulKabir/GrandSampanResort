@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
 model Suite {
   id          String  @id
   floor       Int
@@ -18,19 +19,21 @@ model Suite {
   currency    String?
   plans       SharePlan[]
 }
+
 model SharePlan {
-  id                 String  @id
-  name               String
-  daysPerMonth       Int
-  lockIn             Int
-  price              Int
-  currency           String?
-  suiteId            String?
-  planStatus         String?
-  planType           String?
-  timeFraction       Float?
-  suite              Suite?  @relation(fields: [suiteId], references: [id])
+  id           String  @id
+  name         String
+  daysPerMonth Int
+  lockIn       Int
+  price        Int
+  currency     String?
+  suiteId      String?
+  planStatus   String?
+  planType     String?
+  timeFraction Float?
+  suite        Suite?  @relation(fields: [suiteId], references: [id])
 }
+
 model Booking {
   id          String  @id
   suiteId     String
@@ -42,6 +45,7 @@ model Booking {
   amountTotal Int?
   schedule    PaymentScheduleItem[]
 }
+
 model PaymentScheduleItem {
   id         String  @id
   bookingId  String
@@ -52,6 +56,7 @@ model PaymentScheduleItem {
   gatewayRef String?
   booking    Booking @relation(fields: [bookingId], references: [id])
 }
+
 model Client {
   id               String @id
   name             String
@@ -68,3 +73,23 @@ model Client {
   nomineePicUrl    String
 }
 
+model User {
+  id           String   @id
+  name         String
+  email        String   @unique
+  passwordHash String
+  kyc          Boolean  @default(false)
+  role         String   @default("investor")
+  createdAt    DateTime @default(now())
+}
+
+model MediaAsset {
+  id        String   @id
+  category  String
+  label     String?
+  suiteId   String?
+  url       String
+  alt       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}

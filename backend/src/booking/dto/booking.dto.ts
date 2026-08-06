@@ -14,9 +14,9 @@ export class CreateBookingDto {
   @IsNotEmpty()
   @IsString()
   suiteId!: string;
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  planId!: string;
+  planId?: string;
   @IsDateString()
   start!: string;
   @IsDateString()
@@ -25,4 +25,3 @@ export class CreateBookingDto {
   @IsString()
   investorId?: string;
 }
-

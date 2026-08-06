@@ -1,43 +1,54 @@
 import Hero from '@/components/Hero';
 import ViewsCarousel from '@/components/ViewsCarousel';
 import FeaturesGrid from '@/components/FeaturesGrid';
-import Footer from '@/components/Footer';
 import LocationSection from '@/components/LocationSection';
 import AvailableCards from '@/components/AvailableCards';
 import ChatBot from '@/components/ChatBot';
+import Reveal from '@/components/Reveal';
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
     <main>
       <Hero />
 
-      
-
-      <section className="mx-auto max-w-7xl px-6 pb-16">
-        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Views</h2>
-        <p className="mt-2 text-ocean/80">A glimpse of the resort ambiance and oceanfront lifestyle.</p>
-        <div className="mt-6">
-          <ViewsCarousel height={500} />
+      <section className="border-b border-gold/15 bg-[linear-gradient(180deg,#f8f8f6_0%,#eef2f4_100%)]">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <Reveal>
+            <h2 className="font-display text-3xl text-ocean md:text-4xl">Invest in oceanfront ownership</h2>
+            <p className="mt-3 max-w-2xl text-ocean/75">
+              Browse live unsold share plans, lock in your suite entitlement, and manage payments from your investor
+              dashboard.
+            </p>
+          </Reveal>
+          <div className="mt-8">
+            <AvailableCards />
+          </div>
+          <div className="mt-8">
+            <Link
+              href="/invest"
+              className="inline-flex rounded-md bg-ocean px-5 py-3 text-sm font-semibold text-white hover:bg-ocean/90"
+            >
+              View all investment plans
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 pb-16">
-        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Available Now</h2>
-        <p className="mt-2 text-ocean/80">A quick peek at units with open dates this month.</p>
-        <div className="mt-6">
-          <AvailableCards />
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <Reveal>
+          <h2 className="font-display text-3xl text-ocean">The resort</h2>
+          <p className="mt-2 max-w-2xl text-ocean/75">Ambiance, amenities, and the Cox&apos;s Bazar shoreline.</p>
+        </Reveal>
+        <div className="mt-8">
+          <ViewsCarousel height={420} />
         </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-6 pb-16">
-        <h2 className="font-['Playfair Display'] text-3xl text-ocean">Features</h2>
-        <p className="mt-2 text-ocean/80">Handpicked amenities from your features image set.</p>
-        <FeaturesGrid />
+        <Reveal className="mt-12">
+          <FeaturesGrid />
+        </Reveal>
       </section>
 
       <LocationSection />
-
-      <Footer />
       <ChatBot />
     </main>
   );

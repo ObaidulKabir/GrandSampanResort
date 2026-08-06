@@ -62,3 +62,13 @@ export type PaymentScheduleItem = Prisma.PaymentScheduleItemModel
  * 
  */
 export type Client = Prisma.ClientModel
+/**
+ * Model User
+ * 
+ */
+export type User = Prisma.UserModel
+/**
+ * Model MediaAsset
+ * 
+ */
+export type MediaAsset = Prisma.MediaAssetModel

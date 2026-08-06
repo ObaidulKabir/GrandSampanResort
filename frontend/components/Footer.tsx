@@ -5,9 +5,9 @@ export default function Footer() {
     <footer className="w-full border-t border-gold/20 bg-pearl">
       <div className="mx-auto max-w-7xl px-6 py-12 grid gap-8 sm:grid-cols-2 md:grid-cols-3">
         <div>
-          <h3 className="font-['Playfair Display'] text-2xl text-ocean">Unitech Grand Sampan Resort</h3>
-          <p className="mt-2 text-ocean/80">32-room beachfront resort in Cox’s Bazar.</p>
-          <p className="mt-1 text-ocean/70">Marine Drive Road, Kolatoli, Cox’s Bazar</p>
+          <h3 className="font-display text-2xl text-ocean">Unitech Grand Sampan Resort</h3>
+          <p className="mt-2 text-ocean/80">64-room beachfront in Cox's Bazar</p>
+          <p className="mt-1 text-ocean/70">Marine Drive Road, Innani, Cox's Bazar</p>
         </div>
         <div>
           <h4 className="text-ocean font-semibold">Contacts</h4>
@@ -15,7 +15,9 @@ export default function Footer() {
             <li><a href="tel:+8801700000000">+880 17 0000 0000</a></li>
             <li><a href="mailto:info@grandsampan.com">info@grandsampan.com</a></li>
             <li><Link href="/about">About</Link></li>
-            <li><Link href="/investor">Investor</Link></li>
+            <li><Link href="/invest">Invest</Link></li>
+            <li><Link href="/faq">FAQ</Link></li>
+            <li><Link href="/terms">Terms</Link></li>
           </ul>
         </div>
         <div>

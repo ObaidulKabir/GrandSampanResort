@@ -10,6 +10,10 @@ export class BookingRepository {
     return this.items.filter((b) => (b.investorId || '') === investorId);
   }
 
+  async listAll() {
+    return this.items;
+  }
+
   async create(item: Booking) {
     this.items.push(item);
     return item;

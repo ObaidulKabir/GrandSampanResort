@@ -12,9 +12,22 @@ import { PricingModule } from './pricing/pricing.module';
 import { ClientsModule } from './clients/clients.module';
 import { SeedModule } from './seed/seed.module';
 import { SettingsModule } from './settings/settings.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
-  imports: [SuitesModule, PaymentsModule, AuthModule, BookingModule, TimesharesModule, AvailabilityModule, PricingModule, ClientsModule, SeedModule, SettingsModule],
+  imports: [
+    SuitesModule,
+    PaymentsModule,
+    AuthModule,
+    BookingModule,
+    TimesharesModule,
+    AvailabilityModule,
+    PricingModule,
+    ClientsModule,
+    SeedModule,
+    SettingsModule,
+    MediaModule
+  ],
   controllers: [AppController],
   providers: [AppService]
 })

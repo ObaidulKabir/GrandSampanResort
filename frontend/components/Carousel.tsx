@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 type Slide = {
   src: string;
   alt: string;
+  unoptimized?: boolean;
 };
 
 export default function Carousel({
@@ -34,31 +35,59 @@ export default function Carousel({
   }, [auto, intervalMs, slides.length]);
 
   if (!slides.length) {
-    return <div className="rounded border border-ocean/10 p-4 text-ocean/70">No images available</div>;
+    return <div className="border border-ocean/10 p-4 text-ocean/70">No images available</div>;
   }
 
   return (
-    <div className="relative w-full overflow-hidden rounded-xl border border-gold/30" style={{ height }}>
-      <div className="absolute inset-0">
-        <Image key={slides[idx].src} src={slides[idx].src} alt={slides[idx].alt} fill sizes="100vw" className="object-cover" />
-      </div>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-      <div className="absolute bottom-2 left-2 flex gap-2">
+    <div className="relative w-full overflow-hidden border border-gold/30" style={{ height }}>
+      {slides.map((s, i) => (
+        <div
+          key={s.src}
+          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+          style={{ opacity: i === idx ? 1 : 0 }}
+          aria-hidden={i !== idx}
+        >
+          <Image
+            src={s.src}
+            alt={s.alt}
+            fill
+            sizes="100vw"
+            className="object-cover"
+            priority={i === 0}
+            unoptimized={s.unoptimized}
+          />
+        </div>
+      ))}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ocean/30 via-transparent to-transparent" />
+      <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
         {slides.map((_, i) => (
-          <span key={i} className={`h-2 w-2 rounded-full ${i === idx ? 'bg-gold' : 'bg-white/50'}`} />
+          <button
+            key={i}
+            type="button"
+            aria-label={`Show slide ${i + 1}`}
+            onClick={() => setIdx(i)}
+            className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-6 bg-gold' : 'w-3 bg-white/50 hover:bg-white/80'}`}
+          />
         ))}
       </div>
-      <div className="absolute inset-y-0 left-0 flex items-center">
-        <button aria-label="Previous" onClick={prev} className="m-2 rounded bg-white/70 px-3 py-2 text-ocean hover:bg-white">
-          ‹
-        </button>
-      </div>
-      <div className="absolute inset-y-0 right-0 flex items-center">
-        <button aria-label="Next" onClick={next} className="m-2 rounded bg-white/70 px-3 py-2 text-ocean hover:bg-white">
-          ›
-        </button>
-      </div>
+      <button
+        aria-label="Previous"
+        onClick={prev}
+        className="absolute inset-y-0 left-0 flex items-center px-2 text-white/80 transition hover:text-gold"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      <button
+        aria-label="Next"
+        onClick={next}
+        className="absolute inset-y-0 right-0 flex items-center px-2 text-white/80 transition hover:text-gold"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </button>
     </div>
   );
 }
-

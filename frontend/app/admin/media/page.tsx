@@ -1,0 +1,36 @@
+import MediaManager from '@/components/admin/MediaManager';
+
+export default function AdminMediaPage() {
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
+      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Site content</p>
+      <h1 className="font-display mt-1 text-4xl text-ocean">Media Library</h1>
+      <p className="mt-3 max-w-2xl text-ocean/75">
+        Replace the placeholder photography used across the public site with real photos of Grand Sampan Resort.
+        Until you upload images for a section, the site falls back to stock photography automatically.
+      </p>
+
+      <div className="mt-8 space-y-8">
+        <MediaManager
+          category="hero"
+          title="Homepage hero carousel"
+          help="Full-bleed rotating images shown at the top of the homepage. Landscape photos (1920px wide or larger) work best."
+          emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
+        />
+        <MediaManager
+          category="resort"
+          title="The Resort gallery"
+          help="Images shown in the 'The resort' section on the homepage — pool, common areas, beach, and lounge shots."
+          emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
+        />
+        <MediaManager
+          category="suites"
+          title="Suite thumbnails"
+          help="One or more photos per unit category, shown on investment cards. Tag each photo with the matching suite type."
+          labelOptions={['Standard', 'Delux', 'Premium']}
+          emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
+        />
+      </div>
+    </main>
+  );
+}

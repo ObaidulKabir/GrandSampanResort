@@ -1,6 +1,10 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { api } from '@/lib/api';
+import Button from '@/components/Button';
+
+const adminHeaders = { Authorization: 'Bearer admin' };
 
 export default function AdminCreateUnitPage() {
   const [id, setId] = useState('');
@@ -10,130 +14,136 @@ export default function AdminCreateUnitPage() {
   const [view, setView] = useState('Sea');
   const [totalPrice, setTotalPrice] = useState<number | ''>('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const canSubmit = id && floor !== '' && type && size && view && totalPrice !== '';
+  const [error, setError] = useState('');
+  const [createdId, setCreatedId] = useState('');
+  const canSubmit = id.trim() && floor !== '' && type && size !== '' && view && totalPrice !== '';
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setLoading(true);
-    setResult(null);
-    const res = await fetch('http://localhost:4000/suites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer admin' },
-      body: JSON.stringify({
-        id,
-        floor: Number(floor),
-        type,
-        size: Number(size),
-        view,
-        totalPrice: Number(totalPrice)
-      })
-    });
-    const json = await res.json();
-    setResult(json);
+    setError('');
+    setCreatedId('');
+    try {
+      const json = await api('/suites', {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          id: id.trim(),
+          floor: Number(floor),
+          type,
+          size: Number(size),
+          view,
+          totalPrice: Number(totalPrice)
+        })
+      });
+      if (json?.ok || json?.suite || json?.id) {
+        setCreatedId(id.trim());
+        setId('');
+        setFloor('');
+        setSize('');
+        setTotalPrice('');
+      } else {
+        setError(json?.error === 'conflict' ? 'A unit with this ID already exists' : json?.error || 'Failed to create unit');
+      }
+    } catch {
+      setError('Failed to create unit');
+    }
     setLoading(false);
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-['Playfair Display'] text-4xl text-ocean">Create Unit</h1>
-      <p className="mt-3 text-ocean/80">Add a new suite unit to inventory.</p>
+    <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
+      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory · Step 1 of 2</p>
+      <h1 className="font-display mt-1 text-4xl text-ocean">Create Unit</h1>
+      <p className="mt-3 text-ocean/75">
+        Add a suite to inventory, then attach share plans to put it on sale.
+      </p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-lg border border-gold/30 bg-white p-6">
-        <div>
-          <label className="block text-sm text-ocean">Unit ID</label>
-          <input
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            placeholder="S-505"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-ocean">Floor</label>
-            <input
-              type="number"
-              value={floor}
-              onChange={(e) => setFloor(e.target.value === '' ? '' : Number(e.target.value))}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-              placeholder="5"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-ocean">Category</label>
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            >
-              <option>Standard</option>
-              <option>Delux</option>
-              <option>Premium</option>
-            </select>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-ocean">Size (sq ft)</label>
-            <input
-              type="number"
-              value={size}
-              onChange={(e) => setSize(e.target.value === '' ? '' : Number(e.target.value))}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-              placeholder="350 sq ft"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-ocean">View</label>
-            <select
-              value={view}
-              onChange={(e) => setView(e.target.value)}
-              className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            >
-              <option>Sea</option>
-              <option>Hill</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm text-ocean">Price (BDT)</label>
-          <input
-            type="number"
-            value={totalPrice}
-            onChange={(e) => setTotalPrice(e.target.value === '' ? '' : Number(e.target.value))}
-            className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
-            placeholder="200000"
-          />
-        </div>
+      {error && <div className="mt-5 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={!canSubmit || loading}
-            className="rounded bg-ocean px-4 py-2 text-white disabled:opacity-50"
-          >
-            {loading ? 'Creating...' : 'Create Unit'}
-          </button>
-          <Link href="/admin" className="text-ocean underline">
-            Back to Admin
-          </Link>
-        </div>
-      </form>
-
-      {result && (
-        <div className="mt-6 rounded border border-ocean/20 bg-white p-4 text-sm text-ocean">
-          <div>Response:</div>
-          <pre className="mt-2 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
-          <div className="mt-3">
-            <Link href="/admin/units" className="text-ocean underline">
-              View Units
+      {createdId && (
+        <div className="mt-5 border border-gold/40 bg-gold/10 p-5">
+          <div className="font-display text-xl text-ocean">Unit {createdId} created</div>
+          <p className="mt-1 text-sm text-ocean/75">
+            Next: add share plans so buyers can see it in the catalog.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/admin/units/${createdId}/plans`}>
+              <Button>Add share plans</Button>
+            </Link>
+            <Link href="/admin/units">
+              <Button variant="outline">View all units</Button>
             </Link>
           </div>
         </div>
       )}
+
+      <form onSubmit={onSubmit} className="mt-6 space-y-5 border border-ocean/10 bg-white p-6">
+        <label className="block text-sm font-medium text-ocean">
+          Unit ID
+          <input value={id} onChange={(e) => setId(e.target.value)} className="field mt-1" placeholder="S-505" />
+          <span className="mt-1 block text-xs font-normal text-ocean/60">
+            Shown to buyers and used across bookings — pick a stable code.
+          </span>
+        </label>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <label className="block text-sm font-medium text-ocean">
+            Floor
+            <input
+              type="number"
+              value={floor}
+              onChange={(e) => setFloor(e.target.value === '' ? '' : Number(e.target.value))}
+              className="field mt-1"
+              placeholder="5"
+            />
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Category
+            <select value={type} onChange={(e) => setType(e.target.value)} className="field mt-1">
+              <option>Standard</option>
+              <option>Delux</option>
+              <option>Premium</option>
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Size (sq ft)
+            <input
+              type="number"
+              value={size}
+              onChange={(e) => setSize(e.target.value === '' ? '' : Number(e.target.value))}
+              className="field mt-1"
+              placeholder="350"
+            />
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            View
+            <select value={view} onChange={(e) => setView(e.target.value)} className="field mt-1">
+              <option>Sea</option>
+              <option>Hill</option>
+            </select>
+          </label>
+        </div>
+        <label className="block text-sm font-medium text-ocean">
+          Total price (BDT)
+          <input
+            type="number"
+            value={totalPrice}
+            onChange={(e) => setTotalPrice(e.target.value === '' ? '' : Number(e.target.value))}
+            className="field mt-1"
+            placeholder="8500000"
+          />
+        </label>
+
+        <div className="flex items-center gap-3 border-t border-ocean/10 pt-5">
+          <Button type="submit" disabled={!canSubmit || loading}>
+            {loading ? 'Creating...' : 'Create unit'}
+          </Button>
+          <Link href="/admin/units" className="text-sm font-semibold text-ocean underline">
+            Cancel
+          </Link>
+        </div>
+      </form>
     </main>
   );
 }
-

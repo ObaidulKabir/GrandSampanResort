@@ -69,3 +69,14 @@ export type Client = {
   nomineePicUrl: string;
 };
 
+export type MediaAsset = {
+  id: string;
+  category: string;
+  label?: string | null;
+  suiteId?: string | null;
+  url: string;
+  alt?: string | null;
+  order: number;
+  createdAt: Date;
+};
+

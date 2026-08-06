@@ -40,12 +40,41 @@ export class TimesharesService {
     if (item.lockIn === undefined || item.lockIn === null) {
       item.lockIn = 36;
     }
-    if (this.prisma) return this.prisma.sharePlan.create({ data: item as any });
+    if (this.prisma) {
+      const data = {
+        id: item.id,
+        name: item.name,
+        daysPerMonth: item.daysPerMonth,
+        lockIn: item.lockIn,
+        price: item.price,
+        currency: item.currency ?? null,
+        suiteId: item.suiteId ?? null,
+        planStatus: item.planStatus ?? 'Unsold',
+        planType: item.planType ?? null,
+        timeFraction: item.timeFraction ?? null
+      };
+      return this.prisma.sharePlan.create({ data });
+    }
     return this.repo.create(item);
   }
   async update(id: string, item: Partial<SharePlan>) {
-    if (this.prisma)
-      return this.prisma.sharePlan.update({ where: { id }, data: item as any });
+    if (this.prisma) {
+      const data: any = {};
+      for (const key of [
+        'name',
+        'daysPerMonth',
+        'lockIn',
+        'price',
+        'currency',
+        'suiteId',
+        'planStatus',
+        'planType',
+        'timeFraction'
+      ] as const) {
+        if (item[key] !== undefined) data[key] = item[key];
+      }
+      return this.prisma.sharePlan.update({ where: { id }, data });
+    }
     return this.repo.update(id, item);
   }
   async remove(id: string) {

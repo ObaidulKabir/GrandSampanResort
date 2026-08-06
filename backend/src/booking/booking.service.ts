@@ -20,43 +20,51 @@ export class BookingService {
   private suites = new SuitesService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
+
   async listByInvestor(investorId: string) {
     if (this.prisma) {
       const bookings = await this.prisma.booking.findMany({
         where: { investorId },
+        orderBy: { start: "desc" },
       });
-      const suiteIds = Array.from(new Set(bookings.map((b: any) => b.suiteId)));
-      const planIds = Array.from(
-        new Set(bookings.map((b: any) => b.planId).filter(Boolean)),
-      );
-      const suites = await Promise.all(
-        suiteIds.map((id) => this.suites.get(id)),
-      );
-      const plans = await Promise.all(
-        planIds.map((id) => (id ? this.timeshares.get(id) : null)),
-      );
-      const suiteById = Object.fromEntries(
-        (suites || []).filter(Boolean).map((s: any) => [s.id, s]),
-      );
-      const planById = Object.fromEntries(
-        (plans || []).filter(Boolean).map((p: any) => [p.id, p]),
-      );
-      return bookings.map((b: any) => ({
-        booking: b,
-        suite: suiteById[b.suiteId] || null,
-        plan: b.planId ? planById[b.planId] || null : null,
-      }));
+      return this.enrich(bookings);
     }
     const bookings = await this.repo.listByInvestor(investorId);
-    const result = await Promise.all(
-      bookings.map(async (b) => ({
-        booking: b,
-        suite: await this.suites.get(b.suiteId),
-        plan: b.planId ? await this.timeshares.get(b.planId) : null,
-      })),
-    );
-    return result;
+    return this.enrich(bookings);
   }
+
+  async listAll() {
+    if (this.prisma) {
+      const bookings = await this.prisma.booking.findMany({
+        orderBy: { start: "desc" },
+      });
+      return this.enrich(bookings);
+    }
+    return this.enrich(await this.repo.listAll());
+  }
+
+  private async enrich(bookings: any[]) {
+    const suiteIds = Array.from(new Set(bookings.map((b) => b.suiteId)));
+    const planIds = Array.from(
+      new Set(bookings.map((b) => b.planId).filter(Boolean)),
+    );
+    const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
+    const plans = await Promise.all(
+      planIds.map((id) => (id ? this.timeshares.get(id as string) : null)),
+    );
+    const suiteById = Object.fromEntries(
+      (suites || []).filter(Boolean).map((s: any) => [s.id, s]),
+    );
+    const planById = Object.fromEntries(
+      (plans || []).filter(Boolean).map((p: any) => [p.id, p]),
+    );
+    return bookings.map((b) => ({
+      booking: b,
+      suite: suiteById[b.suiteId] || null,
+      plan: b.planId ? planById[b.planId] || null : null,
+    }));
+  }
+
   async summary(id: string) {
     if (this.prisma) {
       const booking = await this.prisma.booking.findUnique({ where: { id } });
@@ -96,11 +104,13 @@ export class BookingService {
   }
 
   async availability(suiteId: string, start: string, end: string) {
+    // Stay availability ignores share-plan investment bookings.
     let conflict = false;
     if (this.prisma) {
       const list = await this.prisma.booking.findMany({
         where: {
           suiteId,
+          planId: null,
           start: { lte: new Date(end) },
           end: { gte: new Date(start) },
         },
@@ -108,38 +118,118 @@ export class BookingService {
       conflict = list.length > 0;
     } else {
       const existing = await this.repo.listBySuite(suiteId);
-      conflict = existing.some((b) => overlaps(start, end, b.start, b.end));
+      conflict = existing
+        .filter((b) => !b.planId)
+        .some((b) => overlaps(start, end, b.start, b.end));
     }
     return { available: !conflict };
   }
 
   async book(
     suiteId: string,
-    planId: string,
+    planId: string | undefined,
     start: string,
     end: string,
     investorId?: string,
   ) {
-    if (this.locks.has(suiteId)) return null;
-    this.locks.add(suiteId);
+    const lockKey = planId ? `plan:${planId}` : `stay:${suiteId}`;
+    if (this.locks.has(lockKey)) return null;
+    this.locks.add(lockKey);
     try {
-      const av = await this.availability(suiteId, start, end);
-      if (!av.available) return null;
-      const plan = await this.timeshares.get(planId);
-      if (!plan) return null;
       const suite = await this.suites.get(suiteId);
       if (!suite) return null;
-      const total = plan.price;
-      const schedule = this.generateSchedule(
-        total,
-        new Date(start),
-        plan.lockIn,
-        "monthly",
+
+      if (planId) {
+        const plan = await this.timeshares.get(planId);
+        if (!plan) return null;
+        const planStatus = String(
+          (plan as any).planStatus || "Unsold",
+        ).toLowerCase();
+        if (planStatus !== "unsold") return null;
+        const total = plan.price;
+        const schedule = this.generateSchedule(
+          total,
+          new Date(start),
+          plan.lockIn || 36,
+          "monthly",
+        );
+        const b: Booking = {
+          id: "B-" + Math.random().toString(36).slice(2, 8),
+          suiteId,
+          planId,
+          investorId,
+          start,
+          end,
+          status: "pending",
+          amountTotal: total,
+          schedule,
+          currency: "BDT",
+        };
+        if (this.prisma) {
+          await this.prisma.$transaction([
+            this.prisma.booking.create({
+              data: {
+                id: b.id,
+                suiteId: b.suiteId,
+                planId: b.planId,
+                investorId: b.investorId,
+                start: new Date(b.start),
+                end: new Date(b.end),
+                status: b.status,
+                amountTotal: b.amountTotal || null,
+              },
+            }),
+            this.prisma.paymentScheduleItem.createMany({
+              data: schedule.map((s) => ({
+                id: s.id,
+                bookingId: b.id,
+                type: s.type,
+                dueDate: new Date(s.dueDate),
+                amount: s.amount,
+                status: s.status,
+                gatewayRef: s.gatewayRef || null,
+              })),
+            }),
+            this.prisma.sharePlan.update({
+              where: { id: planId },
+              data: { planStatus: "Booked" },
+            }),
+          ]);
+          return b;
+        }
+        const created = await this.repo.create(b);
+        await this.timeshares.update(planId, { planStatus: "Booked" } as any);
+        return created;
+      }
+
+      const av = await this.availability(suiteId, start, end);
+      if (!av.available) return null;
+      const nights = Math.max(
+        1,
+        Math.ceil(
+          (new Date(end).getTime() - new Date(start).getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
       );
+      const nightly = Math.max(
+        5000,
+        Math.round((suite.totalPrice || 100000) / 365),
+      );
+      const total = nights * nightly;
+      const schedule: PaymentScheduleItem[] = [
+        {
+          id: "PS-" + Math.random().toString(36).slice(2, 8),
+          bookingId: "tmp",
+          type: "deposit",
+          dueDate: new Date(start).toISOString(),
+          amount: total,
+          status: "due",
+          currency: "BDT",
+        },
+      ];
       const b: Booking = {
         id: "B-" + Math.random().toString(36).slice(2, 8),
         suiteId,
-        planId,
         investorId,
         start,
         end,
@@ -154,7 +244,7 @@ export class BookingService {
             data: {
               id: b.id,
               suiteId: b.suiteId,
-              planId: b.planId,
+              planId: null,
               investorId: b.investorId,
               start: new Date(b.start),
               end: new Date(b.end),
@@ -170,16 +260,15 @@ export class BookingService {
               dueDate: new Date(s.dueDate),
               amount: s.amount,
               status: s.status,
-              gatewayRef: s.gatewayRef || null,
+              gatewayRef: null,
             })),
           }),
         ]);
         return b;
       }
-      const created = await this.repo.create(b);
-      return created;
+      return this.repo.create(b);
     } finally {
-      this.locks.delete(suiteId);
+      this.locks.delete(lockKey);
     }
   }
 
@@ -193,10 +282,9 @@ export class BookingService {
     const down = Math.round(total * 0.2 * 100) / 100;
     const remainder = Math.round((total - deposit - down) * 100) / 100;
     const items: PaymentScheduleItem[] = [];
-    const bookingId = "tmp";
     items.push({
       id: "PS-" + Math.random().toString(36).slice(2, 8),
-      bookingId,
+      bookingId: "tmp",
       type: "deposit",
       dueDate: new Date(anchor).toISOString(),
       amount: deposit,
@@ -207,7 +295,7 @@ export class BookingService {
     downDate.setMonth(downDate.getMonth() + 3);
     items.push({
       id: "PS-" + Math.random().toString(36).slice(2, 8),
-      bookingId,
+      bookingId: "tmp",
       type: "downpayment",
       dueDate: downDate.toISOString(),
       amount: down,
@@ -229,7 +317,7 @@ export class BookingService {
       sum += amt;
       items.push({
         id: "PS-" + Math.random().toString(36).slice(2, 8),
-        bookingId,
+        bookingId: "tmp",
         type: "installment",
         dueDate: due.toISOString(),
         amount: amt,

@@ -1,8 +1,10 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import Button from '@/components/Button';
 
 export default function InvestPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -30,17 +32,13 @@ export default function InvestPage() {
     load();
   }, []);
 
-  function themeForDays(days: number) {
-    if (days >= 30) return { card: 'border-gold/50 bg-gold/10', badge: 'bg-gold text-ocean' };
-    if (days >= 5) return { card: 'border-indigo-300 bg-indigo-50', badge: 'bg-indigo-600 text-white' };
-    return { card: 'border-teal-300 bg-teal-50', badge: 'bg-teal-600 text-white' };
-  }
   function suiteTypeIcon(type: string) {
     const t = (type || '').toLowerCase();
     if (t.includes('premium')) return '/images/icons/security.svg';
     if (t.includes('delux')) return '/images/icons/concierge.svg';
     return '/images/icons/balcony.svg';
   }
+
   function humanView(v?: string) {
     const s = (v || '').toLowerCase();
     if (s.includes('sea')) return 'Sea View';
@@ -50,51 +48,74 @@ export default function InvestPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="font-['Playfair Display'] text-4xl text-ocean">Invest in a Suite</h1>
-        <button onClick={load} className="rounded bg-ocean px-4 py-2 text-white">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
+          <p className="mt-2 max-w-2xl text-ocean/75">
+            Live unsold share plans. Choose a plan to review payment terms and complete your purchase.
+          </p>
+        </div>
+        <Button variant="outline" onClick={load}>
           {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
+        </Button>
       </div>
-      {error && <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
-      <p className="mt-2 text-ocean/80">Browse all unsold share plans and proceed to investment.</p>
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {plans.map((p: any) => (
-          (() => {
-            const suite = suites[p.suiteId] || {};
-            const theme = themeForDays(p.daysPerMonth ?? 0);
-            return (
-              <div key={p.id} className={`rounded-lg border ${theme.card} p-6`}>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-['Playfair Display'] text-ocean">{p.name}</h2>
-                  <span className={`rounded px-3 py-1 text-sm ${theme.badge}`}>{p.daysPerMonth} days/month</span>
-                </div>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="relative h-8 w-8">
-                    <Image src={suiteTypeIcon(suite.type)} alt={suite.type ?? 'Type'} fill sizes="32px" />
-                  </div>
-                  <span className="text-ocean/80">{suite.type ?? '—'}</span>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                  <div className="text-ocean/70">Suite: <span className="text-ocean">{p.suiteId ?? '—'}</span></div>
-                  <div className="text-ocean/70">View: <span className="text-ocean">{humanView(suite.view)}</span></div>
-                  <div className="text-ocean/70">Size: <span className="text-ocean">{suite.size ?? '—'} sq ft</span></div>
-                  <div className="text-ocean/70">Floor: <span className="text-ocean">{suite.floor ?? '—'}</span></div>
-                </div>
-                <p className="mt-3 text-ocean/70">Price: <span className="text-ocean">৳ {p.price}</span></p>
-                <div className="mt-4 flex gap-2">
-                  <Link href={`/pricing/plans/${p.id}`} className="rounded bg-ocean px-4 py-2 text-white">
-                    View Details
-                  </Link>
-                  <Link href={`/investment-plans`} className="rounded border border-ocean px-4 py-2 text-ocean">
-                    Proceed
-                  </Link>
-                </div>
+
+      {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+
+      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {plans.map((p: any) => {
+          const suite = suites[p.suiteId] || {};
+          const isFull = (p.daysPerMonth ?? 0) >= 30;
+          return (
+            <article
+              key={p.id}
+              className={`flex flex-col border bg-white p-6 ${
+                isFull ? 'border-gold/50' : 'border-ocean/15'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="font-display text-2xl text-ocean">{p.name}</h2>
+                <span className="shrink-0 border border-ocean/15 bg-pearl px-2.5 py-1 text-xs font-semibold text-ocean">
+                  {p.daysPerMonth} days/mo
+                </span>
               </div>
-            );
-          })()
-        ))}
-        {plans.length === 0 && !loading && <div className="rounded border border-ocean/10 p-4 text-ocean/70">No unsold plans available</div>}
+              <div className="mt-4 flex items-center gap-3">
+                <div className="relative h-8 w-8">
+                  <Image src={suiteTypeIcon(suite.type)} alt="" fill sizes="32px" />
+                </div>
+                <span className="text-sm text-ocean/80">{suite.type ?? 'Suite'} · {humanView(suite.view)}</span>
+              </div>
+              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-ocean/70">
+                <div>
+                  Suite <span className="text-ocean">{p.suiteId ?? '—'}</span>
+                </div>
+                <div>
+                  Floor <span className="text-ocean">{suite.floor ?? '—'}</span>
+                </div>
+                <div>
+                  Size <span className="text-ocean">{suite.size ?? '—'} sq ft</span>
+                </div>
+                <div>
+                  Lock-in <span className="text-ocean">{p.lockIn ?? 36} mo</span>
+                </div>
+              </dl>
+              <p className="mt-5 font-display text-3xl text-ocean">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Link href={`/pricing/plans/${p.id}`}>
+                  <Button>Buy this plan</Button>
+                </Link>
+                <Link href={`/pricing/plans/${p.id}`}>
+                  <Button variant="outline">Details</Button>
+                </Link>
+              </div>
+            </article>
+          );
+        })}
+        {plans.length === 0 && !loading && (
+          <div className="border border-ocean/10 p-6 text-ocean/70 sm:col-span-2 lg:col-span-3">
+            No unsold plans available right now. Check back soon or contact sales.
+          </div>
+        )}
       </div>
     </main>
   );
