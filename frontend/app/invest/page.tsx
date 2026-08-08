@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
-import { annualReturnRange, type ReturnAssumptions } from '@/lib/returns';
+import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
 
 type Filters = {
@@ -54,7 +54,7 @@ export default function InvestPage() {
       const byId = Object.fromEntries((suitesArr as any[]).map((s: any) => [s.id, s]));
       setSuites(byId);
       setPlans(items.filter((p: any) => (p.planStatus ?? '').toLowerCase() === 'unsold'));
-      if (returnsJson?.adrHigh) setAssumptions(returnsJson);
+      if (returnsJson) setAssumptions(normalizeReturnAssumptions(returnsJson));
     } catch {
       setError('Failed to load plans');
     }
@@ -269,7 +269,7 @@ export default function InvestPage() {
           const suite = suites[p.suiteId] || {};
           const isFull = (p.daysPerMonth ?? 0) >= 30;
           const discounted = typeof p.discountedPrice === 'number';
-          const returns = annualReturnRange(p.daysPerMonth, assumptions);
+          const returns = annualReturnRange(p.daysPerMonth, assumptions, suite);
           return (
             <article
               key={p.id}

@@ -1,8 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
-import { annualReturnRange, type ReturnAssumptions } from '@/lib/returns';
+import {
+  annualReturnRange,
+  DEFAULT_RETURN_ASSUMPTIONS,
+  normalizeReturnAssumptions,
+  type ReturnAssumptions
+} from '@/lib/returns';
 import Button from '@/components/Button';
 
 type RevenuePolicy = {
@@ -17,25 +22,15 @@ const fields: { key: keyof RevenuePolicy; label: string; hint: string }[] = [
   { key: 'maintenanceReserveRate', label: 'Maintenance reserve rate', hint: 'Held back for upkeep' }
 ];
 
-const returnFields: { key: keyof ReturnAssumptions; label: string; hint: string }[] = [
-  { key: 'adrLow', label: 'ADR — lower bound (BDT)', hint: 'Conservative average daily room rate' },
-  { key: 'adrHigh', label: 'ADR — upper bound (BDT)', hint: 'Optimistic average daily room rate' },
-  { key: 'occupancyLowPct', label: 'Occupancy — lower bound (%)', hint: 'Conservative occupancy, 0–100' },
-  { key: 'occupancyHighPct', label: 'Occupancy — upper bound (%)', hint: 'Optimistic occupancy, 0–100' },
-  { key: 'operatingCostPct', label: 'Operating cost (%)', hint: 'Deducted from gross rental revenue' }
-];
-
+const CATEGORY_ORDER = ['Standard', 'Delux', 'Premium'];
 const PREVIEW_DAYS = [3, 5, 30];
+const PREVIEW_SIZES = [250, 300, 400];
 
 export default function AdminPolicyPage() {
   const [policy, setPolicy] = useState<RevenuePolicy>({ taxRate: 0.1, serviceChargeRate: 0.05, maintenanceReserveRate: 0.05 });
-  const [assumptions, setAssumptions] = useState<ReturnAssumptions>({
-    adrLow: 6000,
-    adrHigh: 10000,
-    occupancyLowPct: 50,
-    occupancyHighPct: 75,
-    operatingCostPct: 15
-  });
+  const [assumptions, setAssumptions] = useState<ReturnAssumptions>(DEFAULT_RETURN_ASSUMPTIONS);
+  const [previewCategory, setPreviewCategory] = useState('Standard');
+  const [previewSize, setPreviewSize] = useState(300);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingReturns, setSavingReturns] = useState(false);
@@ -52,7 +47,11 @@ export default function AdminPolicyPage() {
         api('/settings/return-assumptions')
       ]);
       if (policyJson) setPolicy(policyJson);
-      if (returnsJson) setAssumptions(returnsJson);
+      if (returnsJson) {
+        const normalized = normalizeReturnAssumptions(returnsJson);
+        setAssumptions(normalized);
+        setPreviewSize(normalized.referenceSqFt);
+      }
     } catch {
       setError('Failed to load settings');
     }
@@ -92,8 +91,8 @@ export default function AdminPolicyPage() {
         body: JSON.stringify(assumptions)
       });
       if (json?.ok) {
-        if (json.returnAssumptions) setAssumptions(json.returnAssumptions);
-        setOk('Return assumptions saved. Plan cards now show the updated expected-return range.');
+        if (json.returnAssumptions) setAssumptions(normalizeReturnAssumptions(json.returnAssumptions));
+        setOk('Return assumptions saved. Plan cards now use category + sq ft for expected returns.');
       } else {
         setError('Failed to save return assumptions');
       }
@@ -103,7 +102,26 @@ export default function AdminPolicyPage() {
     setSavingReturns(false);
   }
 
+  function setCategoryAdr(category: string, field: 'adrLow' | 'adrHigh', value: number) {
+    setAssumptions((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        [category]: {
+          adrLow: prev.categories[category]?.adrLow ?? 0,
+          adrHigh: prev.categories[category]?.adrHigh ?? 0,
+          [field]: value
+        }
+      }
+    }));
+  }
+
   const investorShare = 1 - (policy.taxRate + policy.serviceChargeRate + policy.maintenanceReserveRate);
+
+  const previewSuite = useMemo(
+    () => ({ type: previewCategory, size: previewSize }),
+    [previewCategory, previewSize]
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
@@ -146,41 +164,151 @@ export default function AdminPolicyPage() {
 
       <h2 className="font-display mt-10 text-3xl text-ocean">Expected return assumptions</h2>
       <p className="mt-2 text-ocean/75">
-        These bounds drive the “Expected return / year” range buyers see on every plan card. Annual return =
-        ADR × days/month × occupancy × (1 − operating cost) × 12.
+        ADR varies by category and scales with suite size. Effective ADR = category ADR × (suite sq ft ÷
+        reference sq ft). Annual return = ADR × days/month × occupancy × (1 − operating cost) × 12.
       </p>
 
       <form onSubmit={saveReturns} className="mt-6 space-y-5 border border-ocean/10 bg-white p-6">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {returnFields.map((f) => (
-            <label key={f.key} className="block text-sm font-medium text-ocean">
-              {f.label}
-              <input
-                type="number"
-                min={0}
-                step={f.key.startsWith('adr') ? 100 : 1}
-                max={f.key.startsWith('adr') ? undefined : 100}
-                value={assumptions[f.key]}
-                onChange={(e) => setAssumptions({ ...assumptions, [f.key]: Number(e.target.value) })}
-                className="field mt-1"
-              />
-              <span className="mt-1 block text-xs font-normal text-ocean/60">{f.hint}</span>
-            </label>
-          ))}
+          <label className="block text-sm font-medium text-ocean">
+            Reference size (sq ft)
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={assumptions.referenceSqFt}
+              onChange={(e) => setAssumptions({ ...assumptions, referenceSqFt: Number(e.target.value) || 1 })}
+              className="field mt-1"
+            />
+            <span className="mt-1 block text-xs font-normal text-ocean/60">
+              Category ADR values below are for a suite of this size; larger/smaller units scale proportionally.
+            </span>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Operating cost (%)
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={assumptions.operatingCostPct}
+              onChange={(e) => setAssumptions({ ...assumptions, operatingCostPct: Number(e.target.value) })}
+              className="field mt-1"
+            />
+            <span className="mt-1 block text-xs font-normal text-ocean/60">Deducted from gross rental revenue</span>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Occupancy — lower bound (%)
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={assumptions.occupancyLowPct}
+              onChange={(e) => setAssumptions({ ...assumptions, occupancyLowPct: Number(e.target.value) })}
+              className="field mt-1"
+            />
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Occupancy — upper bound (%)
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={assumptions.occupancyHighPct}
+              onChange={(e) => setAssumptions({ ...assumptions, occupancyHighPct: Number(e.target.value) })}
+              className="field mt-1"
+            />
+          </label>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-ocean">ADR by category (at reference size)</p>
+          <p className="mt-1 text-xs text-ocean/60">Average daily rate band in BDT for each suite category.</p>
+          <div className="mt-3 space-y-3">
+            {CATEGORY_ORDER.map((cat) => {
+              const rates = assumptions.categories[cat] || { adrLow: 0, adrHigh: 0 };
+              return (
+                <div key={cat} className="grid grid-cols-1 gap-3 border border-ocean/10 bg-pearl p-4 sm:grid-cols-3">
+                  <div className="flex items-center font-semibold text-ocean">{cat}</div>
+                  <label className="block text-sm text-ocean">
+                    ADR low
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={rates.adrLow}
+                      onChange={(e) => setCategoryAdr(cat, 'adrLow', Number(e.target.value))}
+                      className="field mt-1"
+                    />
+                  </label>
+                  <label className="block text-sm text-ocean">
+                    ADR high
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={rates.adrHigh}
+                      onChange={(e) => setCategoryAdr(cat, 'adrHigh', Number(e.target.value))}
+                      className="field mt-1"
+                    />
+                  </label>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="border border-ocean/10 bg-pearl p-4">
           <p className="text-sm font-semibold text-ocean">Live preview — what buyers will see</p>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-ocean">
+              Preview category
+              <select
+                value={previewCategory}
+                onChange={(e) => setPreviewCategory(e.target.value)}
+                className="field mt-1"
+              >
+                {CATEGORY_ORDER.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm text-ocean">
+              Preview size (sq ft)
+              <select
+                value={String(previewSize)}
+                onChange={(e) => setPreviewSize(Number(e.target.value))}
+                className="field mt-1"
+              >
+                {[assumptions.referenceSqFt, ...PREVIEW_SIZES]
+                  .filter((v, i, arr) => arr.indexOf(v) === i)
+                  .sort((a, b) => a - b)
+                  .map((s) => (
+                    <option key={s} value={s}>
+                      {s} sq ft
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {PREVIEW_DAYS.map((days) => {
-              const r = annualReturnRange(days, assumptions);
+              const r = annualReturnRange(days, assumptions, previewSuite);
               return (
                 <div key={days} className="border border-ocean/10 bg-white px-3 py-2">
-                  <p className="text-xs text-ocean/60">{days === 30 ? 'Full month (30 days)' : `${days} days/month`}</p>
+                  <p className="text-xs text-ocean/60">
+                    {days === 30 ? 'Full month (30 days)' : `${days} days/month`}
+                  </p>
                   <p className="mt-0.5 text-sm font-semibold text-ocean">
                     {r ? `${formatMoney(r.low, 0)} – ${formatMoney(r.high, 0)}` : '—'}
                   </p>
-                  <p className="text-[11px] text-ocean/55">per year</p>
+                  <p className="text-[11px] text-ocean/55">
+                    per year · ADR {r ? `${formatMoney(r.adrLow, 0)}–${formatMoney(r.adrHigh, 0)}` : '—'}
+                  </p>
                 </div>
               );
             })}

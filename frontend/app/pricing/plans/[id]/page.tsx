@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
+import { effectiveAdrBand, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
@@ -59,25 +60,32 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [occupancy, setOccupancy] = useState<number>(0.6);
   const [costPct, setCostPct] = useState<number>(15);
   const [rentUpliftPct, setRentUpliftPct] = useState<number>(0);
+  const [returnAssumptions, setReturnAssumptions] = useState<ReturnAssumptions | null>(null);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  // Seed the calculator with the admin-managed assumptions (midpoints of the
-  // bounds shown on plan cards) so buyer-facing numbers stay consistent.
+  // Seed occupancy/cost from admin settings; ADR scales with suite category + size.
   useEffect(() => {
     api('/settings/return-assumptions')
       .then((a) => {
-        if (!a?.adrHigh) return;
-        setAdr(Math.round((Number(a.adrLow || 0) + Number(a.adrHigh)) / 2));
+        if (!a) return;
+        const normalized = normalizeReturnAssumptions(a);
+        setReturnAssumptions(normalized);
         setOccupancy(
-          Math.round(((Number(a.occupancyLowPct || 0) + Number(a.occupancyHighPct || 0)) / 2)) / 100
+          Math.round((normalized.occupancyLowPct + normalized.occupancyHighPct) / 2) / 100
         );
-        setCostPct(Number(a.operatingCostPct ?? 15));
+        setCostPct(normalized.operatingCostPct);
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!returnAssumptions) return;
+    const band = effectiveAdrBand(returnAssumptions, suite);
+    if (band) setAdr(Math.round((band.adrLow + band.adrHigh) / 2));
+  }, [returnAssumptions, suite]);
 
   useEffect(() => {
     async function load() {

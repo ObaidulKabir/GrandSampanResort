@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
-import { annualReturnRange, type ReturnAssumptions } from '@/lib/returns';
+import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
 
 export default function InvestmentPlansPage() {
@@ -27,7 +27,7 @@ export default function InvestmentPlansPage() {
         const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
         setSuites(Object.fromEntries(suitesArr.map((s: any) => [s.id, s])));
         setPlans(items.filter((p: any) => (p.planStatus ?? 'Unsold').toLowerCase() === 'unsold'));
-        if (returnsJson?.adrHigh) setAssumptions(returnsJson);
+        if (returnsJson) setAssumptions(normalizeReturnAssumptions(returnsJson));
       } catch {
         setError('Failed to load investment plans');
       }
@@ -52,7 +52,7 @@ export default function InvestmentPlansPage() {
       <div className="mt-10 grid gap-6 md:grid-cols-3">
         {plans.map((p) => {
           const suite = suites[p.suiteId] || {};
-          const returns = annualReturnRange(p.daysPerMonth, assumptions);
+          const returns = annualReturnRange(p.daysPerMonth, assumptions, suite);
           return (
             <article key={p.id} className="flex flex-col border border-ocean/15 bg-white p-6">
               <h2 className="font-display text-2xl text-ocean">{p.name}</h2>
