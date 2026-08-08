@@ -12,6 +12,16 @@ const nextConfig = {
         hostname: 'localhost',
         port: '4000',
         pathname: '/uploads/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.grandsampanresort.com',
+        pathname: '/uploads/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'grandsampanresort.com',
+        pathname: '/uploads/**'
       }
     ]
   }

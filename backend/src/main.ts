@@ -8,8 +8,16 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors({ origin: ['http://localhost:3000', 'http://localhost:3001'], credentials: true });
+  const corsOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://www.grandsampanresort.com',
+    'https://grandsampanresort.com'
+  ];
+  app.enableCors({ origin: corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  // Mount static uploads BEFORE the global /api prefix so files stay at
+  // /uploads/... (not /api/uploads/...), matching URLs stored in MediaAsset.
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   app.setGlobalPrefix('api');
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;

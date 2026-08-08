@@ -18,6 +18,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-frontend.rule=Host(`www.grandsampanresort.com`)"
       - "traefik.http.routers.grand-sampan-frontend.entrypoints=web"
+      - "traefik.http.routers.grand-sampan-frontend.priority=1"
       - "traefik.http.services.grand-sampan-frontend.loadbalancer.server.port=3000"
 
   backend:
@@ -35,12 +36,18 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_NAME=${ADMIN_NAME}
+    volumes:
+      # Persist uploaded media across container rebuilds/redeploys.
+      - uploads_data:/app/uploads
     networks:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grand-sampan-backend.rule=Host(`www.grandsampanresort.com`) && PathPrefix(`/api`)"
+      # Serve both JSON APIs and static /uploads from the backend. Without
+      # /uploads here, Traefik sends image requests to Next.js (404).
+      - "traefik.http.routers.grand-sampan-backend.rule=Host(`www.grandsampanresort.com`) && (PathPrefix(`/api`) || PathPrefix(`/uploads`))"
       - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
+      - "traefik.http.routers.grand-sampan-backend.priority=100"
       - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000"
 
 networks:
@@ -49,3 +56,4 @@ networks:
 
 volumes:
   grand_sampan_db_prod_data:
+  uploads_data:
