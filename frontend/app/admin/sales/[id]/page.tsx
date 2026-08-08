@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
@@ -15,44 +15,110 @@ type ScheduleItem = {
   gatewayRef?: string | null;
 };
 
+const METHOD_LABELS: Record<string, string> = {
+  cheque: 'Cheque',
+  cash_payorder: 'Cash / pay order',
+  online_transfer: 'Online transfer'
+};
+
 export default function AdminBookingDetailPage({ params }: { params: { id: string } }) {
   const bookingId = params.id;
   const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
   const [error, setError] = useState('');
+  const [actionMsg, setActionMsg] = useState('');
   const [summary, setSummary] = useState<any>(null);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError('');
-      try {
-        const [summaryRes, scheduleRes] = await Promise.all([
-          api(`/booking/${encodeURIComponent(bookingId)}/summary`),
-          api(`/booking/${encodeURIComponent(bookingId)}/schedule`)
-        ]);
-        if (!summaryRes?.ok || !summaryRes?.summary) {
-          setError('Booking not found');
-          setSummary(null);
-          setSchedule([]);
-          return;
-        }
-        setSummary(summaryRes.summary);
-        setSchedule(Array.isArray(scheduleRes?.schedule) ? scheduleRes.schedule : []);
-      } catch {
-        setError('Failed to load booking');
-      } finally {
-        setLoading(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [summaryRes, scheduleRes] = await Promise.all([
+        api(`/booking/${encodeURIComponent(bookingId)}/summary`),
+        api(`/booking/${encodeURIComponent(bookingId)}/schedule`)
+      ]);
+      if (!summaryRes?.ok || !summaryRes?.summary) {
+        setError('Booking not found');
+        setSummary(null);
+        setSchedule([]);
+        return;
       }
+      setSummary(summaryRes.summary);
+      setSchedule(Array.isArray(scheduleRes?.schedule) ? scheduleRes.schedule : []);
+    } catch {
+      setError('Failed to load booking');
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [bookingId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function confirmDeposit() {
+    if (!window.confirm('Confirm deposit receipt / bank encashment for this booking?')) return;
+    setActing(true);
+    setActionMsg('');
+    try {
+      const res = await api(`/booking/${encodeURIComponent(bookingId)}/confirm-deposit`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      if (!res?.ok) {
+        setActionMsg(
+          res?.error === 'not_awaiting_payment'
+            ? 'This booking is not awaiting payment confirmation'
+            : 'Could not confirm deposit'
+        );
+      } else {
+        setActionMsg('Deposit confirmed. Plan marked as booked.');
+        await load();
+      }
+    } catch {
+      setActionMsg('Could not confirm deposit');
+    }
+    setActing(false);
+  }
+
+  async function rejectDeposit() {
+    if (
+      !window.confirm(
+        'Reject this booking and release the reserved plan back to unsold? This cannot be undone.'
+      )
+    ) {
+      return;
+    }
+    setActing(true);
+    setActionMsg('');
+    try {
+      const res = await api(`/booking/${encodeURIComponent(bookingId)}/reject-deposit`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      if (!res?.ok) {
+        setActionMsg(
+          res?.error === 'not_awaiting_payment'
+            ? 'This booking is not awaiting payment confirmation'
+            : 'Could not reject booking'
+        );
+      } else {
+        setActionMsg('Booking cancelled and plan released.');
+        await load();
+      }
+    } catch {
+      setActionMsg('Could not reject booking');
+    }
+    setActing(false);
+  }
 
   const booking = summary?.booking;
   const client = summary?.client;
   const suite = summary?.suite;
   const plan = summary?.plan;
   const investor = summary?.investor;
+  const awaitingPayment = booking?.status === 'awaiting_payment';
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
@@ -77,13 +143,16 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
       </div>
 
       {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+      {actionMsg && (
+        <div className="mt-4 border border-ocean/15 bg-ocean/5 p-3 text-ocean">{actionMsg}</div>
+      )}
       {loading && <p className="mt-6 text-ocean/70">Loading booking…</p>}
 
       {!loading && booking && (
         <div className="mt-8 space-y-8">
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ['Status', String(booking.status || '—')],
+              ['Status', String(booking.status || '—').replace(/_/g, ' ')],
               ['Total', formatMoney(booking.amountTotal || 0)],
               ['Paid', formatMoney(summary.paidTotal || 0)],
               ['Outstanding', formatMoney(summary.outstanding || 0)]
@@ -94,6 +163,78 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
               </div>
             ))}
           </section>
+
+          {booking.planId && (
+            <section className="border border-ocean/10 bg-white p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="font-display text-2xl text-ocean">Deposit payment</h2>
+                  <p className="mt-1 text-sm text-ocean/65">
+                    Offline payment submitted by the buyer. Confirm after cash receipt or bank
+                    encashment.
+                  </p>
+                </div>
+                {awaitingPayment && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={confirmDeposit} disabled={acting}>
+                      {acting ? 'Working…' : 'Confirm receipt'}
+                    </Button>
+                    <Button variant="outline" onClick={rejectDeposit} disabled={acting}>
+                      Reject & release plan
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div className="border-b border-ocean/10 pb-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Method</dt>
+                  <dd className="mt-0.5 text-ocean">
+                    {METHOD_LABELS[booking.depositMethod] ||
+                      String(booking.depositMethod || '—').replace(/_/g, ' ')}
+                  </dd>
+                </div>
+                <div className="border-b border-ocean/10 pb-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Reference</dt>
+                  <dd className="mt-0.5 font-mono text-ocean">{booking.depositReference || '—'}</dd>
+                </div>
+                <div className="border-b border-ocean/10 pb-2 sm:col-span-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Note</dt>
+                  <dd className="mt-0.5 text-ocean">{booking.depositNote || '—'}</dd>
+                </div>
+                <div className="border-b border-ocean/10 pb-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Submitted</dt>
+                  <dd className="mt-0.5 text-ocean">
+                    {booking.depositSubmittedAt ? formatDate(booking.depositSubmittedAt) : '—'}
+                  </dd>
+                </div>
+                <div className="border-b border-ocean/10 pb-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Proof</dt>
+                  <dd className="mt-0.5 text-ocean">
+                    {booking.depositProofUrl ? (
+                      <a
+                        href={resolveMediaUrl(booking.depositProofUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        View proof
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </div>
+              </dl>
+              {booking.depositProofUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resolveMediaUrl(booking.depositProofUrl)}
+                  alt="Deposit payment proof"
+                  className="mt-4 h-40 w-auto max-w-full border border-ocean/15 object-contain"
+                />
+              )}
+            </section>
+          )}
 
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="border border-ocean/10 bg-white p-5">

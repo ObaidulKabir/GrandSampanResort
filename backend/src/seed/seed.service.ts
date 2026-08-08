@@ -129,6 +129,11 @@ export class SeedService {
         nomineeName: client.nomineeName,
         nomineeNid: client.nomineeNid,
         nomineePicUrl: client.nomineePicUrl || '/uploads/media/seed-nominee.jpg'
+      },
+      {
+        depositMethod: 'cheque',
+        depositReference: 'CHQ-SEED-001',
+        depositNote: 'Seed booking deposit'
       }
     );
 

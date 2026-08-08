@@ -46,6 +46,12 @@ model Booking {
   end         DateTime
   status      String
   amountTotal Int?
+  /// Offline deposit: cheque | cash_payorder | online_transfer
+  depositMethod      String?
+  depositReference   String?
+  depositProofUrl    String?
+  depositNote        String?
+  depositSubmittedAt DateTime?
   schedule    PaymentScheduleItem[]
   /// Investment purchases link to a share plan; guest stays leave this null.
   plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)

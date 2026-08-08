@@ -57,6 +57,16 @@ export class MediaController {
     return { ok: true, url: `/uploads/media/${file.filename}` };
   }
 
+  /** Investor/admin proof image for offline deposit payment. */
+  @Post('payment-proof')
+  @UseGuards(RolesGuard)
+  @Roles('investor', 'admin')
+  @UseInterceptors(FileInterceptor('file', mediaMulterOptions))
+  async paymentProofUpload(@UploadedFile() file: Express.Multer.File) {
+    if (!file) return { ok: false, error: 'no_file' };
+    return { ok: true, url: `/uploads/media/${file.filename}` };
+  }
+
   @Patch(':id/move')
   @UseGuards(RolesGuard)
   @Roles('admin')

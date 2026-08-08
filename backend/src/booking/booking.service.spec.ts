@@ -17,8 +17,14 @@ const sampleKyc = {
   nomineePicUrl: '/uploads/media/nominee.jpg'
 };
 
+const sampleDeposit = {
+  depositMethod: 'cheque' as const,
+  depositReference: 'CHQ-12345',
+  depositNote: 'Test cheque'
+};
+
 describe('BookingService', () => {
-  it('requires KYC for investment bookings and links clientId when provided', async () => {
+  it('reserves plan awaiting payment and confirms/rejects deposit', async () => {
     process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://app:app@localhost:5432/grand_sampan';
     const suites = new SuitesService();
     const plans = new TimesharesService();
@@ -46,17 +52,17 @@ describe('BookingService', () => {
     const svc = new BookingService();
     const now = new Date();
 
-    const missing = await svc.book(
+    const missingKyc = await svc.book(
       suiteId,
       planId,
       now.toISOString(),
       new Date(now.getTime() + 86400000).toISOString(),
       'I-1'
     );
-    expect(missing.ok).toBe(false);
-    if (!missing.ok) expect(missing.error).toBe('kyc_required');
+    expect(missingKyc.ok).toBe(false);
+    if (!missingKyc.ok) expect(missingKyc.error).toBe('kyc_required');
 
-    let res = await svc.book(
+    const missingDeposit = await svc.book(
       suiteId,
       planId,
       now.toISOString(),
@@ -65,8 +71,20 @@ describe('BookingService', () => {
       'monthly',
       sampleKyc
     );
+    expect(missingDeposit.ok).toBe(false);
+    if (!missingDeposit.ok) expect(missingDeposit.error).toBe('deposit_payment_required');
+
+    let res = await svc.book(
+      suiteId,
+      planId,
+      now.toISOString(),
+      new Date(now.getTime() + 86400000).toISOString(),
+      'I-1',
+      'monthly',
+      sampleKyc,
+      sampleDeposit
+    );
     if (!res.ok) {
-      // Reset plan if a prior run left it booked, then retry once.
       await plans.update(planId, { planStatus: 'Unsold' } as any);
       res = await svc.book(
         suiteId,
@@ -75,21 +93,28 @@ describe('BookingService', () => {
         new Date(now.getTime() + 3 * 86400000).toISOString(),
         'I-1',
         'monthly',
-        sampleKyc
+        sampleKyc,
+        sampleDeposit
       );
     }
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.booking.planId).toBe(planId);
+    expect(res.booking.status).toBe('awaiting_payment');
+    expect(res.booking.depositMethod).toBe('cheque');
     expect(res.booking.clientId).toBeTruthy();
-    expect((res as any).client?.nid).toBe(sampleKyc.nid);
-    expect(Array.isArray(res.booking.schedule)).toBe(true);
-    const types = res.booking.schedule!.map((s) => s.type);
-    expect(types).toContain('deposit');
-    expect(types).toContain('downpayment');
-    expect(types).toContain('installment');
-    // 1 deposit + 1 downpayment + 24 monthly installments
     expect(res.booking.schedule!.filter((s) => s.type === 'installment')).toHaveLength(24);
+    const reserved = await plans.get(planId);
+    expect(String((reserved as any)?.planStatus)).toBe('Reserved');
+
+    const confirmed = await svc.confirmDeposit(res.booking.id);
+    expect(confirmed.ok).toBe(true);
+    const booked = await plans.get(planId);
+    expect(String((booked as any)?.planStatus)).toBe('Booked');
+    const summary = await svc.summary(res.booking.id);
+    expect(summary?.booking?.status).toBe('confirmed');
+    const schedule = await svc.schedule(res.booking.id);
+    const deposit = (schedule || []).find((s: any) => s.type === 'deposit');
+    expect(deposit?.status).toBe('paid');
 
     await plans.update(planId, { planStatus: 'Unsold' } as any);
     const quarterly = await svc.book(
@@ -99,11 +124,18 @@ describe('BookingService', () => {
       new Date(now.getTime() + 5 * 86400000).toISOString(),
       'I-1',
       'quarterly',
-      sampleKyc
+      sampleKyc,
+      { depositMethod: 'online_transfer', depositReference: 'TRX-99' }
     );
     expect(quarterly.ok).toBe(true);
     if (!quarterly.ok) return;
     expect(quarterly.booking.schedule!.filter((s) => s.type === 'installment')).toHaveLength(8);
-    expect(quarterly.booking.clientId).toBeTruthy();
+
+    const rejected = await svc.rejectDeposit(quarterly.booking.id);
+    expect(rejected.ok).toBe(true);
+    const released = await plans.get(planId);
+    expect(String((released as any)?.planStatus)).toBe('Unsold');
+    const rejectedSummary = await svc.summary(quarterly.booking.id);
+    expect(rejectedSummary?.booking?.status).toBe('cancelled');
   });
 });

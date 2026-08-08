@@ -44,6 +44,11 @@ export type BookingMinAggregateOutputType = {
   end: Date | null
   status: string | null
   amountTotal: number | null
+  depositMethod: string | null
+  depositReference: string | null
+  depositProofUrl: string | null
+  depositNote: string | null
+  depositSubmittedAt: Date | null
 }
 
 export type BookingMaxAggregateOutputType = {
@@ -56,6 +61,11 @@ export type BookingMaxAggregateOutputType = {
   end: Date | null
   status: string | null
   amountTotal: number | null
+  depositMethod: string | null
+  depositReference: string | null
+  depositProofUrl: string | null
+  depositNote: string | null
+  depositSubmittedAt: Date | null
 }
 
 export type BookingCountAggregateOutputType = {
@@ -68,6 +78,11 @@ export type BookingCountAggregateOutputType = {
   end: number
   status: number
   amountTotal: number
+  depositMethod: number
+  depositReference: number
+  depositProofUrl: number
+  depositNote: number
+  depositSubmittedAt: number
   _all: number
 }
 
@@ -90,6 +105,11 @@ export type BookingMinAggregateInputType = {
   end?: true
   status?: true
   amountTotal?: true
+  depositMethod?: true
+  depositReference?: true
+  depositProofUrl?: true
+  depositNote?: true
+  depositSubmittedAt?: true
 }
 
 export type BookingMaxAggregateInputType = {
@@ -102,6 +122,11 @@ export type BookingMaxAggregateInputType = {
   end?: true
   status?: true
   amountTotal?: true
+  depositMethod?: true
+  depositReference?: true
+  depositProofUrl?: true
+  depositNote?: true
+  depositSubmittedAt?: true
 }
 
 export type BookingCountAggregateInputType = {
@@ -114,6 +139,11 @@ export type BookingCountAggregateInputType = {
   end?: true
   status?: true
   amountTotal?: true
+  depositMethod?: true
+  depositReference?: true
+  depositProofUrl?: true
+  depositNote?: true
+  depositSubmittedAt?: true
   _all?: true
 }
 
@@ -213,6 +243,11 @@ export type BookingGroupByOutputType = {
   end: Date
   status: string
   amountTotal: number | null
+  depositMethod: string | null
+  depositReference: string | null
+  depositProofUrl: string | null
+  depositNote: string | null
+  depositSubmittedAt: Date | null
   _count: BookingCountAggregateOutputType | null
   _avg: BookingAvgAggregateOutputType | null
   _sum: BookingSumAggregateOutputType | null
@@ -248,6 +283,11 @@ export type BookingWhereInput = {
   end?: Prisma.DateTimeFilter<"Booking"> | Date | string
   status?: Prisma.StringFilter<"Booking"> | string
   amountTotal?: Prisma.IntNullableFilter<"Booking"> | number | null
+  depositMethod?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositReference?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -263,6 +303,11 @@ export type BookingOrderByWithRelationInput = {
   end?: Prisma.SortOrder
   status?: Prisma.SortOrder
   amountTotal?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositMethod?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositReference?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositProofUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   schedule?: Prisma.PaymentScheduleItemOrderByRelationAggregateInput
   plan?: Prisma.SharePlanOrderByWithRelationInput
   client?: Prisma.ClientOrderByWithRelationInput
@@ -281,6 +326,11 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   end?: Prisma.DateTimeFilter<"Booking"> | Date | string
   status?: Prisma.StringFilter<"Booking"> | string
   amountTotal?: Prisma.IntNullableFilter<"Booking"> | number | null
+  depositMethod?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositReference?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -296,6 +346,11 @@ export type BookingOrderByWithAggregationInput = {
   end?: Prisma.SortOrder
   status?: Prisma.SortOrder
   amountTotal?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositMethod?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositReference?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositProofUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
   _avg?: Prisma.BookingAvgOrderByAggregateInput
   _max?: Prisma.BookingMaxOrderByAggregateInput
@@ -316,6 +371,11 @@ export type BookingScalarWhereWithAggregatesInput = {
   end?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
   status?: Prisma.StringWithAggregatesFilter<"Booking"> | string
   amountTotal?: Prisma.IntNullableWithAggregatesFilter<"Booking"> | number | null
+  depositMethod?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  depositReference?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  depositProofUrl?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  depositNote?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  depositSubmittedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
 }
 
 export type BookingCreateInput = {
@@ -326,6 +386,11 @@ export type BookingCreateInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
@@ -341,6 +406,11 @@ export type BookingUncheckedCreateInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -352,6 +422,11 @@ export type BookingUpdateInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
@@ -367,6 +442,11 @@ export type BookingUncheckedUpdateInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -380,6 +460,11 @@ export type BookingCreateManyInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
 }
 
 export type BookingUpdateManyMutationInput = {
@@ -390,6 +475,11 @@ export type BookingUpdateManyMutationInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingUncheckedUpdateManyInput = {
@@ -402,6 +492,11 @@ export type BookingUncheckedUpdateManyInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingListRelationFilter = {
@@ -424,6 +519,11 @@ export type BookingCountOrderByAggregateInput = {
   end?: Prisma.SortOrder
   status?: Prisma.SortOrder
   amountTotal?: Prisma.SortOrder
+  depositMethod?: Prisma.SortOrder
+  depositReference?: Prisma.SortOrder
+  depositProofUrl?: Prisma.SortOrder
+  depositNote?: Prisma.SortOrder
+  depositSubmittedAt?: Prisma.SortOrder
 }
 
 export type BookingAvgOrderByAggregateInput = {
@@ -440,6 +540,11 @@ export type BookingMaxOrderByAggregateInput = {
   end?: Prisma.SortOrder
   status?: Prisma.SortOrder
   amountTotal?: Prisma.SortOrder
+  depositMethod?: Prisma.SortOrder
+  depositReference?: Prisma.SortOrder
+  depositProofUrl?: Prisma.SortOrder
+  depositNote?: Prisma.SortOrder
+  depositSubmittedAt?: Prisma.SortOrder
 }
 
 export type BookingMinOrderByAggregateInput = {
@@ -452,6 +557,11 @@ export type BookingMinOrderByAggregateInput = {
   end?: Prisma.SortOrder
   status?: Prisma.SortOrder
   amountTotal?: Prisma.SortOrder
+  depositMethod?: Prisma.SortOrder
+  depositReference?: Prisma.SortOrder
+  depositProofUrl?: Prisma.SortOrder
+  depositNote?: Prisma.SortOrder
+  depositSubmittedAt?: Prisma.SortOrder
 }
 
 export type BookingSumOrderByAggregateInput = {
@@ -515,6 +625,10 @@ export type NullableIntFieldUpdateOperationsInput = {
   decrement?: number
   multiply?: number
   divide?: number
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
 }
 
 export type BookingCreateNestedOneWithoutScheduleInput = {
@@ -581,6 +695,11 @@ export type BookingCreateWithoutPlanInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
 }
@@ -594,6 +713,11 @@ export type BookingUncheckedCreateWithoutPlanInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -636,6 +760,11 @@ export type BookingScalarWhereInput = {
   end?: Prisma.DateTimeFilter<"Booking"> | Date | string
   status?: Prisma.StringFilter<"Booking"> | string
   amountTotal?: Prisma.IntNullableFilter<"Booking"> | number | null
+  depositMethod?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositReference?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
+  depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
 }
 
 export type BookingCreateWithoutScheduleInput = {
@@ -646,6 +775,11 @@ export type BookingCreateWithoutScheduleInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
 }
@@ -660,6 +794,11 @@ export type BookingUncheckedCreateWithoutScheduleInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
 }
 
 export type BookingCreateOrConnectWithoutScheduleInput = {
@@ -686,6 +825,11 @@ export type BookingUpdateWithoutScheduleInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
 }
@@ -700,6 +844,11 @@ export type BookingUncheckedUpdateWithoutScheduleInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingCreateWithoutClientInput = {
@@ -710,6 +859,11 @@ export type BookingCreateWithoutClientInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
 }
@@ -723,6 +877,11 @@ export type BookingUncheckedCreateWithoutClientInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -761,6 +920,11 @@ export type BookingCreateManyPlanInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
 }
 
 export type BookingUpdateWithoutPlanInput = {
@@ -771,6 +935,11 @@ export type BookingUpdateWithoutPlanInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
 }
@@ -784,6 +953,11 @@ export type BookingUncheckedUpdateWithoutPlanInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -796,6 +970,11 @@ export type BookingUncheckedUpdateManyWithoutPlanInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingCreateManyClientInput = {
@@ -807,6 +986,11 @@ export type BookingCreateManyClientInput = {
   end: Date | string
   status: string
   amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
 }
 
 export type BookingUpdateWithoutClientInput = {
@@ -817,6 +1001,11 @@ export type BookingUpdateWithoutClientInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
 }
@@ -830,6 +1019,11 @@ export type BookingUncheckedUpdateWithoutClientInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -842,6 +1036,11 @@ export type BookingUncheckedUpdateManyWithoutClientInput = {
   end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -885,6 +1084,11 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   end?: boolean
   status?: boolean
   amountTotal?: boolean
+  depositMethod?: boolean
+  depositReference?: boolean
+  depositProofUrl?: boolean
+  depositNote?: boolean
+  depositSubmittedAt?: boolean
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
@@ -901,6 +1105,11 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   end?: boolean
   status?: boolean
   amountTotal?: boolean
+  depositMethod?: boolean
+  depositReference?: boolean
+  depositProofUrl?: boolean
+  depositNote?: boolean
+  depositSubmittedAt?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -915,6 +1124,11 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   end?: boolean
   status?: boolean
   amountTotal?: boolean
+  depositMethod?: boolean
+  depositReference?: boolean
+  depositProofUrl?: boolean
+  depositNote?: boolean
+  depositSubmittedAt?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -929,9 +1143,14 @@ export type BookingSelectScalar = {
   end?: boolean
   status?: boolean
   amountTotal?: boolean
+  depositMethod?: boolean
+  depositReference?: boolean
+  depositProofUrl?: boolean
+  depositNote?: boolean
+  depositSubmittedAt?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
@@ -970,6 +1189,14 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     end: Date
     status: string
     amountTotal: number | null
+    /**
+     * Offline deposit: cheque | cash_payorder | online_transfer
+     */
+    depositMethod: string | null
+    depositReference: string | null
+    depositProofUrl: string | null
+    depositNote: string | null
+    depositSubmittedAt: Date | null
   }, ExtArgs["result"]["booking"]>
   composites: {}
 }
@@ -1405,6 +1632,11 @@ export interface BookingFieldRefs {
   readonly end: Prisma.FieldRef<"Booking", 'DateTime'>
   readonly status: Prisma.FieldRef<"Booking", 'String'>
   readonly amountTotal: Prisma.FieldRef<"Booking", 'Int'>
+  readonly depositMethod: Prisma.FieldRef<"Booking", 'String'>
+  readonly depositReference: Prisma.FieldRef<"Booking", 'String'>
+  readonly depositProofUrl: Prisma.FieldRef<"Booking", 'String'>
+  readonly depositNote: Prisma.FieldRef<"Booking", 'String'>
+  readonly depositSubmittedAt: Prisma.FieldRef<"Booking", 'DateTime'>
 }
     
 

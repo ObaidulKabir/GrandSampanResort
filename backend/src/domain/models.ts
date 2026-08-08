@@ -29,6 +29,15 @@ export type Investor = {
   kyc: boolean;
 };
 
+export type DepositMethod = 'cheque' | 'cash_payorder' | 'online_transfer';
+
+export type BookingDepositPayment = {
+  depositMethod: DepositMethod;
+  depositReference: string;
+  depositProofUrl?: string;
+  depositNote?: string;
+};
+
 export type Booking = {
   id: string;
   suiteId: string;
@@ -40,6 +49,11 @@ export type Booking = {
   end: string;
   status: string;
   amountTotal?: number;
+  depositMethod?: DepositMethod | string;
+  depositReference?: string;
+  depositProofUrl?: string;
+  depositNote?: string;
+  depositSubmittedAt?: string;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
 };

@@ -33,8 +33,28 @@ export class BookingController {
       body.end,
       body.investorId,
       body.cadence,
-      body.kyc
+      body.kyc,
+      {
+        depositMethod: body.depositMethod as any,
+        depositReference: body.depositReference || '',
+        depositProofUrl: body.depositProofUrl,
+        depositNote: body.depositNote
+      }
     );
+  }
+
+  @Post(':id/confirm-deposit')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async confirmDeposit(@Param('id') id: string) {
+    return this.service.confirmDeposit(id);
+  }
+
+  @Post(':id/reject-deposit')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async rejectDeposit(@Param('id') id: string) {
+    return this.service.rejectDeposit(id);
   }
 
   @Get('investor/:id')

@@ -1,5 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { Booking, BookingKyc, PaymentScheduleItem } from "../domain/models";
+import {
+  Booking,
+  BookingDepositPayment,
+  BookingKyc,
+  DepositMethod,
+  PaymentScheduleItem,
+} from "../domain/models";
 import { BookingRepository } from "./booking.repository";
 import { TimesharesService } from "../timeshares/timeshares.service";
 import { SuitesService } from "../suites/suites.service";
@@ -38,6 +44,29 @@ function normalizeKyc(kyc?: Partial<BookingKyc> | null): BookingKyc | null {
     out[key] = value;
   }
   return out as BookingKyc;
+}
+
+const DEPOSIT_METHODS: DepositMethod[] = [
+  "cheque",
+  "cash_payorder",
+  "online_transfer",
+];
+
+function normalizeDeposit(
+  deposit?: Partial<BookingDepositPayment> | null,
+): BookingDepositPayment | null {
+  if (!deposit) return null;
+  const method = String(deposit.depositMethod || "").trim() as DepositMethod;
+  const reference = String(deposit.depositReference || "").trim();
+  if (!DEPOSIT_METHODS.includes(method) || !reference) return null;
+  const proof = String(deposit.depositProofUrl || "").trim();
+  const note = String(deposit.depositNote || "").trim();
+  return {
+    depositMethod: method,
+    depositReference: reference,
+    ...(proof ? { depositProofUrl: proof } : {}),
+    ...(note ? { depositNote: note } : {}),
+  };
 }
 
 @Injectable()
@@ -245,6 +274,7 @@ export class BookingService {
     investorId?: string,
     cadence: 'monthly' | 'quarterly' = 'monthly',
     kyc?: BookingKyc | null,
+    deposit?: BookingDepositPayment | null,
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
     const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
@@ -263,6 +293,10 @@ export class BookingService {
         const normalizedKyc = normalizeKyc(kyc);
         if (!normalizedKyc) {
           return { ok: false as const, error: 'kyc_required' };
+        }
+        const normalizedDeposit = normalizeDeposit(deposit);
+        if (!normalizedDeposit) {
+          return { ok: false as const, error: 'deposit_payment_required' };
         }
         const plan = await this.timeshares.get(normalizedPlanId);
         if (!plan) return { ok: false as const, error: 'plan_not_found' };
@@ -288,6 +322,7 @@ export class BookingService {
           payCadence,
         );
         const clientId = 'C-' + Math.random().toString(36).slice(2, 10);
+        const submittedAt = new Date().toISOString();
         const b: Booking = {
           id: 'B-' + Math.random().toString(36).slice(2, 8),
           suiteId,
@@ -296,8 +331,13 @@ export class BookingService {
           clientId,
           start,
           end,
-          status: 'pending',
+          status: 'awaiting_payment',
           amountTotal: total,
+          depositMethod: normalizedDeposit.depositMethod,
+          depositReference: normalizedDeposit.depositReference,
+          depositProofUrl: normalizedDeposit.depositProofUrl,
+          depositNote: normalizedDeposit.depositNote,
+          depositSubmittedAt: submittedAt,
           schedule,
           currency: 'BDT',
         };
@@ -320,6 +360,11 @@ export class BookingService {
                 end: new Date(b.end),
                 status: b.status,
                 amountTotal: b.amountTotal || null,
+                depositMethod: b.depositMethod || null,
+                depositReference: b.depositReference || null,
+                depositProofUrl: b.depositProofUrl || null,
+                depositNote: b.depositNote || null,
+                depositSubmittedAt: new Date(submittedAt),
               },
             }),
             this.prisma.paymentScheduleItem.createMany({
@@ -335,7 +380,7 @@ export class BookingService {
             }),
             this.prisma.sharePlan.update({
               where: { id: normalizedPlanId },
-              data: { planStatus: 'Booked' },
+              data: { planStatus: 'Reserved' },
             }),
           ]);
           return { ok: true as const, booking: b, client: { id: clientId, ...normalizedKyc } };
@@ -345,7 +390,7 @@ export class BookingService {
           client: { id: clientId, ...normalizedKyc },
         } as any);
         await this.timeshares.update(normalizedPlanId, {
-          planStatus: 'Booked',
+          planStatus: 'Reserved',
         } as any);
         return {
           ok: true as const,
@@ -512,5 +557,106 @@ export class BookingService {
     if (idx === -1) return false;
     b.schedule[idx] = { ...b.schedule[idx], status: "paid", gatewayRef };
     return true;
+  }
+
+  /** Admin confirms offline deposit receipt / bank encashment. */
+  async confirmDeposit(bookingId: string) {
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
+      if (!booking) return { ok: false as const, error: "not_found" };
+      if (booking.status !== "awaiting_payment") {
+        return { ok: false as const, error: "not_awaiting_payment" };
+      }
+      if (!booking.planId) {
+        return { ok: false as const, error: "not_investment" };
+      }
+      const deposit = await this.prisma.paymentScheduleItem.findFirst({
+        where: { bookingId, type: "deposit" },
+        orderBy: { dueDate: "asc" },
+      });
+      if (!deposit) return { ok: false as const, error: "deposit_not_found" };
+      const gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
+      await this.prisma.$transaction([
+        this.prisma.paymentScheduleItem.update({
+          where: { id: deposit.id },
+          data: { status: "paid", gatewayRef },
+        }),
+        this.prisma.booking.update({
+          where: { id: bookingId },
+          data: { status: "confirmed" },
+        }),
+        this.prisma.sharePlan.update({
+          where: { id: booking.planId },
+          data: { planStatus: "Booked" },
+        }),
+      ]);
+      return { ok: true as const };
+    }
+
+    const booking = await this.repo.findById(bookingId);
+    if (!booking) return { ok: false as const, error: "not_found" };
+    if (booking.status !== "awaiting_payment") {
+      return { ok: false as const, error: "not_awaiting_payment" };
+    }
+    if (!booking.planId) {
+      return { ok: false as const, error: "not_investment" };
+    }
+    const deposit = (booking.schedule || []).find((s) => s.type === "deposit");
+    if (!deposit) return { ok: false as const, error: "deposit_not_found" };
+    deposit.status = "paid";
+    deposit.gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
+    booking.status = "confirmed";
+    await this.timeshares.update(booking.planId, { planStatus: "Booked" } as any);
+    return { ok: true as const };
+  }
+
+  /** Admin rejects pending deposit; release reserved plan. */
+  async rejectDeposit(bookingId: string) {
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
+      if (!booking) return { ok: false as const, error: "not_found" };
+      if (booking.status !== "awaiting_payment") {
+        return { ok: false as const, error: "not_awaiting_payment" };
+      }
+      const ops: any[] = [
+        this.prisma.booking.update({
+          where: { id: bookingId },
+          data: { status: "cancelled" },
+        }),
+      ];
+      if (booking.planId) {
+        const plan = await this.prisma.sharePlan.findUnique({
+          where: { id: booking.planId },
+        });
+        if (plan && String(plan.planStatus || "").toLowerCase() === "reserved") {
+          ops.push(
+            this.prisma.sharePlan.update({
+              where: { id: booking.planId },
+              data: { planStatus: "Unsold" },
+            }),
+          );
+        }
+      }
+      await this.prisma.$transaction(ops);
+      return { ok: true as const };
+    }
+
+    const booking = await this.repo.findById(bookingId);
+    if (!booking) return { ok: false as const, error: "not_found" };
+    if (booking.status !== "awaiting_payment") {
+      return { ok: false as const, error: "not_awaiting_payment" };
+    }
+    booking.status = "cancelled";
+    if (booking.planId) {
+      const plan = await this.timeshares.get(booking.planId);
+      if (plan && String((plan as any).planStatus || "").toLowerCase() === "reserved") {
+        await this.timeshares.update(booking.planId, { planStatus: "Unsold" } as any);
+      }
+    }
+    return { ok: true as const };
   }
 }

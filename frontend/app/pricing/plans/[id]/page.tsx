@@ -63,6 +63,14 @@ function isKycComplete(kyc: KycForm) {
   return (Object.keys(kyc) as (keyof KycForm)[]).every((key) => String(kyc[key] || '').trim().length > 0);
 }
 
+type DepositMethod = 'cheque' | 'cash_payorder' | 'online_transfer';
+
+const DEPOSIT_METHOD_LABELS: Record<DepositMethod, string> = {
+  cheque: 'Cheque',
+  cash_payorder: 'Cash / pay order',
+  online_transfer: 'Online transfer'
+};
+
 export default function PlanDetailsPage({ params }: { params: { id: string } }) {
   const planId = params.id;
   const router = useRouter();
@@ -80,8 +88,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [showTools, setShowTools] = useState(false);
   const [confirmation, setConfirmation] = useState<{
     bookingId: string;
-    depositPaid: number;
-    nextDue?: { type: string; dueDate: string; amount: number };
+    depositAmount: number;
+    depositMethod: DepositMethod;
+    depositReference: string;
   } | null>(null);
 
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
@@ -98,6 +107,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [returnAssumptions, setReturnAssumptions] = useState<ReturnAssumptions | null>(null);
   const [kyc, setKyc] = useState<KycForm>(() => emptyKyc());
   const [uploadingPic, setUploadingPic] = useState<'pic' | 'nominee' | null>(null);
+  const [depositMethod, setDepositMethod] = useState<DepositMethod>('cheque');
+  const [depositReference, setDepositReference] = useState('');
+  const [depositNote, setDepositNote] = useState('');
+  const [depositProofUrl, setDepositProofUrl] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -212,6 +226,30 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     }
   }
 
+  async function uploadDepositProof(file: File | null) {
+    if (!file) return;
+    if (!token || !user?.id) {
+      router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      return;
+    }
+    setUploadingProof(true);
+    setStatus('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await apiUpload('/media/payment-proof', form);
+      if (!res?.ok || !res.url) {
+        setStatus('Proof upload failed. Use JPG, PNG, WEBP, or GIF under 8MB.');
+        return;
+      }
+      setDepositProofUrl(res.url);
+    } catch {
+      setStatus('Proof upload failed');
+    } finally {
+      setUploadingProof(false);
+    }
+  }
+
   async function confirmInvestment() {
     if (!plan?.suiteId) {
       setStatus('This plan is not linked to a suite');
@@ -225,13 +263,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       setStatus('Complete all KYC fields and upload both photographs before confirming');
       return;
     }
+    if (!depositReference.trim()) {
+      setStatus('Enter a payment reference (cheque no., pay order no., or transfer ref)');
+      return;
+    }
     const sold = (plan.planStatus || '').toLowerCase() !== 'unsold';
     if (sold) {
       setStatus('This plan is no longer available');
       return;
     }
     setBuying(true);
-    setStatus('Creating your investment...');
+    setStatus('Submitting your booking...');
     try {
       const start = new Date(startDate);
       const end = new Date(start);
@@ -258,48 +300,40 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             nomineeName: kyc.nomineeName.trim(),
             nomineeNid: kyc.nomineeNid.trim(),
             nomineePicUrl: kyc.nomineePicUrl.trim()
-          }
+          },
+          depositMethod,
+          depositReference: depositReference.trim(),
+          depositProofUrl: depositProofUrl.trim() || undefined,
+          depositNote: depositNote.trim() || undefined
         })
       });
       if (!res?.ok || !res.booking?.id) {
         const msg =
           res?.error === 'kyc_required'
             ? 'Complete all KYC details before booking'
-            : res?.error === 'plan_not_available' || res?.error === 'conflict'
-              ? 'Plan already sold or unavailable'
-              : res?.error === 'plan_not_found'
-                ? 'Plan not found'
-                : res?.error === 'plan_suite_mismatch'
-                  ? 'This plan is not linked to the selected unit'
-                  : res?.error === 'suite_not_found'
-                    ? 'Unit not found'
-                    : 'Purchase failed';
+            : res?.error === 'deposit_payment_required'
+              ? 'Select a payment method and enter the payment reference'
+              : res?.error === 'plan_not_available' || res?.error === 'conflict'
+                ? 'Plan already sold or unavailable'
+                : res?.error === 'plan_not_found'
+                  ? 'Plan not found'
+                  : res?.error === 'plan_suite_mismatch'
+                    ? 'This plan is not linked to the selected unit'
+                    : res?.error === 'suite_not_found'
+                      ? 'Unit not found'
+                      : 'Purchase failed';
         setStatus(msg);
         setBuying(false);
         return;
       }
       const scheduleRes = await api(`/booking/${res.booking.id}/schedule`);
       const deposit = (scheduleRes?.schedule || []).find((i: any) => i.type === 'deposit');
-      if (deposit) {
-        await api('/payments/pay', {
-          method: 'POST',
-          body: JSON.stringify({
-            bookingId: res.booking.id,
-            itemId: deposit.id,
-            amount: deposit.amount,
-            method: 'card'
-          })
-        });
-      }
-      const afterRes = await api(`/booking/${res.booking.id}/schedule`);
-      const nextDue = (afterRes?.schedule || []).find((i: any) => i.status === 'due');
       setStatus('');
       setConfirmation({
         bookingId: res.booking.id,
-        depositPaid: deposit?.amount || 0,
-        nextDue: nextDue
-          ? { type: nextDue.type, dueDate: nextDue.dueDate, amount: nextDue.amount }
-          : undefined
+        depositAmount: deposit?.amount || depositPreview,
+        depositMethod,
+        depositReference: depositReference.trim()
       });
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
@@ -356,11 +390,12 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     return (
       <main className="mx-auto max-w-3xl px-6 py-16 md:py-24">
         <div className="border border-gold/40 bg-white p-8 md:p-10">
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Purchase confirmed</p>
-          <h1 className="font-display mt-2 text-4xl text-ocean">Welcome to ownership</h1>
+          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Booking submitted</p>
+          <h1 className="font-display mt-2 text-4xl text-ocean">Plan reserved</h1>
           <p className="mt-3 text-ocean/75">
             {plan?.name ? `Your ${plan.name} plan` : 'Your plan'}
-            {suite?.id ? ` on suite ${suite.id}` : ''} is reserved and the deposit has been received.
+            {suite?.id ? ` on suite ${suite.id}` : ''} is reserved. The booking will be completed after
+            our team confirms receipt or bank encashment of your deposit.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <div className="bg-pearl p-4">
@@ -368,20 +403,21 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               <div className="mt-1 font-mono text-sm text-ocean">{confirmation.bookingId}</div>
             </div>
             <div className="bg-pearl p-4">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Deposit paid</div>
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Deposit due</div>
               <div className="font-display mt-1 text-2xl text-ocean">
-                {formatMoney(confirmation.depositPaid)}
+                {formatMoney(confirmation.depositAmount)}
               </div>
             </div>
-            {confirmation.nextDue && (
-              <div className="border border-gold/40 bg-gold/10 p-4 sm:col-span-2">
-                <div className="text-xs uppercase tracking-wide text-ocean/60">Next payment</div>
-                <div className="mt-1 text-ocean">
-                  <span className="capitalize">{confirmation.nextDue.type}</span> ·{' '}
-                  {formatMoney(confirmation.nextDue.amount)} due {formatDate(confirmation.nextDue.dueDate)}
-                </div>
+            <div className="border border-gold/40 bg-gold/10 p-4 sm:col-span-2">
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Payment submitted</div>
+              <div className="mt-1 text-ocean">
+                {DEPOSIT_METHOD_LABELS[confirmation.depositMethod]} · Ref{' '}
+                <span className="font-mono text-sm">{confirmation.depositReference}</span>
               </div>
-            )}
+              <p className="mt-2 text-sm text-ocean/70">
+                Status: awaiting admin confirmation of payment receipt.
+              </p>
+            </div>
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/investor">
@@ -392,7 +428,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </Link>
           </div>
           <p className="mt-6 text-sm text-ocean/60">
-            KYC details for this booking were submitted with your purchase. Questions?{' '}
+            KYC and deposit details were submitted with this booking. Questions?{' '}
             <a href="mailto:info@grandsampan.com" className="underline">
               info@grandsampan.com
             </a>
@@ -491,7 +527,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         <aside className="border border-gold/40 bg-white p-6 lg:sticky lg:top-24 lg:self-start">
           <h2 className="font-display text-2xl text-ocean">Complete purchase</h2>
           <p className="mt-2 text-sm text-ocean/75">
-            Reserves this plan, creates your schedule, and captures the 10% deposit.
+            Reserves this plan after KYC and offline deposit details. Booking completes when admin
+            confirms payment receipt.
           </p>
 
           {unitPlans.length > 0 && (
@@ -739,6 +776,83 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
+          <div className="mt-6 border-t border-ocean/10 pt-5">
+            <p className="text-sm font-semibold text-ocean">Deposit payment</p>
+            <p className="mt-1 text-xs text-ocean/65">
+              Pay the 10% booking amount by cheque, cash/pay order, or online transfer. Booking
+              completes after admin confirms receipt or bank encashment.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2" role="radiogroup" aria-label="Deposit payment method">
+              {(
+                [
+                  { value: 'cheque' as const, label: 'Cheque' },
+                  { value: 'cash_payorder' as const, label: 'Cash / pay order' },
+                  { value: 'online_transfer' as const, label: 'Online transfer' }
+                ] as const
+              ).map((opt) => {
+                const selected = depositMethod === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setDepositMethod(opt.value)}
+                    className={`border px-3 py-2.5 text-left text-sm transition ${
+                      selected ? 'border-gold bg-gold/10' : 'border-ocean/15 hover:border-gold/50'
+                    }`}
+                  >
+                    <span className="font-semibold text-ocean">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <label className="mt-3 block text-sm text-ocean">
+              Payment reference
+              <input
+                value={depositReference}
+                onChange={(e) => setDepositReference(e.target.value)}
+                className="field mt-1"
+                placeholder={
+                  depositMethod === 'cheque'
+                    ? 'Cheque number'
+                    : depositMethod === 'cash_payorder'
+                      ? 'Pay order / receipt number'
+                      : 'Bank transfer reference'
+                }
+              />
+            </label>
+            <label className="mt-3 block text-sm text-ocean">
+              Note (optional)
+              <textarea
+                value={depositNote}
+                onChange={(e) => setDepositNote(e.target.value)}
+                className="field mt-1 min-h-[3.5rem]"
+                rows={2}
+                placeholder="Bank name, branch, or other details"
+              />
+            </label>
+            <label className="mt-3 block text-sm text-ocean">
+              Proof of payment (optional)
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="mt-1 block w-full text-xs text-ocean/80"
+                disabled={uploadingProof}
+                onChange={(e) => uploadDepositProof(e.target.files?.[0] || null)}
+              />
+              {uploadingProof && <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>}
+              {depositProofUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={resolveMediaUrl(depositProofUrl)}
+                  alt="Payment proof"
+                  className="mt-2 h-20 w-20 border border-ocean/15 object-cover"
+                />
+              )}
+            </label>
+          </div>
+
           <div className="mt-4 border-t border-ocean/10 pt-4 text-sm text-ocean/80">
             <div className="flex justify-between">
               <span>Total price</span>
@@ -782,21 +896,33 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <span className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</span>
                 <span className="font-display text-2xl font-bold text-ocean">{formatMoney(depositPreview)}</span>
               </div>
-              <p className="mt-1 text-[11px] font-medium text-ocean/65">Pay only 10% today to reserve this plan</p>
+              <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                10% deposit via cheque, cash/pay order, or transfer — confirmed by admin
+              </p>
             </div>
           </div>
           <Button
             className="mt-6 w-full bg-gold text-ocean hover:bg-gold/90"
             onClick={confirmInvestment}
-            disabled={buying || loading || !available || !!uploadingPic || !isKycComplete(kyc)}
+            disabled={
+              buying ||
+              loading ||
+              !available ||
+              !!uploadingPic ||
+              uploadingProof ||
+              !isKycComplete(kyc) ||
+              !depositReference.trim()
+            }
           >
             {buying
-              ? 'Processing...'
+              ? 'Submitting...'
               : !available
                 ? 'No longer available'
                 : !isKycComplete(kyc)
                   ? 'Complete KYC to continue'
-                  : 'Confirm & pay deposit'}
+                  : !depositReference.trim()
+                    ? 'Enter payment reference'
+                    : 'Submit booking'}
           </Button>
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/investor" className="text-ocean underline">

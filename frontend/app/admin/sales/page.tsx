@@ -246,6 +246,7 @@ export default function AdminSalesPage() {
                   <th className="p-3 font-medium">Buyer</th>
                   <th className="p-3 font-medium">Contact</th>
                   <th className="p-3 font-medium">NID</th>
+                  <th className="p-3 font-medium">Deposit</th>
                   <th className="p-3 font-medium">Amount</th>
                   <th className="p-3 font-medium">Status</th>
                   <th className="p-3 font-medium"> </th>
@@ -302,8 +303,36 @@ export default function AdminSalesPage() {
                         )}
                       </td>
                       <td className="p-3 font-mono text-xs">{s.client?.nid || '—'}</td>
+                      <td className="p-3 text-xs">
+                        {s.booking.depositMethod ? (
+                          <div>
+                            <div className="capitalize text-ocean">
+                              {String(s.booking.depositMethod).replace(/_/g, ' ')}
+                            </div>
+                            {s.booking.depositReference && (
+                              <div className="font-mono text-ocean/55">{s.booking.depositReference}</div>
+                            )}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
-                      <td className="p-3 capitalize">{s.booking.status}</td>
+                      <td className="p-3">
+                        <span
+                          className={`inline-block border px-2 py-0.5 text-xs capitalize ${
+                            s.booking.status === 'awaiting_payment'
+                              ? 'border-gold/50 bg-gold/10 text-ocean'
+                              : s.booking.status === 'confirmed'
+                                ? 'border-ocean/30 bg-ocean/5 text-ocean'
+                                : s.booking.status === 'cancelled'
+                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  : 'border-ocean/20 bg-pearl text-ocean/80'
+                          }`}
+                        >
+                          {String(s.booking.status || '—').replace(/_/g, ' ')}
+                        </span>
+                      </td>
                       <td className="p-3">
                         <Link
                           href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
@@ -317,7 +346,7 @@ export default function AdminSalesPage() {
                 })}
                 {filteredSales.length === 0 && !loading && (
                   <tr>
-                    <td className="p-4 text-ocean/70" colSpan={9}>
+                    <td className="p-4 text-ocean/70" colSpan={10}>
                       No bookings match these filters
                     </td>
                   </tr>

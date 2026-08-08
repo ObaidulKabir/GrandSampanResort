@@ -81,4 +81,17 @@ export class CreateBookingDto {
   @ValidateNested()
   @Type(() => BookingKycDto)
   kyc?: BookingKycDto;
+  /** Required for investment purchases. */
+  @IsOptional()
+  @IsIn(['cheque', 'cash_payorder', 'online_transfer'])
+  depositMethod?: 'cheque' | 'cash_payorder' | 'online_transfer';
+  @IsOptional()
+  @IsString()
+  depositReference?: string;
+  @IsOptional()
+  @IsString()
+  depositProofUrl?: string;
+  @IsOptional()
+  @IsString()
+  depositNote?: string;
 }
