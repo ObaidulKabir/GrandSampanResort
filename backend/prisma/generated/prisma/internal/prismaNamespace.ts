@@ -1310,7 +1310,10 @@ export const BookingScalarFieldEnum = {
   depositReference: 'depositReference',
   depositProofUrl: 'depositProofUrl',
   depositNote: 'depositNote',
-  depositSubmittedAt: 'depositSubmittedAt'
+  depositSubmittedAt: 'depositSubmittedAt',
+  depositConfirmedAt: 'depositConfirmedAt',
+  kycVerified: 'kycVerified',
+  kycVerifiedAt: 'kycVerifiedAt'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]

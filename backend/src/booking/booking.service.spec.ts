@@ -106,15 +106,26 @@ describe('BookingService', () => {
     const reserved = await plans.get(planId);
     expect(String((reserved as any)?.planStatus)).toBe('Reserved');
 
-    const confirmed = await svc.confirmDeposit(res.booking.id);
-    expect(confirmed.ok).toBe(true);
+    const depositOnly = await svc.confirmDeposit(res.booking.id);
+    expect(depositOnly.ok).toBe(true);
+    if (depositOnly.ok) {
+      expect(depositOnly.completed).toBe(false);
+      expect(depositOnly.status).toBe('awaiting_kyc');
+    }
+    let reservedStill = await plans.get(planId);
+    expect(String((reservedStill as any)?.planStatus)).toBe('Reserved');
+    const schedule = await svc.schedule(res.booking.id);
+    const deposit = (schedule || []).find((s: any) => s.type === 'deposit');
+    expect(deposit?.status).toBe('paid');
+
+    const kycOk = await svc.verifyKyc(res.booking.id);
+    expect(kycOk.ok).toBe(true);
+    if (kycOk.ok) expect(kycOk.completed).toBe(true);
     const booked = await plans.get(planId);
     expect(String((booked as any)?.planStatus)).toBe('Booked');
     const summary = await svc.summary(res.booking.id);
     expect(summary?.booking?.status).toBe('confirmed');
-    const schedule = await svc.schedule(res.booking.id);
-    const deposit = (schedule || []).find((s: any) => s.type === 'deposit');
-    expect(deposit?.status).toBe('paid');
+    expect(summary?.booking?.kycVerified).toBe(true);
 
     await plans.update(planId, { planStatus: 'Unsold' } as any);
     const quarterly = await svc.book(

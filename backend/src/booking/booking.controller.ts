@@ -50,6 +50,13 @@ export class BookingController {
     return this.service.confirmDeposit(id);
   }
 
+  @Post(':id/verify-kyc')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async verifyKyc(@Param('id') id: string) {
+    return this.service.verifyKyc(id);
+  }
+
   @Post(':id/reject-deposit')
   @UseGuards(RolesGuard)
   @Roles('admin')

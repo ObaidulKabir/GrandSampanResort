@@ -395,7 +395,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <p className="mt-3 text-ocean/75">
             {plan?.name ? `Your ${plan.name} plan` : 'Your plan'}
             {suite?.id ? ` on suite ${suite.id}` : ''} is reserved. The booking will be completed after
-            our team confirms receipt or bank encashment of your deposit.
+            our team confirms deposit receipt (or bank encashment) and verifies your KYC details.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <div className="bg-pearl p-4">
@@ -415,7 +415,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <span className="font-mono text-sm">{confirmation.depositReference}</span>
               </div>
               <p className="mt-2 text-sm text-ocean/70">
-                Status: awaiting admin confirmation of payment receipt.
+                Status: awaiting admin confirmation of payment receipt and KYC verification.
               </p>
             </div>
           </div>
@@ -780,7 +780,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             <p className="text-sm font-semibold text-ocean">Deposit payment</p>
             <p className="mt-1 text-xs text-ocean/65">
               Pay the 10% booking amount by cheque, cash/pay order, or online transfer. Booking
-              completes after admin confirms receipt or bank encashment.
+              completes after admin confirms payment receipt and verifies KYC.
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2" role="radiogroup" aria-label="Deposit payment method">
               {(

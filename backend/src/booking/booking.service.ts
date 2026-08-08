@@ -338,6 +338,7 @@ export class BookingService {
           depositProofUrl: normalizedDeposit.depositProofUrl,
           depositNote: normalizedDeposit.depositNote,
           depositSubmittedAt: submittedAt,
+          kycVerified: false,
           schedule,
           currency: 'BDT',
         };
@@ -365,6 +366,7 @@ export class BookingService {
                 depositProofUrl: b.depositProofUrl || null,
                 depositNote: b.depositNote || null,
                 depositSubmittedAt: new Date(submittedAt),
+                kycVerified: false,
               },
             }),
             this.prisma.paymentScheduleItem.createMany({
@@ -559,32 +561,29 @@ export class BookingService {
     return true;
   }
 
-  /** Admin confirms offline deposit receipt / bank encashment. */
-  async confirmDeposit(bookingId: string) {
+  private isPendingAdminReview(status: string) {
+    return status === "awaiting_payment" || status === "awaiting_kyc";
+  }
+
+  /** Complete booking only when deposit is confirmed AND KYC is verified. */
+  private async finalizeIfReady(booking: {
+    id: string;
+    planId?: string | null;
+    kycVerified?: boolean | null;
+    depositConfirmedAt?: Date | string | null;
+  }) {
+    const depositOk = !!booking.depositConfirmedAt;
+    const kycOk = !!booking.kycVerified;
+    if (!depositOk || !kycOk || !booking.planId) {
+      return {
+        completed: false as const,
+        status: depositOk ? ("awaiting_kyc" as const) : ("awaiting_payment" as const),
+      };
+    }
     if (this.prisma) {
-      const booking = await this.prisma.booking.findUnique({
-        where: { id: bookingId },
-      });
-      if (!booking) return { ok: false as const, error: "not_found" };
-      if (booking.status !== "awaiting_payment") {
-        return { ok: false as const, error: "not_awaiting_payment" };
-      }
-      if (!booking.planId) {
-        return { ok: false as const, error: "not_investment" };
-      }
-      const deposit = await this.prisma.paymentScheduleItem.findFirst({
-        where: { bookingId, type: "deposit" },
-        orderBy: { dueDate: "asc" },
-      });
-      if (!deposit) return { ok: false as const, error: "deposit_not_found" };
-      const gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
       await this.prisma.$transaction([
-        this.prisma.paymentScheduleItem.update({
-          where: { id: deposit.id },
-          data: { status: "paid", gatewayRef },
-        }),
         this.prisma.booking.update({
-          where: { id: bookingId },
+          where: { id: booking.id },
           data: { status: "confirmed" },
         }),
         this.prisma.sharePlan.update({
@@ -592,35 +591,184 @@ export class BookingService {
           data: { planStatus: "Booked" },
         }),
       ]);
-      return { ok: true as const };
+    } else {
+      const mem = await this.repo.findById(booking.id);
+      if (mem) {
+        mem.status = "confirmed";
+        await this.timeshares.update(booking.planId, { planStatus: "Booked" } as any);
+      }
+    }
+    return { completed: true as const, status: "confirmed" as const };
+  }
+
+  /** Admin confirms offline deposit receipt / bank encashment. */
+  async confirmDeposit(bookingId: string) {
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
+      if (!booking) return { ok: false as const, error: "not_found" };
+      if (!this.isPendingAdminReview(booking.status)) {
+        return { ok: false as const, error: "not_pending_review" };
+      }
+      if (!booking.planId) {
+        return { ok: false as const, error: "not_investment" };
+      }
+      if (booking.depositConfirmedAt) {
+        const ready = await this.finalizeIfReady(booking);
+        return {
+          ok: true as const,
+          completed: ready.completed,
+          status: ready.status,
+          depositConfirmed: true,
+          kycVerified: !!booking.kycVerified,
+        };
+      }
+      const deposit = await this.prisma.paymentScheduleItem.findFirst({
+        where: { bookingId, type: "deposit" },
+        orderBy: { dueDate: "asc" },
+      });
+      if (!deposit) return { ok: false as const, error: "deposit_not_found" };
+      const gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
+      const confirmedAt = new Date();
+      const nextStatus = booking.kycVerified ? "confirmed" : "awaiting_kyc";
+      const ops: any[] = [
+        this.prisma.paymentScheduleItem.update({
+          where: { id: deposit.id },
+          data: { status: "paid", gatewayRef },
+        }),
+        this.prisma.booking.update({
+          where: { id: bookingId },
+          data: {
+            depositConfirmedAt: confirmedAt,
+            status: nextStatus,
+          },
+        }),
+      ];
+      if (booking.kycVerified) {
+        ops.push(
+          this.prisma.sharePlan.update({
+            where: { id: booking.planId },
+            data: { planStatus: "Booked" },
+          }),
+        );
+      }
+      await this.prisma.$transaction(ops);
+      return {
+        ok: true as const,
+        completed: !!booking.kycVerified,
+        status: nextStatus,
+        depositConfirmed: true,
+        kycVerified: !!booking.kycVerified,
+      };
     }
 
     const booking = await this.repo.findById(bookingId);
     if (!booking) return { ok: false as const, error: "not_found" };
-    if (booking.status !== "awaiting_payment") {
-      return { ok: false as const, error: "not_awaiting_payment" };
+    if (!this.isPendingAdminReview(booking.status)) {
+      return { ok: false as const, error: "not_pending_review" };
     }
     if (!booking.planId) {
       return { ok: false as const, error: "not_investment" };
     }
     const deposit = (booking.schedule || []).find((s) => s.type === "deposit");
     if (!deposit) return { ok: false as const, error: "deposit_not_found" };
-    deposit.status = "paid";
-    deposit.gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
-    booking.status = "confirmed";
-    await this.timeshares.update(booking.planId, { planStatus: "Booked" } as any);
-    return { ok: true as const };
+    if (!booking.depositConfirmedAt) {
+      deposit.status = "paid";
+      deposit.gatewayRef = `admin-confirmed:${booking.depositMethod || "unknown"}:${booking.depositReference || ""}`;
+      booking.depositConfirmedAt = new Date().toISOString();
+    }
+    const ready = await this.finalizeIfReady(booking);
+    booking.status = ready.status;
+    return {
+      ok: true as const,
+      completed: ready.completed,
+      status: ready.status,
+      depositConfirmed: true,
+      kycVerified: !!booking.kycVerified,
+    };
   }
 
-  /** Admin rejects pending deposit; release reserved plan. */
+  /** Admin marks per-booking KYC as valid. Completes booking if deposit already confirmed. */
+  async verifyKyc(bookingId: string) {
+    if (this.prisma) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+      });
+      if (!booking) return { ok: false as const, error: "not_found" };
+      if (!this.isPendingAdminReview(booking.status)) {
+        return { ok: false as const, error: "not_pending_review" };
+      }
+      if (!booking.planId) {
+        return { ok: false as const, error: "not_investment" };
+      }
+      if (!booking.clientId) {
+        return { ok: false as const, error: "kyc_missing" };
+      }
+      const verifiedAt = new Date();
+      const depositOk = !!booking.depositConfirmedAt;
+      const nextStatus = depositOk ? "confirmed" : "awaiting_payment";
+      const ops: any[] = [
+        this.prisma.booking.update({
+          where: { id: bookingId },
+          data: {
+            kycVerified: true,
+            kycVerifiedAt: verifiedAt,
+            status: nextStatus,
+          },
+        }),
+      ];
+      if (depositOk) {
+        ops.push(
+          this.prisma.sharePlan.update({
+            where: { id: booking.planId },
+            data: { planStatus: "Booked" },
+          }),
+        );
+      }
+      await this.prisma.$transaction(ops);
+      return {
+        ok: true as const,
+        completed: depositOk,
+        status: nextStatus,
+        depositConfirmed: depositOk,
+        kycVerified: true,
+      };
+    }
+
+    const booking = await this.repo.findById(bookingId);
+    if (!booking) return { ok: false as const, error: "not_found" };
+    if (!this.isPendingAdminReview(booking.status)) {
+      return { ok: false as const, error: "not_pending_review" };
+    }
+    if (!booking.planId) {
+      return { ok: false as const, error: "not_investment" };
+    }
+    if (!booking.clientId && !(booking as any).client) {
+      return { ok: false as const, error: "kyc_missing" };
+    }
+    booking.kycVerified = true;
+    booking.kycVerifiedAt = new Date().toISOString();
+    const ready = await this.finalizeIfReady(booking);
+    booking.status = ready.status;
+    return {
+      ok: true as const,
+      completed: ready.completed,
+      status: ready.status,
+      depositConfirmed: !!booking.depositConfirmedAt,
+      kycVerified: true,
+    };
+  }
+
+  /** Admin rejects pending booking; release reserved plan. */
   async rejectDeposit(bookingId: string) {
     if (this.prisma) {
       const booking = await this.prisma.booking.findUnique({
         where: { id: bookingId },
       });
       if (!booking) return { ok: false as const, error: "not_found" };
-      if (booking.status !== "awaiting_payment") {
-        return { ok: false as const, error: "not_awaiting_payment" };
+      if (!this.isPendingAdminReview(booking.status)) {
+        return { ok: false as const, error: "not_pending_review" };
       }
       const ops: any[] = [
         this.prisma.booking.update({
@@ -647,8 +795,8 @@ export class BookingService {
 
     const booking = await this.repo.findById(bookingId);
     if (!booking) return { ok: false as const, error: "not_found" };
-    if (booking.status !== "awaiting_payment") {
-      return { ok: false as const, error: "not_awaiting_payment" };
+    if (!this.isPendingAdminReview(booking.status)) {
+      return { ok: false as const, error: "not_pending_review" };
     }
     booking.status = "cancelled";
     if (booking.planId) {

@@ -49,6 +49,9 @@ export type BookingMinAggregateOutputType = {
   depositProofUrl: string | null
   depositNote: string | null
   depositSubmittedAt: Date | null
+  depositConfirmedAt: Date | null
+  kycVerified: boolean | null
+  kycVerifiedAt: Date | null
 }
 
 export type BookingMaxAggregateOutputType = {
@@ -66,6 +69,9 @@ export type BookingMaxAggregateOutputType = {
   depositProofUrl: string | null
   depositNote: string | null
   depositSubmittedAt: Date | null
+  depositConfirmedAt: Date | null
+  kycVerified: boolean | null
+  kycVerifiedAt: Date | null
 }
 
 export type BookingCountAggregateOutputType = {
@@ -83,6 +89,9 @@ export type BookingCountAggregateOutputType = {
   depositProofUrl: number
   depositNote: number
   depositSubmittedAt: number
+  depositConfirmedAt: number
+  kycVerified: number
+  kycVerifiedAt: number
   _all: number
 }
 
@@ -110,6 +119,9 @@ export type BookingMinAggregateInputType = {
   depositProofUrl?: true
   depositNote?: true
   depositSubmittedAt?: true
+  depositConfirmedAt?: true
+  kycVerified?: true
+  kycVerifiedAt?: true
 }
 
 export type BookingMaxAggregateInputType = {
@@ -127,6 +139,9 @@ export type BookingMaxAggregateInputType = {
   depositProofUrl?: true
   depositNote?: true
   depositSubmittedAt?: true
+  depositConfirmedAt?: true
+  kycVerified?: true
+  kycVerifiedAt?: true
 }
 
 export type BookingCountAggregateInputType = {
@@ -144,6 +159,9 @@ export type BookingCountAggregateInputType = {
   depositProofUrl?: true
   depositNote?: true
   depositSubmittedAt?: true
+  depositConfirmedAt?: true
+  kycVerified?: true
+  kycVerifiedAt?: true
   _all?: true
 }
 
@@ -248,6 +266,9 @@ export type BookingGroupByOutputType = {
   depositProofUrl: string | null
   depositNote: string | null
   depositSubmittedAt: Date | null
+  depositConfirmedAt: Date | null
+  kycVerified: boolean
+  kycVerifiedAt: Date | null
   _count: BookingCountAggregateOutputType | null
   _avg: BookingAvgAggregateOutputType | null
   _sum: BookingSumAggregateOutputType | null
@@ -288,6 +309,9 @@ export type BookingWhereInput = {
   depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  depositConfirmedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  kycVerified?: Prisma.BoolFilter<"Booking"> | boolean
+  kycVerifiedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -308,6 +332,9 @@ export type BookingOrderByWithRelationInput = {
   depositProofUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   depositNote?: Prisma.SortOrderInput | Prisma.SortOrder
   depositSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositConfirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  kycVerified?: Prisma.SortOrder
+  kycVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   schedule?: Prisma.PaymentScheduleItemOrderByRelationAggregateInput
   plan?: Prisma.SharePlanOrderByWithRelationInput
   client?: Prisma.ClientOrderByWithRelationInput
@@ -331,6 +358,9 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  depositConfirmedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  kycVerified?: Prisma.BoolFilter<"Booking"> | boolean
+  kycVerifiedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -351,6 +381,9 @@ export type BookingOrderByWithAggregationInput = {
   depositProofUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   depositNote?: Prisma.SortOrderInput | Prisma.SortOrder
   depositSubmittedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositConfirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  kycVerified?: Prisma.SortOrder
+  kycVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
   _avg?: Prisma.BookingAvgOrderByAggregateInput
   _max?: Prisma.BookingMaxOrderByAggregateInput
@@ -376,6 +409,9 @@ export type BookingScalarWhereWithAggregatesInput = {
   depositProofUrl?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   depositNote?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   depositSubmittedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
+  depositConfirmedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
+  kycVerified?: Prisma.BoolWithAggregatesFilter<"Booking"> | boolean
+  kycVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
 }
 
 export type BookingCreateInput = {
@@ -391,6 +427,9 @@ export type BookingCreateInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
@@ -411,6 +450,9 @@ export type BookingUncheckedCreateInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -427,6 +469,9 @@ export type BookingUpdateInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
@@ -447,6 +492,9 @@ export type BookingUncheckedUpdateInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -465,6 +513,9 @@ export type BookingCreateManyInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
 }
 
 export type BookingUpdateManyMutationInput = {
@@ -480,6 +531,9 @@ export type BookingUpdateManyMutationInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingUncheckedUpdateManyInput = {
@@ -497,6 +551,9 @@ export type BookingUncheckedUpdateManyInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingListRelationFilter = {
@@ -524,6 +581,9 @@ export type BookingCountOrderByAggregateInput = {
   depositProofUrl?: Prisma.SortOrder
   depositNote?: Prisma.SortOrder
   depositSubmittedAt?: Prisma.SortOrder
+  depositConfirmedAt?: Prisma.SortOrder
+  kycVerified?: Prisma.SortOrder
+  kycVerifiedAt?: Prisma.SortOrder
 }
 
 export type BookingAvgOrderByAggregateInput = {
@@ -545,6 +605,9 @@ export type BookingMaxOrderByAggregateInput = {
   depositProofUrl?: Prisma.SortOrder
   depositNote?: Prisma.SortOrder
   depositSubmittedAt?: Prisma.SortOrder
+  depositConfirmedAt?: Prisma.SortOrder
+  kycVerified?: Prisma.SortOrder
+  kycVerifiedAt?: Prisma.SortOrder
 }
 
 export type BookingMinOrderByAggregateInput = {
@@ -562,6 +625,9 @@ export type BookingMinOrderByAggregateInput = {
   depositProofUrl?: Prisma.SortOrder
   depositNote?: Prisma.SortOrder
   depositSubmittedAt?: Prisma.SortOrder
+  depositConfirmedAt?: Prisma.SortOrder
+  kycVerified?: Prisma.SortOrder
+  kycVerifiedAt?: Prisma.SortOrder
 }
 
 export type BookingSumOrderByAggregateInput = {
@@ -629,6 +695,10 @@ export type NullableIntFieldUpdateOperationsInput = {
 
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
 }
 
 export type BookingCreateNestedOneWithoutScheduleInput = {
@@ -700,6 +770,9 @@ export type BookingCreateWithoutPlanInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
 }
@@ -718,6 +791,9 @@ export type BookingUncheckedCreateWithoutPlanInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -765,6 +841,9 @@ export type BookingScalarWhereInput = {
   depositProofUrl?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositNote?: Prisma.StringNullableFilter<"Booking"> | string | null
   depositSubmittedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  depositConfirmedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
+  kycVerified?: Prisma.BoolFilter<"Booking"> | boolean
+  kycVerifiedAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
 }
 
 export type BookingCreateWithoutScheduleInput = {
@@ -780,6 +859,9 @@ export type BookingCreateWithoutScheduleInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
 }
@@ -799,6 +881,9 @@ export type BookingUncheckedCreateWithoutScheduleInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
 }
 
 export type BookingCreateOrConnectWithoutScheduleInput = {
@@ -830,6 +915,9 @@ export type BookingUpdateWithoutScheduleInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
 }
@@ -849,6 +937,9 @@ export type BookingUncheckedUpdateWithoutScheduleInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingCreateWithoutClientInput = {
@@ -864,6 +955,9 @@ export type BookingCreateWithoutClientInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
 }
@@ -882,6 +976,9 @@ export type BookingUncheckedCreateWithoutClientInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -925,6 +1022,9 @@ export type BookingCreateManyPlanInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
 }
 
 export type BookingUpdateWithoutPlanInput = {
@@ -940,6 +1040,9 @@ export type BookingUpdateWithoutPlanInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
 }
@@ -958,6 +1061,9 @@ export type BookingUncheckedUpdateWithoutPlanInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -975,6 +1081,9 @@ export type BookingUncheckedUpdateManyWithoutPlanInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type BookingCreateManyClientInput = {
@@ -991,6 +1100,9 @@ export type BookingCreateManyClientInput = {
   depositProofUrl?: string | null
   depositNote?: string | null
   depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
 }
 
 export type BookingUpdateWithoutClientInput = {
@@ -1006,6 +1118,9 @@ export type BookingUpdateWithoutClientInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
 }
@@ -1024,6 +1139,9 @@ export type BookingUncheckedUpdateWithoutClientInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -1041,6 +1159,9 @@ export type BookingUncheckedUpdateManyWithoutClientInput = {
   depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -1089,6 +1210,9 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   depositProofUrl?: boolean
   depositNote?: boolean
   depositSubmittedAt?: boolean
+  depositConfirmedAt?: boolean
+  kycVerified?: boolean
+  kycVerifiedAt?: boolean
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
@@ -1110,6 +1234,9 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   depositProofUrl?: boolean
   depositNote?: boolean
   depositSubmittedAt?: boolean
+  depositConfirmedAt?: boolean
+  kycVerified?: boolean
+  kycVerifiedAt?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1129,6 +1256,9 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   depositProofUrl?: boolean
   depositNote?: boolean
   depositSubmittedAt?: boolean
+  depositConfirmedAt?: boolean
+  kycVerified?: boolean
+  kycVerifiedAt?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1148,9 +1278,12 @@ export type BookingSelectScalar = {
   depositProofUrl?: boolean
   depositNote?: boolean
   depositSubmittedAt?: boolean
+  depositConfirmedAt?: boolean
+  kycVerified?: boolean
+  kycVerifiedAt?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt" | "depositConfirmedAt" | "kycVerified" | "kycVerifiedAt", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
@@ -1197,6 +1330,15 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     depositProofUrl: string | null
     depositNote: string | null
     depositSubmittedAt: Date | null
+    /**
+     * Set when admin confirms cash receipt / bank encashment.
+     */
+    depositConfirmedAt: Date | null
+    /**
+     * Set when admin verifies per-booking KYC snapshot is valid.
+     */
+    kycVerified: boolean
+    kycVerifiedAt: Date | null
   }, ExtArgs["result"]["booking"]>
   composites: {}
 }
@@ -1637,6 +1779,9 @@ export interface BookingFieldRefs {
   readonly depositProofUrl: Prisma.FieldRef<"Booking", 'String'>
   readonly depositNote: Prisma.FieldRef<"Booking", 'String'>
   readonly depositSubmittedAt: Prisma.FieldRef<"Booking", 'DateTime'>
+  readonly depositConfirmedAt: Prisma.FieldRef<"Booking", 'DateTime'>
+  readonly kycVerified: Prisma.FieldRef<"Booking", 'Boolean'>
+  readonly kycVerifiedAt: Prisma.FieldRef<"Booking", 'DateTime'>
 }
     
 

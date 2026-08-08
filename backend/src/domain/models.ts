@@ -54,6 +54,9 @@ export type Booking = {
   depositProofUrl?: string;
   depositNote?: string;
   depositSubmittedAt?: string;
+  depositConfirmedAt?: string;
+  kycVerified?: boolean;
+  kycVerifiedAt?: string;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
 };

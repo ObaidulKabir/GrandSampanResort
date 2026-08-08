@@ -321,7 +321,8 @@ export default function AdminSalesPage() {
                       <td className="p-3">
                         <span
                           className={`inline-block border px-2 py-0.5 text-xs capitalize ${
-                            s.booking.status === 'awaiting_payment'
+                            s.booking.status === 'awaiting_payment' ||
+                            s.booking.status === 'awaiting_kyc'
                               ? 'border-gold/50 bg-gold/10 text-ocean'
                               : s.booking.status === 'confirmed'
                                 ? 'border-ocean/30 bg-ocean/5 text-ocean'
@@ -331,6 +332,11 @@ export default function AdminSalesPage() {
                           }`}
                         >
                           {String(s.booking.status || '—').replace(/_/g, ' ')}
+                          {s.booking.status !== 'confirmed' && s.booking.planId
+                            ? s.booking.kycVerified
+                              ? ' · KYC ok'
+                              : ' · KYC pending'
+                            : ''}
                         </span>
                       </td>
                       <td className="p-3">

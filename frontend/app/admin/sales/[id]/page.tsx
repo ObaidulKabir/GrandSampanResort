@@ -68,16 +68,49 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
       });
       if (!res?.ok) {
         setActionMsg(
-          res?.error === 'not_awaiting_payment'
-            ? 'This booking is not awaiting payment confirmation'
+          res?.error === 'not_pending_review' || res?.error === 'not_awaiting_payment'
+            ? 'This booking is not pending admin review'
             : 'Could not confirm deposit'
         );
+      } else if (res.completed) {
+        setActionMsg('Deposit and KYC both approved. Booking completed and plan booked.');
+        await load();
       } else {
-        setActionMsg('Deposit confirmed. Plan marked as booked.');
+        setActionMsg('Deposit confirmed. Verify KYC to complete the booking.');
         await load();
       }
     } catch {
       setActionMsg('Could not confirm deposit');
+    }
+    setActing(false);
+  }
+
+  async function verifyKyc() {
+    if (!window.confirm('Confirm that the KYC information for this booking is valid?')) return;
+    setActing(true);
+    setActionMsg('');
+    try {
+      const res = await api(`/booking/${encodeURIComponent(bookingId)}/verify-kyc`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      });
+      if (!res?.ok) {
+        setActionMsg(
+          res?.error === 'kyc_missing'
+            ? 'No KYC snapshot on this booking'
+            : res?.error === 'not_pending_review'
+              ? 'This booking is not pending admin review'
+              : 'Could not verify KYC'
+        );
+      } else if (res.completed) {
+        setActionMsg('KYC verified and deposit already confirmed. Booking completed and plan booked.');
+        await load();
+      } else {
+        setActionMsg('KYC verified. Confirm deposit receipt to complete the booking.');
+        await load();
+      }
+    } catch {
+      setActionMsg('Could not verify KYC');
     }
     setActing(false);
   }
@@ -99,8 +132,8 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
       });
       if (!res?.ok) {
         setActionMsg(
-          res?.error === 'not_awaiting_payment'
-            ? 'This booking is not awaiting payment confirmation'
+          res?.error === 'not_pending_review' || res?.error === 'not_awaiting_payment'
+            ? 'This booking is not pending admin review'
             : 'Could not reject booking'
         );
       } else {
@@ -118,7 +151,10 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
   const suite = summary?.suite;
   const plan = summary?.plan;
   const investor = summary?.investor;
-  const awaitingPayment = booking?.status === 'awaiting_payment';
+  const pendingReview =
+    booking?.status === 'awaiting_payment' || booking?.status === 'awaiting_kyc';
+  const depositConfirmed = !!booking?.depositConfirmedAt;
+  const kycVerified = !!booking?.kycVerified;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
@@ -165,6 +201,44 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
           </section>
 
           {booking.planId && (
+            <section className="border border-gold/40 bg-gold/10 p-5">
+              <h2 className="font-display text-2xl text-ocean">Completion checklist</h2>
+              <p className="mt-1 text-sm text-ocean/70">
+                Booking completes only after both deposit receipt and KYC are approved.
+              </p>
+              <ul className="mt-4 space-y-2 text-sm text-ocean">
+                <li>
+                  {depositConfirmed ? '✓' : '○'} Deposit payment confirmed
+                  {depositConfirmed && booking.depositConfirmedAt
+                    ? ` (${formatDate(booking.depositConfirmedAt)})`
+                    : ''}
+                </li>
+                <li>
+                  {kycVerified ? '✓' : '○'} KYC verified as valid
+                  {kycVerified && booking.kycVerifiedAt ? ` (${formatDate(booking.kycVerifiedAt)})` : ''}
+                </li>
+              </ul>
+              {pendingReview && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!depositConfirmed && (
+                    <Button onClick={confirmDeposit} disabled={acting}>
+                      {acting ? 'Working…' : 'Confirm deposit receipt'}
+                    </Button>
+                  )}
+                  {!kycVerified && (
+                    <Button onClick={verifyKyc} disabled={acting || !client}>
+                      {acting ? 'Working…' : 'Verify KYC'}
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={rejectDeposit} disabled={acting}>
+                    Reject & release plan
+                  </Button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {booking.planId && (
             <section className="border border-ocean/10 bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -174,16 +248,6 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                     encashment.
                   </p>
                 </div>
-                {awaitingPayment && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={confirmDeposit} disabled={acting}>
-                      {acting ? 'Working…' : 'Confirm receipt'}
-                    </Button>
-                    <Button variant="outline" onClick={rejectDeposit} disabled={acting}>
-                      Reject & release plan
-                    </Button>
-                  </div>
-                )}
               </div>
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div className="border-b border-ocean/10 pb-2">
@@ -297,7 +361,18 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
             </div>
 
             <div className="border border-ocean/10 bg-white p-5">
-              <h2 className="font-display text-2xl text-ocean">KYC snapshot</h2>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="font-display text-2xl text-ocean">KYC snapshot</h2>
+                {kycVerified ? (
+                  <span className="border border-ocean/30 bg-ocean/5 px-2 py-0.5 text-xs text-ocean">
+                    Verified
+                  </span>
+                ) : (
+                  <span className="border border-gold/50 bg-gold/10 px-2 py-0.5 text-xs text-ocean">
+                    Pending review
+                  </span>
+                )}
+              </div>
               {!client ? (
                 <p className="mt-4 text-sm text-ocean/65">No KYC submitted for this booking.</p>
               ) : (
