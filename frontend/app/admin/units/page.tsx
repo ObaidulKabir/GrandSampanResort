@@ -1,15 +1,31 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+
+type SortKey = 'id' | 'floor' | 'type' | 'size' | 'view' | 'totalPrice' | 'plans';
+type SortDir = 'asc' | 'desc';
+
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: 'id', label: 'Unit' },
+  { key: 'floor', label: 'Floor' },
+  { key: 'type', label: 'Category' },
+  { key: 'size', label: 'Size' },
+  { key: 'view', label: 'View' },
+  { key: 'totalPrice', label: 'Price' },
+  { key: 'plans', label: 'Plans' }
+];
 
 export default function AdminUnitsListPage() {
   const [items, setItems] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('id');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [deletingId, setDeletingId] = useState('');
 
   async function load() {
     setLoading(true);
@@ -32,6 +48,87 @@ export default function AdminUnitsListPage() {
     const forUnit = plans.filter((p) => p.suiteId === suiteId);
     const unsold = forUnit.filter((p) => (p.planStatus || '').toLowerCase() === 'unsold').length;
     return { total: forUnit.length, unsold };
+  }
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortKey(key);
+    setSortDir(key === 'totalPrice' || key === 'floor' || key === 'size' || key === 'plans' ? 'desc' : 'asc');
+  }
+
+  async function deleteUnit(id: string) {
+    const ok = window.confirm(
+      `Delete unit ${id}? This also removes its share plans and architectural images. Units with existing bookings cannot be deleted.`
+    );
+    if (!ok) return;
+    setDeletingId(id);
+    setError('');
+    try {
+      const json = await api(`/suites/${id}`, { method: 'DELETE' });
+      if (json?.ok) {
+        await load();
+      } else if (json?.error === 'has_bookings') {
+        setError(`Unit ${id} has sales/bookings and cannot be deleted.`);
+      } else {
+        setError(json?.error === 'not_found' ? `Unit ${id} was not found` : json?.error || `Failed to delete ${id}`);
+      }
+    } catch {
+      setError(`Failed to delete ${id}`);
+    }
+    setDeletingId('');
+  }
+
+  const sorted = useMemo(() => {
+    const rows = items.map((i) => {
+      const stats = planStats(i.id);
+      return { ...i, _plansTotal: stats.total, _plansUnsold: stats.unsold };
+    });
+    const dir = sortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'floor':
+        case 'size':
+        case 'totalPrice':
+          cmp = Number(a[sortKey] || 0) - Number(b[sortKey] || 0);
+          break;
+        case 'plans':
+          cmp = a._plansTotal - b._plansTotal || a._plansUnsold - b._plansUnsold;
+          break;
+        default: {
+          const av = String(a[sortKey] ?? '').toLowerCase();
+          const bv = String(b[sortKey] ?? '').toLowerCase();
+          cmp = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+        }
+      }
+      if (cmp === 0) {
+        return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+      }
+      return cmp * dir;
+    });
+    return rows;
+  }, [items, plans, sortKey, sortDir]);
+
+  function SortHeader({ col }: { col: (typeof COLUMNS)[number] }) {
+    const active = sortKey === col.key;
+    return (
+      <th className="p-3 font-medium">
+        <button
+          type="button"
+          onClick={() => toggleSort(col.key)}
+          className={`inline-flex items-center gap-1 ${active ? 'text-ocean' : 'text-ocean/70 hover:text-ocean'}`}
+          aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+        >
+          {col.label}
+          <span className="text-[10px] font-semibold" aria-hidden>
+            {active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
+          </span>
+        </button>
+      </th>
+    );
   }
 
   return (
@@ -57,20 +154,16 @@ export default function AdminUnitsListPage() {
       <div className="mt-6 overflow-auto border border-ocean/10 bg-white">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-ocean/10 text-left text-ocean/70">
-              <th className="p-3 font-medium">Unit</th>
-              <th className="p-3 font-medium">Floor</th>
-              <th className="p-3 font-medium">Category</th>
-              <th className="p-3 font-medium">Size</th>
-              <th className="p-3 font-medium">View</th>
-              <th className="p-3 font-medium">Price</th>
-              <th className="p-3 font-medium">Plans</th>
-              <th className="p-3 font-medium">Actions</th>
+            <tr className="border-b border-ocean/10 text-left">
+              {COLUMNS.map((col) => (
+                <SortHeader key={col.key} col={col} />
+              ))}
+              <th className="p-3 font-medium text-ocean/70">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((i) => {
-              const stats = planStats(i.id);
+            {sorted.map((i) => {
+              const stats = { total: i._plansTotal, unsold: i._plansUnsold };
               return (
                 <tr key={i.id} className="border-t border-ocean/10">
                   <td className="p-3 font-medium text-ocean">{i.id}</td>
@@ -97,13 +190,21 @@ export default function AdminUnitsListPage() {
                     )}
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-3 text-xs font-semibold">
+                    <div className="flex flex-wrap gap-3 text-xs font-semibold">
                       <Link href={`/admin/units/${i.id}/plans`} className="text-ocean underline">
                         Plans
                       </Link>
                       <Link href={`/admin/units/${i.id}/edit`} className="text-ocean underline">
                         Edit
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => deleteUnit(i.id)}
+                        disabled={deletingId === i.id}
+                        className="text-red-700 underline disabled:opacity-50"
+                      >
+                        {deletingId === i.id ? 'Deleting…' : 'Delete'}
+                      </button>
                     </div>
                   </td>
                 </tr>

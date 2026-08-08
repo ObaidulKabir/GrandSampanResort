@@ -20,26 +20,30 @@ export class SeedService {
   async run() {
     const suiteA =
       (await this.suites.get('S-303')) ||
-      (await this.suites.create({
-        id: 'S-303',
-        floor: 3,
-        type: 'Deluxe',
-        size: 323,
-        view: 'Ocean',
-        totalPrice: 185000,
-        currency: 'BDT'
-      } as any));
+      (await this.suites
+        .create({
+          id: 'S-303',
+          floor: 3,
+          type: 'Deluxe',
+          size: 323,
+          view: 'Ocean',
+          totalPrice: 185000,
+          currency: 'BDT'
+        } as any)
+        .then((r) => (r.ok ? r.suite : null)));
     const suiteB =
       (await this.suites.get('S-404')) ||
-      (await this.suites.create({
-        id: 'S-404',
-        floor: 4,
-        type: 'Premium',
-        size: 366,
-        view: 'Hill',
-        totalPrice: 225000,
-        currency: 'BDT'
-      } as any));
+      (await this.suites
+        .create({
+          id: 'S-404',
+          floor: 4,
+          type: 'Premium',
+          size: 366,
+          view: 'Hill',
+          totalPrice: 225000,
+          currency: 'BDT'
+        } as any)
+        .then((r) => (r.ok ? r.suite : null)));
 
     const planA =
       (await this.plans.get('P-7D')) ||

@@ -19,8 +19,7 @@ export class SuitesController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async create(@Body(new ValidationPipe({ whitelist: true })) body: CreateSuiteDto) {
-    const created = await this.service.create(body as any);
-    return { ok: true, suite: created };
+    return this.service.create(body as any);
   }
 
   @Get(':id')
@@ -34,17 +33,14 @@ export class SuitesController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async update(@Param('id') id: string, @Body(new ValidationPipe({ whitelist: true })) body: UpdateSuiteDto) {
-    const updated = await this.service.update(id, body as any);
-    if (!updated) return { ok: false, error: 'not_found' };
-    return { ok: true, suite: updated };
+    return this.service.update(id, body as any);
   }
 
   @Delete(':id')
   @UseGuards(RolesGuard)
   @Roles('admin')
   async remove(@Param('id') id: string) {
-    const ok = await this.service.remove(id);
-    return { ok };
+    return this.service.remove(id);
   }
 
   @Get(':id/plans')

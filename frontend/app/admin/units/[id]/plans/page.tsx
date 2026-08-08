@@ -106,17 +106,24 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     load();
   }, []);
 
-  const isFullBleed = (p: Pick<Plan, 'planType' | 'daysPerMonth'>) =>
-    String(p.planType || '').toUpperCase() === 'FULL' || Number(p.daysPerMonth || 0) >= 30;
+  const MONTH_DAYS = 30;
 
-  const fullBleedPlan = useMemo(() => items.find((p) => isFullBleed(p)) || null, [items]);
-  const planCreationLocked = !!fullBleedPlan;
+  const isFullBleed = (p: Pick<Plan, 'planType' | 'daysPerMonth'>) =>
+    String(p.planType || '').toUpperCase() === 'FULL' || Number(p.daysPerMonth || 0) >= MONTH_DAYS;
+
+  const usedDays = useMemo(
+    () => items.reduce((sum, p) => sum + Math.max(0, Number(p.daysPerMonth) || 0), 0),
+    [items]
+  );
+  const remainingDays = Math.max(0, MONTH_DAYS - usedDays);
+  /** Unit locks only when the combined days/month already fill the month. */
+  const planCreationLocked = remainingDays <= 0;
 
   /** Suggested price = unit total price × time fraction, rounded to whole taka. */
   function suggestedPrice(days: number) {
     const total = Number(suite?.totalPrice || 0);
     if (!total) return 0;
-    return Math.round(total * (Math.min(days, 30) / 30));
+    return Math.round(total * (Math.min(days, MONTH_DAYS) / MONTH_DAYS));
   }
 
   function presetPlanId(preset: (typeof PRESETS)[number]) {
@@ -131,12 +138,9 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
   }
 
   function presetDisabledReason(preset: (typeof PRESETS)[number]): string | null {
-    if (planCreationLocked) return 'Unit locked by full-ownership plan';
-    if (preset.planType === 'FULL' && items.length > 0) {
-      return 'Full month needs an empty unit';
-    }
-    if (preset.planType === 'DPM' && items.some((p) => Number(p.daysPerMonth) === preset.days)) {
-      return `A ${preset.days} days/month plan already exists`;
+    if (planCreationLocked) return 'Unit has no remaining days this month';
+    if (preset.days > remainingDays) {
+      return `Only ${remainingDays} day${remainingDays === 1 ? '' : 's'}/month left on this unit`;
     }
     return null;
   }
@@ -171,33 +175,39 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
   const canSubmit =
     !planCreationLocked && createForm.id.trim().length > 0 && createForm.price > 0;
 
-  function planErrorMessage(code?: string) {
+  function planErrorMessage(code?: string, remaining?: number) {
     if (code === 'conflict') return 'A plan with this ID already exists';
-    if (code === 'full_ownership_locked') {
-      return 'This unit already has a full-ownership (30 days/month) plan. Further plans cannot be created.';
+    if (code === 'unit_capacity_full' || code === 'full_ownership_locked') {
+      return 'This unit already uses the full 30 days/month. Delete or reduce an existing plan before adding another.';
     }
-    if (code === 'full_requires_empty_suite') {
-      return 'Full ownership can only be created when this unit has no other plans. Remove existing DPM plans first.';
+    if (code === 'exceeds_month_capacity' || code === 'full_requires_empty_suite') {
+      const left = typeof remaining === 'number' ? remaining : remainingDays;
+      return `This plan would exceed the unit’s 30 days/month. Only ${left} day${left === 1 ? '' : 's'} remaining.`;
     }
     return code || 'Failed to create plan';
   }
 
   function setCreateType(planType: Plan['planType']) {
     if (planType === 'FULL') {
-      setCreateForm({ ...createForm, planType: 'FULL', daysPerMonth: 30 });
+      if (remainingDays < MONTH_DAYS) return;
+      setCreateForm({ ...createForm, planType: 'FULL', daysPerMonth: MONTH_DAYS });
       return;
     }
     setCreateForm({
       ...createForm,
       planType: 'DPM',
-      daysPerMonth: createForm.daysPerMonth >= 30 ? 7 : createForm.daysPerMonth
+      daysPerMonth:
+        createForm.daysPerMonth >= MONTH_DAYS
+          ? Math.min(5, remainingDays || 5)
+          : Math.min(createForm.daysPerMonth, remainingDays || createForm.daysPerMonth)
     });
   }
 
   function setCreateDays(daysPerMonth: number) {
-    const days = Math.max(0, Math.min(30, Number(daysPerMonth) || 0));
-    if (days >= 30) {
-      setCreateForm({ ...createForm, daysPerMonth: 30, planType: 'FULL' });
+    const cap = planCreationLocked ? 0 : remainingDays || MONTH_DAYS;
+    const days = Math.max(0, Math.min(cap, Number(daysPerMonth) || 0));
+    if (days >= MONTH_DAYS && remainingDays >= MONTH_DAYS) {
+      setCreateForm({ ...createForm, daysPerMonth: MONTH_DAYS, planType: 'FULL' });
       return;
     }
     setCreateForm({
@@ -210,7 +220,12 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
   async function createPlan(e: React.FormEvent) {
     e.preventDefault();
     if (planCreationLocked) {
-      setError(planErrorMessage('full_ownership_locked'));
+      setError(planErrorMessage('unit_capacity_full'));
+      return;
+    }
+    const nextDays = isFullBleed(createForm) ? MONTH_DAYS : Number(createForm.daysPerMonth) || 0;
+    if (nextDays > remainingDays) {
+      setError(planErrorMessage('exceeds_month_capacity', remainingDays));
       return;
     }
     if (!canSubmit) {
@@ -230,22 +245,23 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           suiteId,
           currency: 'BDT',
           planType: full ? 'FULL' : createForm.planType || 'DPM',
-          daysPerMonth: full ? 30 : createForm.daysPerMonth,
+          daysPerMonth: full ? MONTH_DAYS : createForm.daysPerMonth,
           timeFraction: derivedFraction
         })
       });
       if (json?.ok) {
+        const leftAfter = remainingDays - nextDays;
         setNotice(
-          full
-            ? `Full-ownership plan ${createForm.id.trim()} created. Further plans on this unit are now locked.`
+          full || leftAfter <= 0
+            ? `Plan ${createForm.id.trim()} created. This unit now uses the full 30 days/month — further plans are locked.`
             : createForm.planStatus === 'Unsold'
-              ? `Plan ${createForm.id.trim()} is live in the buyer catalog.`
-              : `Plan ${createForm.id.trim()} created (status: ${createForm.planStatus}).`
+              ? `Plan ${createForm.id.trim()} is live in the buyer catalog. ${leftAfter} day${leftAfter === 1 ? '' : 's'}/month still available.`
+              : `Plan ${createForm.id.trim()} created (status: ${createForm.planStatus}). ${leftAfter} day${leftAfter === 1 ? '' : 's'}/month still available.`
         );
         setCreateForm(emptyForm(suiteId));
         await load();
       } else {
-        setError(planErrorMessage(json?.error));
+        setError(planErrorMessage(json?.error, json?.remainingDays));
       }
     } catch {
       setError('Failed to create plan');
@@ -327,14 +343,26 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
         <h2 className="font-display text-2xl text-ocean">Create plan</h2>
         <p className="mt-1 text-sm text-ocean/70">
           Revenue share is derived automatically from days per month. Status “Unsold” publishes it for sale.
-          A full-ownership plan (30 days/month) locks the unit — no further plans can be added.
+          Each unit has 30 days/month to allocate across plans — creation locks only when that total is used up.
         </p>
+        <div className="mt-4 border border-ocean/10 bg-pearl px-4 py-3 text-sm text-ocean/80">
+          Days allocated:{' '}
+          <span className="font-semibold text-ocean">
+            {usedDays} / {MONTH_DAYS}
+          </span>
+          {planCreationLocked ? (
+            <span className="ml-2 text-gold">· Unit locked (no days left)</span>
+          ) : (
+            <span className="ml-2">
+              · <span className="font-semibold text-ocean">{remainingDays}</span> day
+              {remainingDays === 1 ? '' : 's'} remaining
+            </span>
+          )}
+        </div>
         {planCreationLocked && (
           <div className="mt-4 border border-gold/50 bg-gold/10 p-4 text-ocean">
-            Plan creation is disabled because this unit already has a full-ownership plan (
-            <span className="font-semibold">{fullBleedPlan?.id}</span>
-            {fullBleedPlan?.name ? ` · ${fullBleedPlan.name}` : ''}). Delete that plan first if you need to add DPM
-            share plans instead.
+            Plan creation is disabled because this unit already uses the full {MONTH_DAYS} days/month. Delete or
+            reduce an existing plan to free capacity.
           </div>
         )}
         {!planCreationLocked && (
@@ -406,12 +434,17 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
             <input
               type="number"
               min={0}
-              max={30}
+              max={remainingDays || MONTH_DAYS}
               disabled={planCreationLocked}
               value={createForm.daysPerMonth}
               onChange={(e) => setCreateDays(Number(e.target.value))}
               className="field mt-1"
             />
+            {!planCreationLocked && (
+              <span className="mt-1 block text-xs font-normal text-ocean/60">
+                Max {remainingDays} day{remainingDays === 1 ? '' : 's'} available on this unit
+              </span>
+            )}
           </label>
           <label className="block text-sm font-medium text-ocean">
             Price (BDT)
@@ -427,18 +460,18 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           <label className="block text-sm font-medium text-ocean">
             Type
             <select
-              disabled={planCreationLocked || items.length > 0}
+              disabled={planCreationLocked || remainingDays < MONTH_DAYS}
               value={createForm.planType}
               onChange={(e) => setCreateType(e.target.value as Plan['planType'])}
               className="field mt-1"
               title={
-                items.length > 0
-                  ? 'Full ownership is only available when this unit has no other plans'
+                remainingDays < MONTH_DAYS
+                  ? 'Full ownership needs the full 30 days — this unit already has other plans'
                   : undefined
               }
             >
               <option value="DPM">Days per month (DPM)</option>
-              <option value="FULL" disabled={items.length > 0}>
+              <option value="FULL" disabled={remainingDays < MONTH_DAYS}>
                 Full ownership (30 days)
               </option>
             </select>

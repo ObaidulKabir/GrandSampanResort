@@ -1,15 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
 import MediaManager from '@/components/admin/MediaManager';
 
 export default function AdminEditUnitPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
   const unitId = params.id;
   const [form, setForm] = useState({ id: unitId, floor: '', type: 'Standard', size: '', view: 'Sea', totalPrice: '' } as any);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -34,8 +37,23 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
     load();
   }, []);
 
+  function unitErrorMessage(code?: string) {
+    if (code === 'conflict') return 'Another unit already uses this ID';
+    if (code === 'not_found') return 'Unit not found';
+    if (code === 'has_bookings') {
+      return 'This unit has sales/bookings and cannot be deleted. Remove those bookings first, or keep the unit.';
+    }
+    if (code === 'missing_id') return 'Unit ID is required';
+    return code || 'Request failed';
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    const nextId = String(form.id || '').trim();
+    if (!nextId) {
+      setError('Unit ID is required');
+      return;
+    }
     setSaving(true);
     setError('');
     setNotice('');
@@ -43,6 +61,7 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
       const json = await api(`/suites/${unitId}`, {
         method: 'PUT',
         body: JSON.stringify({
+          id: nextId,
           floor: Number(form.floor),
           type: form.type,
           size: Number(form.size),
@@ -50,16 +69,44 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
           totalPrice: Number(form.totalPrice)
         })
       });
-      if (json?.ok || json?.suite || json?.id) {
-        setNotice('Changes saved.');
+      if (json?.ok) {
+        if (json.renamedFrom || nextId !== unitId) {
+          setNotice(`Unit renamed to ${nextId}. Redirecting…`);
+          router.replace(`/admin/units/${encodeURIComponent(nextId)}/edit`);
+        } else {
+          setNotice('Changes saved.');
+        }
       } else {
-        setError(json?.error || 'Failed to save changes');
+        setError(unitErrorMessage(json?.error));
       }
     } catch {
       setError('Failed to save changes');
     }
     setSaving(false);
   }
+
+  async function deleteUnit() {
+    const ok = window.confirm(
+      `Delete unit ${unitId}? This also removes its share plans and architectural images. Units with existing bookings cannot be deleted.`
+    );
+    if (!ok) return;
+    setDeleting(true);
+    setError('');
+    setNotice('');
+    try {
+      const json = await api(`/suites/${unitId}`, { method: 'DELETE' });
+      if (json?.ok) {
+        router.replace('/admin/units');
+        return;
+      }
+      setError(unitErrorMessage(json?.error));
+    } catch {
+      setError('Failed to delete unit');
+    }
+    setDeleting(false);
+  }
+
+  const idChanged = String(form.id || '').trim() !== unitId;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10 md:py-14">
@@ -84,7 +131,17 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
       <form onSubmit={save} className="mt-6 space-y-5 border border-ocean/10 bg-white p-6">
         <label className="block text-sm font-medium text-ocean">
           Unit ID
-          <input value={form.id} disabled className="field mt-1 bg-pearl text-ocean/60" />
+          <input
+            value={form.id}
+            onChange={(e) => setForm({ ...form, id: e.target.value })}
+            className="field mt-1"
+            required
+          />
+          <span className="mt-1 block text-xs font-normal text-ocean/60">
+            {idChanged
+              ? `Saving will rename this unit from ${unitId} to ${String(form.id).trim()} and update linked plans, media, and bookings.`
+              : 'You can rename this unit. Linked plans and media stay attached to the new ID.'}
+          </span>
         </label>
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <label className="block text-sm font-medium text-ocean">
@@ -130,9 +187,12 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
             className="field mt-1"
           />
         </label>
-        <div className="border-t border-ocean/10 pt-5">
-          <Button type="submit" disabled={saving || loading}>
-            {saving ? 'Saving...' : 'Save changes'}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ocean/10 pt-5">
+          <Button type="submit" disabled={saving || loading || deleting}>
+            {saving ? 'Saving...' : idChanged ? 'Save & rename' : 'Save changes'}
+          </Button>
+          <Button type="button" variant="outline" disabled={saving || deleting} onClick={deleteUnit}>
+            {deleting ? 'Deleting...' : 'Delete unit'}
           </Button>
         </div>
       </form>

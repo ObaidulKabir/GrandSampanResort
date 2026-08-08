@@ -91,11 +91,12 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         });
         if (!createJson?.ok) {
           const code = createJson?.error;
+          const left = createJson?.remainingDays;
           setError(
-            code === 'full_ownership_locked'
-              ? 'This unit already has a full-ownership plan; further plans cannot be created.'
-              : code === 'full_requires_empty_suite'
-                ? 'Full ownership can only be created when this unit has no other plans.'
+            code === 'unit_capacity_full' || code === 'full_ownership_locked'
+              ? 'This unit already uses the full 30 days/month; further plans cannot be created.'
+              : code === 'exceeds_month_capacity' || code === 'full_requires_empty_suite'
+                ? `This plan would exceed the unit’s 30 days/month${typeof left === 'number' ? ` (only ${left} left)` : ''}.`
                 : code || 'Failed to create with new ID'
           );
           setSaving(false);
@@ -120,11 +121,12 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         });
         if (!json?.ok) {
           const code = json?.error;
+          const left = json?.remainingDays;
           setError(
-            code === 'full_ownership_locked'
-              ? 'This unit already has a full-ownership plan.'
-              : code === 'full_requires_empty_suite'
-                ? 'Cannot switch to full ownership while other plans exist on this unit.'
+            code === 'unit_capacity_full' || code === 'full_ownership_locked'
+              ? 'This unit already uses the full 30 days/month.'
+              : code === 'exceeds_month_capacity' || code === 'full_requires_empty_suite'
+                ? `Updated days would exceed the unit’s 30 days/month${typeof left === 'number' ? ` (only ${left} left for other plans)` : ''}.`
                 : code || 'Failed to save plan'
           );
         }

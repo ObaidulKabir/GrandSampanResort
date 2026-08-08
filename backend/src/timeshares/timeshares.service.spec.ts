@@ -56,7 +56,59 @@ describe('TimesharesService', () => {
     expect(removed).toBe(true);
   });
 
-  it('blocks further plans after a full-bleed plan exists on the suite', async () => {
+  it('allows multiple DPM plans until combined days reach 30', async () => {
+    const a = 'T-SP-3D';
+    const b = 'T-SP-5D-B';
+    const over = 'T-SP-OVER';
+    for (const id of [a, b, over, planId]) {
+      try {
+        await svc.remove(id);
+      } catch {}
+    }
+    const first = await svc.create({
+      id: a,
+      name: '3 days/month',
+      daysPerMonth: 3,
+      lockIn: 36,
+      price: 30000,
+      currency: 'BDT',
+      suiteId,
+      planType: 'DPM',
+      planStatus: 'Unsold'
+    } as any);
+    expect(first.ok).toBe(true);
+    const second = await svc.create({
+      id: b,
+      name: '5 days/month',
+      daysPerMonth: 5,
+      lockIn: 36,
+      price: 50000,
+      currency: 'BDT',
+      suiteId,
+      planType: 'DPM',
+      planStatus: 'Unsold'
+    } as any);
+    expect(second.ok).toBe(true);
+    // 3 + 5 = 8 used → 22 left; a 25-day plan must be rejected
+    const blocked = await svc.create({
+      id: over,
+      name: 'Too many days',
+      daysPerMonth: 25,
+      lockIn: 36,
+      price: 100000,
+      currency: 'BDT',
+      suiteId,
+      planType: 'DPM',
+      planStatus: 'Unsold'
+    } as any);
+    expect(blocked.ok).toBe(false);
+    expect((blocked as any).error).toBe('exceeds_month_capacity');
+    expect((blocked as any).remainingDays).toBe(22);
+    await svc.remove(a);
+    await svc.remove(b);
+  });
+
+  it('locks the unit only after a full 30 days/month plan exists', async () => {
     const fullId = 'T-SP-FULL';
     const extraId = 'T-SP-EXTRA';
     try {
@@ -90,7 +142,7 @@ describe('TimesharesService', () => {
       planStatus: 'Unsold'
     } as any);
     expect(blocked.ok).toBe(false);
-    expect((blocked as any).error).toBe('full_ownership_locked');
+    expect((blocked as any).error).toBe('unit_capacity_full');
     await svc.remove(fullId);
   });
 });

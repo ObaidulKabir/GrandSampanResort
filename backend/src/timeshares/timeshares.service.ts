@@ -55,24 +55,36 @@ export class TimesharesService {
     };
   }
 
+  /** Total entitlement days a suite can sell per month across all its plans. */
+  static readonly MONTH_DAYS = 30;
+
   /**
-   * A suite with a full-bleed plan cannot accept additional plans.
-   * A suite that already has any plan cannot accept a new full-bleed plan.
+   * A suite has 30 entitlement days per month to allocate. Plans can keep
+   * being added until the combined days reach 30; a plan that would push the
+   * total past 30 is rejected. A FULL plan (30 days) therefore needs an
+   * otherwise empty suite, and a suite whose 30 days are allocated is locked.
    */
   private async assertSuitePlanRules(
     suiteId: string | null | undefined,
     next: Pick<SharePlan, 'planType' | 'daysPerMonth'>,
     excludePlanId?: string
-  ): Promise<{ ok: true } | { ok: false; error: string }> {
+  ): Promise<{ ok: true } | { ok: false; error: string; remainingDays: number }> {
     if (!suiteId) return { ok: true };
     const existing = await this.listBySuite(suiteId);
     const others = existing.filter((p) => p.id !== excludePlanId);
-    const hasFull = others.some((p) => this.isFullBleed(p));
-    if (hasFull) {
-      return { ok: false, error: 'full_ownership_locked' };
+    const used = others.reduce(
+      (sum, p) => sum + Math.max(0, Number(p.daysPerMonth) || 0),
+      0
+    );
+    const remaining = Math.max(0, TimesharesService.MONTH_DAYS - used);
+    if (remaining <= 0) {
+      return { ok: false, error: 'unit_capacity_full', remainingDays: 0 };
     }
-    if (this.isFullBleed(next) && others.length > 0) {
-      return { ok: false, error: 'full_requires_empty_suite' };
+    const nextDays = this.isFullBleed(next)
+      ? TimesharesService.MONTH_DAYS
+      : Math.max(0, Number(next.daysPerMonth) || 0);
+    if (nextDays > remaining) {
+      return { ok: false, error: 'exceeds_month_capacity', remainingDays: remaining };
     }
     return { ok: true };
   }
@@ -83,7 +95,9 @@ export class TimesharesService {
     }
     const normalized = this.normalizeFullBleedFields(item) as SharePlan;
     const gate = await this.assertSuitePlanRules(normalized.suiteId, normalized);
-    if (!gate.ok) return { ok: false as const, error: gate.error };
+    if (!gate.ok) {
+      return { ok: false as const, error: gate.error, remainingDays: gate.remainingDays };
+    }
 
     if (this.prisma) {
       const data = {
@@ -120,7 +134,9 @@ export class TimesharesService {
     });
     const suiteId = (item.suiteId !== undefined ? item.suiteId : current.suiteId) ?? null;
     const gate = await this.assertSuitePlanRules(suiteId, merged as SharePlan, id);
-    if (!gate.ok) return { ok: false as const, error: gate.error };
+    if (!gate.ok) {
+      return { ok: false as const, error: gate.error, remainingDays: gate.remainingDays };
+    }
 
     if (this.prisma) {
       const data: any = {};

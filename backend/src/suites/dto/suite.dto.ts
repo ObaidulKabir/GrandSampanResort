@@ -18,6 +18,9 @@ export class CreateSuiteDto {
 
 export class UpdateSuiteDto {
   @IsOptional()
+  @IsString()
+  id?: string;
+  @IsOptional()
   @IsInt()
   floor?: number;
   @IsOptional()
