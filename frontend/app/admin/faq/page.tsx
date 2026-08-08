@@ -6,7 +6,6 @@ import Button from '@/components/Button';
 
 type FaqItem = { id: string; question: string; answer: string; order: number };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
 const emptyForm = { question: '', answer: '' };
 
 export default function AdminFaqPage() {
@@ -68,12 +67,10 @@ export default function AdminFaqPage() {
       const res = editingId
         ? await api(`/faq/${editingId}`, {
             method: 'PUT',
-            headers: adminHeaders,
             body: JSON.stringify({ question, answer })
           })
         : await api('/faq', {
             method: 'POST',
-            headers: adminHeaders,
             body: JSON.stringify({ question, answer })
           });
       if (!res?.ok) {
@@ -95,7 +92,7 @@ export default function AdminFaqPage() {
     setError('');
     setNotice('');
     try {
-      const res = await api(`/faq/${id}`, { method: 'DELETE', headers: adminHeaders });
+      const res = await api(`/faq/${id}`, { method: 'DELETE' });
       if (!res?.ok) {
         setError(res?.message || res?.error || 'Failed to delete FAQ');
         return;

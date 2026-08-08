@@ -4,8 +4,6 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
 
-const adminHeaders = { Authorization: 'Bearer admin' };
-
 export default function AdminCreateUnitPage() {
   const [id, setId] = useState('');
   const [floor, setFloor] = useState<number | ''>('');
@@ -27,7 +25,6 @@ export default function AdminCreateUnitPage() {
     try {
       const json = await api('/suites', {
         method: 'POST',
-        headers: adminHeaders,
         body: JSON.stringify({
           id: id.trim(),
           floor: Number(floor),

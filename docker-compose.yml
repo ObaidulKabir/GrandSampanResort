@@ -21,6 +21,10 @@ services:
       - PORT=4000
       - DATABASE_URL=postgresql://app:app@db:5432/grand_sampan
       - JWT_SECRET=grand-sampan-sales-launch-secret
+      # Dev-only bootstrap admin; the account is created once on first boot.
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_NAME=Dev Admin
     volumes:
       - ./backend:/app
       - /app/node_modules

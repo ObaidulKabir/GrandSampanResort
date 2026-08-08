@@ -6,7 +6,6 @@ import Button from '@/components/Button';
 
 type TermsItem = { id: string; title: string; body: string; order: number };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
 const emptyForm = { title: '', body: '' };
 
 export default function AdminTermsPage() {
@@ -69,12 +68,10 @@ export default function AdminTermsPage() {
       const res = editingId
         ? await api(`/terms/${editingId}`, {
             method: 'PUT',
-            headers: adminHeaders,
             body: JSON.stringify({ title, body })
           })
         : await api('/terms', {
             method: 'POST',
-            headers: adminHeaders,
             body: JSON.stringify({ title, body })
           });
       if (!res?.ok) {
@@ -96,7 +93,7 @@ export default function AdminTermsPage() {
     setError('');
     setNotice('');
     try {
-      const res = await api(`/terms/${id}`, { method: 'DELETE', headers: adminHeaders });
+      const res = await api(`/terms/${id}`, { method: 'DELETE' });
       if (!res?.ok) {
         setError(res?.message || res?.error || 'Failed to delete paragraph');
         return;
@@ -114,7 +111,6 @@ export default function AdminTermsPage() {
     try {
       const res = await api(`/terms/${id}/move`, {
         method: 'PATCH',
-        headers: adminHeaders,
         body: JSON.stringify({ direction })
       });
       if (res?.ok && Array.isArray(res.items)) setItems(res.items);

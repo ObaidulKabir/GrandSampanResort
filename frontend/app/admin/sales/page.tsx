@@ -12,8 +12,6 @@ type SaleRow = {
 
 type Tab = 'pipeline' | 'inventory' | 'investors';
 
-const adminHeaders = { Authorization: 'Bearer admin' };
-
 export default function AdminSalesPage() {
   const [tab, setTab] = useState<Tab>('pipeline');
   const [sales, setSales] = useState<SaleRow[]>([]);
@@ -32,8 +30,8 @@ export default function AdminSalesPage() {
     setError('');
     try {
       const [salesJson, usersJson, plansJson] = await Promise.all([
-        api('/booking/admin/all', { headers: adminHeaders }),
-        api('/auth/users', { headers: adminHeaders }),
+        api('/booking/admin/all'),
+        api('/auth/users'),
         api('/timeshares')
       ]);
       setSales(Array.isArray(salesJson?.sales) ? salesJson.sales : []);
@@ -125,7 +123,6 @@ export default function AdminSalesPage() {
   async function toggleKyc(userId: string, kyc: boolean) {
     await api('/auth/kyc', {
       method: 'PUT',
-      headers: adminHeaders,
       body: JSON.stringify({ userId, kyc: !kyc })
     });
     await load();

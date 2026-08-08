@@ -29,6 +29,12 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      # Bootstraps the first admin account on startup; only created if this
+      # email doesn't already exist, so it's safe to leave set permanently.
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_NAME=${ADMIN_NAME}
     networks:
       - traefik-network
     labels:

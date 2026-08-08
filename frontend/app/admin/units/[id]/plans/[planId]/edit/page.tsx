@@ -77,7 +77,6 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         }
         const createJson = await api(`/timeshares`, {
           method: 'POST',
-          headers: { Authorization: 'Bearer admin' },
           body: JSON.stringify({
             id: targetId,
             name: form.name,
@@ -96,15 +95,13 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
           return;
         }
         await api(`/timeshares/${planId}`, {
-          method: 'DELETE',
-          headers: { Authorization: 'Bearer admin' }
+          method: 'DELETE'
         });
         setResult({ ok: true, plan: createJson.plan });
         router.replace(`/admin/units/${suiteId}/plans/${targetId}/edit`);
       } else {
         const json = await api(`/timeshares/${planId}`, {
           method: 'PUT',
-          headers: { Authorization: 'Bearer admin' },
           body: JSON.stringify({
             name: form.name,
             daysPerMonth: Number(form.daysPerMonth),
@@ -130,8 +127,7 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
     if (!ok) return;
     try {
       await api(`/timeshares/${planId}`, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer admin' }
+        method: 'DELETE'
       });
       router.replace(`/admin/units/${suiteId}/plans`);
     } catch {
