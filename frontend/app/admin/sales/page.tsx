@@ -9,6 +9,8 @@ type SaleRow = {
   booking: any;
   suite: any;
   plan: any;
+  client?: any;
+  investor?: { id: string; name?: string | null; email?: string | null } | null;
 };
 
 type Tab = 'pipeline' | 'inventory' | 'investors';
@@ -20,7 +22,7 @@ export default function AdminSalesPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'investment' | 'stay'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'investment' | 'stay'>('investment');
   const [statusFilter, setStatusFilter] = useState('all');
   const [pipelineQuery, setPipelineQuery] = useState('');
   const [investorQuery, setInvestorQuery] = useState('');
@@ -91,7 +93,13 @@ export default function AdminSalesPage() {
         s.booking?.suiteId,
         s.plan?.name,
         s.booking?.planId,
-        s.booking?.status
+        s.booking?.status,
+        s.client?.name,
+        s.client?.nid,
+        s.client?.contact,
+        s.client?.email,
+        s.investor?.name,
+        s.investor?.email
       ]
         .filter(Boolean)
         .join(' ')
@@ -130,7 +138,7 @@ export default function AdminSalesPage() {
   }
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'pipeline', label: 'Pipeline' },
+    { id: 'pipeline', label: 'Bookings' },
     { id: 'inventory', label: 'Inventory' },
     { id: 'investors', label: 'Investors' }
   ];
@@ -141,7 +149,7 @@ export default function AdminSalesPage() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Company sales</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">Sales Desk</h1>
-          <p className="mt-2 text-ocean/75">Pipeline, inventory, and KYC in one place.</p>
+          <p className="mt-2 text-ocean/75">Investment bookings, inventory, and investors in one place.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={load}>{loading ? 'Refreshing...' : 'Refresh'}</Button>
@@ -233,59 +241,83 @@ export default function AdminSalesPage() {
               <thead>
                 <tr className="border-b border-ocean/10 text-left text-ocean/70">
                   <th className="p-3 font-medium">Booking</th>
-                  <th className="p-3 font-medium">Type</th>
-                  <th className="p-3 font-medium">Suite</th>
                   <th className="p-3 font-medium">Plan</th>
-                  <th className="p-3 font-medium">Investor</th>
+                  <th className="p-3 font-medium">Unit</th>
+                  <th className="p-3 font-medium">Buyer</th>
+                  <th className="p-3 font-medium">Contact</th>
+                  <th className="p-3 font-medium">NID</th>
                   <th className="p-3 font-medium">Amount</th>
                   <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium"> </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSales.map((s) => (
-                  <tr key={s.booking.id} className="border-t border-ocean/10">
-                    <td className="p-3 font-mono text-xs text-ocean">{s.booking.id}</td>
-                    <td className="p-3">
-                      <span
-                        className={`inline-block border px-2 py-0.5 text-xs ${
-                          s.booking.planId
-                            ? 'border-gold/50 bg-gold/10 text-ocean'
-                            : 'border-ocean/20 bg-pearl text-ocean/80'
-                        }`}
-                      >
-                        {s.booking.planId ? 'Investment' : 'Stay'}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      {s.suite?.id || s.booking.suiteId ? (
+                {filteredSales.map((s) => {
+                  const buyerName =
+                    s.client?.name || s.investor?.name || s.booking.investorId || '—';
+                  const contact = s.client?.contact || s.investor?.email || '—';
+                  const email = s.client?.email || s.investor?.email || '';
+                  return (
+                    <tr key={s.booking.id} className="border-t border-ocean/10">
+                      <td className="p-3">
+                        <div className="font-mono text-xs text-ocean">{s.booking.id}</div>
+                        {!s.booking.planId && (
+                          <span className="mt-1 inline-block border border-ocean/20 bg-pearl px-2 py-0.5 text-[10px] text-ocean/80">
+                            Stay
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {s.booking.planId ? (
+                          <div>
+                            <div className="font-medium text-ocean">{s.plan?.name || s.booking.planId}</div>
+                            <div className="font-mono text-xs text-ocean/60">{s.booking.planId}</div>
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {s.suite?.id || s.booking.suiteId ? (
+                          <Link
+                            href={`/admin/units/${s.suite?.id || s.booking.suiteId}/plans`}
+                            className="text-ocean underline"
+                          >
+                            {s.suite?.id || s.booking.suiteId}
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div className="font-medium text-ocean">{buyerName}</div>
+                        {s.investor?.email && s.client?.name && (
+                          <div className="text-xs text-ocean/55">Account: {s.investor.email}</div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div>{contact}</div>
+                        {email && email !== contact && (
+                          <div className="text-xs text-ocean/55">{email}</div>
+                        )}
+                      </td>
+                      <td className="p-3 font-mono text-xs">{s.client?.nid || '—'}</td>
+                      <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
+                      <td className="p-3 capitalize">{s.booking.status}</td>
+                      <td className="p-3">
                         <Link
-                          href={`/admin/units/${s.suite?.id || s.booking.suiteId}/plans`}
-                          className="text-ocean underline"
+                          href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
+                          className="text-sm font-semibold text-ocean underline"
                         >
-                          {s.suite?.id || s.booking.suiteId}
+                          View
                         </Link>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="p-3">
-                      {s.booking.planId ? (
-                        <div>
-                          <div>{s.plan?.name || s.booking.planId}</div>
-                          <div className="font-mono text-xs text-ocean/60">{s.booking.planId}</div>
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="p-3 font-mono text-xs">{s.booking.investorId || '—'}</td>
-                    <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
-                    <td className="p-3 capitalize">{s.booking.status}</td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredSales.length === 0 && !loading && (
                   <tr>
-                    <td className="p-4 text-ocean/70" colSpan={7}>
+                    <td className="p-4 text-ocean/70" colSpan={9}>
                       No bookings match these filters
                     </td>
                   </tr>

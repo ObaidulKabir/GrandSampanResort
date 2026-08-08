@@ -79,15 +79,25 @@ export class BookingService {
     const clientIds = Array.from(
       new Set(bookings.map((b) => b.clientId).filter(Boolean)),
     );
+    const investorIds = Array.from(
+      new Set(bookings.map((b) => b.investorId).filter(Boolean)),
+    );
     const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
     const plans = await Promise.all(
       planIds.map((id) => (id ? this.timeshares.get(id as string) : null)),
     );
     let clients: any[] = [];
-    if (clientIds.length) {
-      if (this.prisma) {
+    let investors: any[] = [];
+    if (this.prisma) {
+      if (clientIds.length) {
         clients = await this.prisma.client.findMany({
           where: { id: { in: clientIds as string[] } },
+        });
+      }
+      if (investorIds.length) {
+        investors = await this.prisma.user.findMany({
+          where: { id: { in: investorIds as string[] } },
+          select: { id: true, name: true, email: true },
         });
       }
     }
@@ -100,11 +110,21 @@ export class BookingService {
     const clientById = Object.fromEntries(
       (clients || []).filter(Boolean).map((c: any) => [c.id, c]),
     );
+    const investorById = Object.fromEntries(
+      (investors || []).filter(Boolean).map((u: any) => [u.id, u]),
+    );
     return bookings.map((b) => ({
       booking: b,
       suite: suiteById[b.suiteId] || null,
       plan: b.planId ? planById[b.planId] || null : null,
       client: b.clientId ? clientById[b.clientId] || null : null,
+      investor: b.investorId
+        ? investorById[b.investorId] || {
+            id: b.investorId,
+            name: null,
+            email: null,
+          }
+        : null,
     }));
   }
 
@@ -131,9 +151,24 @@ export class BookingService {
       const nextDue = dueItems[0] || null;
       const handoverDate = new Date(booking.end).toISOString();
       const { client, ...bookingRow } = booking as any;
+      const [suite, plan, investor] = await Promise.all([
+        this.suites.get(booking.suiteId),
+        booking.planId ? this.timeshares.get(booking.planId) : null,
+        booking.investorId
+          ? this.prisma.user.findUnique({
+              where: { id: booking.investorId },
+              select: { id: true, name: true, email: true },
+            })
+          : null,
+      ]);
       return {
         booking: bookingRow,
         client: client || null,
+        suite: suite || null,
+        plan: plan || null,
+        investor: investor || (booking.investorId
+          ? { id: booking.investorId, name: null, email: null }
+          : null),
         paidTotal,
         outstanding,
         nextDue,
@@ -154,9 +189,16 @@ export class BookingService {
       );
     const nextDue = dueItems[0] || null;
     const handoverDate = new Date(booking.end).toISOString();
+    const suite = await this.suites.get(booking.suiteId);
+    const plan = booking.planId ? await this.timeshares.get(booking.planId) : null;
     return {
       booking,
       client: (booking as any).client || null,
+      suite: suite || null,
+      plan: plan || null,
+      investor: booking.investorId
+        ? { id: booking.investorId, name: null, email: null }
+        : null,
       paidTotal,
       outstanding,
       nextDue,
