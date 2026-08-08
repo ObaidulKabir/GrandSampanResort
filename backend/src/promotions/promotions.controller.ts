@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, ValidationPipe } from '@nestjs/common';
 import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { PromotionsService } from './promotions.service';
 
@@ -15,6 +16,7 @@ export class PromotionsController {
 
   @Post()
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async create(@Body(new ValidationPipe({ whitelist: true })) body: CreatePromotionDto) {
     if (new Date(body.endsAt) < new Date(body.startsAt)) {
       return { ok: false, error: 'end_before_start' };
@@ -25,6 +27,7 @@ export class PromotionsController {
 
   @Put(':id')
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async update(
     @Param('id') id: string,
     @Body(new ValidationPipe({ whitelist: true })) body: UpdatePromotionDto
@@ -38,6 +41,7 @@ export class PromotionsController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return { ok: true };

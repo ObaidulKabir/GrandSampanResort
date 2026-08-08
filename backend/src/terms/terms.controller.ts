@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, ValidationPipe } from '@nestjs/common';
 import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CreateTermsDto, MoveTermsDto, UpdateTermsDto } from './dto/terms.dto';
 import { TermsService } from './terms.service';
 
@@ -15,6 +16,7 @@ export class TermsController {
 
   @Post()
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async create(@Body(new ValidationPipe({ whitelist: true })) body: CreateTermsDto) {
     const item = await this.service.create(body);
     return { ok: true, item };
@@ -22,6 +24,7 @@ export class TermsController {
 
   @Put(':id')
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async update(
     @Param('id') id: string,
     @Body(new ValidationPipe({ whitelist: true })) body: UpdateTermsDto
@@ -32,6 +35,7 @@ export class TermsController {
 
   @Patch(':id/move')
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async move(
     @Param('id') id: string,
     @Body(new ValidationPipe({ whitelist: true })) body: MoveTermsDto
@@ -42,6 +46,7 @@ export class TermsController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
+  @Roles('admin')
   async remove(@Param('id') id: string) {
     await this.service.remove(id);
     return { ok: true };
