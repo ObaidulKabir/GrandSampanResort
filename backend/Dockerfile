@@ -10,10 +10,12 @@ COPY . .
 FROM base AS development
 ENV NODE_ENV=development
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy || echo 'prisma migrate deploy failed, continuing startup'; npm run dev"]
 
 FROM base AS production
 ENV NODE_ENV=production
 RUN npm run build
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
+# Never let a migration failure (e.g. an existing DB whose schema predates
+# migration history tracking) block the app from starting; log and continue.
+CMD ["sh", "-c", "npx prisma migrate deploy || echo 'prisma migrate deploy failed, continuing startup'; node dist/src/main.js"]
