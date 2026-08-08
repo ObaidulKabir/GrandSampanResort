@@ -1,8 +1,16 @@
-export function apiBaseUrl() {
+function apiOrigin() {
   if (typeof window === 'undefined') {
-    return process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    return process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+}
+
+// The backend mounts every route behind a global `/api` prefix, while the
+// same origin (without the prefix) also serves static `/uploads` assets
+// (see lib/media.ts). Append the prefix here rather than baking it into the
+// shared origin env vars so both consumers keep working.
+export function apiBaseUrl() {
+  return `${apiOrigin()}/api`;
 }
 
 function authHeaders(): HeadersInit {

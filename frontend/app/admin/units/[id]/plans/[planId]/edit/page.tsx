@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 type Plan = {
   id: string;
@@ -29,8 +30,7 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://localhost:4000/timeshares/${planId}`);
-      const json = await res.json();
+      const json = await api(`/timeshares/${planId}`);
       const p = json?.plan ?? json;
       if (p && p.id) {
         setForm({
@@ -69,16 +69,15 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         return;
       }
       if (targetId !== planId) {
-        const existsRes = await fetch(`http://localhost:4000/timeshares/${targetId}`);
-        const existsJson = await existsRes.json();
+        const existsJson = await api(`/timeshares/${targetId}`);
         if (existsJson && (existsJson.plan || existsJson.id)) {
           setError('Plan ID already exists');
           setSaving(false);
           return;
         }
-        const createRes = await fetch(`http://localhost:4000/timeshares`, {
+        const createJson = await api(`/timeshares`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer admin' },
+          headers: { Authorization: 'Bearer admin' },
           body: JSON.stringify({
             id: targetId,
             name: form.name,
@@ -91,22 +90,21 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
             timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
           })
         });
-        const createJson = await createRes.json();
         if (!createJson?.ok) {
           setError(createJson?.error || 'Failed to create with new ID');
           setSaving(false);
           return;
         }
-        await fetch(`http://localhost:4000/timeshares/${planId}`, {
+        await api(`/timeshares/${planId}`, {
           method: 'DELETE',
           headers: { Authorization: 'Bearer admin' }
         });
         setResult({ ok: true, plan: createJson.plan });
         router.replace(`/admin/units/${suiteId}/plans/${targetId}/edit`);
       } else {
-        const res = await fetch(`http://localhost:4000/timeshares/${planId}`, {
+        const json = await api(`/timeshares/${planId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer admin' },
+          headers: { Authorization: 'Bearer admin' },
           body: JSON.stringify({
             name: form.name,
             daysPerMonth: Number(form.daysPerMonth),
@@ -116,7 +114,6 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
             timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
           })
         });
-        const json = await res.json();
         setResult(json);
       }
     } catch {
@@ -132,7 +129,7 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
     const ok = typeof window !== 'undefined' ? window.confirm('Delete this plan?') : true;
     if (!ok) return;
     try {
-      await fetch(`http://localhost:4000/timeshares/${planId}`, {
+      await api(`/timeshares/${planId}`, {
         method: 'DELETE',
         headers: { Authorization: 'Bearer admin' }
       });

@@ -10,7 +10,7 @@ COPY . .
 FROM base AS development
 ENV NODE_ENV=development
 EXPOSE 4000
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run dev"]
 
 FROM base AS production
 ENV NODE_ENV=production
