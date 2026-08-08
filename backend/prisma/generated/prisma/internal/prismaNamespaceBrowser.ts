@@ -59,7 +59,8 @@ export const ModelName = {
   User: 'User',
   MediaAsset: 'MediaAsset',
   FaqEntry: 'FaqEntry',
-  TermsParagraph: 'TermsParagraph'
+  TermsParagraph: 'TermsParagraph',
+  Promotion: 'Promotion'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -202,6 +203,23 @@ export const TermsParagraphScalarFieldEnum = {
 } as const
 
 export type TermsParagraphScalarFieldEnum = (typeof TermsParagraphScalarFieldEnum)[keyof typeof TermsParagraphScalarFieldEnum]
+
+
+export const PromotionScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  discountPct: 'discountPct',
+  scope: 'scope',
+  suiteTypes: 'suiteTypes',
+  planIds: 'planIds',
+  startsAt: 'startsAt',
+  endsAt: 'endsAt',
+  active: 'active',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PromotionScalarFieldEnum = (typeof PromotionScalarFieldEnum)[keyof typeof PromotionScalarFieldEnum]
 
 
 export const SortOrder = {

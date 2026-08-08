@@ -62,3 +62,8 @@ export type FaqEntry = Prisma.FaqEntryModel
  * 
  */
 export type TermsParagraph = Prisma.TermsParagraphModel
+/**
+ * Model Promotion
+ * 
+ */
+export type Promotion = Prisma.PromotionModel

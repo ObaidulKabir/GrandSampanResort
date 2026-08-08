@@ -98,3 +98,17 @@ export type TermsParagraph = {
   updatedAt: Date;
 };
 
+export type Promotion = {
+  id: string;
+  name: string;
+  discountPct: number;
+  scope: 'all' | 'category' | 'plans';
+  suiteTypes: string[];
+  planIds: string[];
+  startsAt: Date;
+  endsAt: Date;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+

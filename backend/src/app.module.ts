@@ -15,6 +15,7 @@ import { SettingsModule } from './settings/settings.module';
 import { MediaModule } from './media/media.module';
 import { FaqModule } from './faq/faq.module';
 import { TermsModule } from './terms/terms.module';
+import { PromotionsModule } from './promotions/promotions.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { TermsModule } from './terms/terms.module';
     SettingsModule,
     MediaModule,
     FaqModule,
-    TermsModule
+    TermsModule,
+    PromotionsModule
   ],
   controllers: [AppController],
   providers: [AppService]

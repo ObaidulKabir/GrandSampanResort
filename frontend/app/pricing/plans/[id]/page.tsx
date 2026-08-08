@@ -18,6 +18,10 @@ type Plan = {
   planType?: string;
   timeFraction?: number;
   planStatus?: string;
+  discountPct?: number;
+  discountedPrice?: number;
+  promoName?: string;
+  promoEndsAt?: string;
 };
 type Suite = { id: string; type: string; view: string; floor: number; size: number };
 type Rule = { start: string; end: string; price: number };
@@ -145,14 +149,16 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     setBuying(false);
   }
 
+  const discounted = typeof plan?.discountedPrice === 'number';
+  const effectivePrice = discounted ? (plan!.discountedPrice as number) : plan?.price || 0;
+
   const depositPreview = useMemo(() => {
-    const total = plan?.price || 0;
-    return Math.round(total * 0.1);
-  }, [plan]);
+    return Math.round(effectivePrice * 0.1);
+  }, [effectivePrice]);
 
   const schedule = useMemo(() => {
     if (!plan) return [];
-    const total = plan.price || 0;
+    const total = effectivePrice;
     const deposit = Math.round(total * (depositPct / 100) * 100) / 100;
     const down = Math.round(total * (downPct / 100) * 100) / 100;
     const remainder = Math.round((total - deposit - down) * 100) / 100;
@@ -244,9 +250,26 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
           {status && <div className="mt-4 rounded-md border border-ocean/15 bg-ocean/5 p-3 text-ocean">{status}</div>}
 
+          {discounted && (
+            <div className="mt-4 border border-gold bg-gold/10 px-4 py-3 text-ocean">
+              <span className="font-semibold">✦ {plan?.promoName}</span> — {plan?.discountPct}% off until{' '}
+              {plan?.promoEndsAt ? new Date(plan.promoEndsAt).toLocaleDateString() : ''}
+            </div>
+          )}
+
           <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="border border-ocean/10 bg-white p-4">
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Price</div>
+              {discounted ? (
+                <>
+                  <div className="text-sm text-ocean/50 line-through">৳ {(plan?.price || 0).toLocaleString()}</div>
+                  <div className="font-display text-xl text-ocean">৳ {effectivePrice.toLocaleString()}</div>
+                </>
+              ) : (
+                <div className="mt-1 font-display text-xl text-ocean">৳ {(plan?.price || 0).toLocaleString()}</div>
+              )}
+            </div>
             {[
-              ['Price', `৳ ${(plan?.price || 0).toLocaleString()}`],
               ['Deposit due', `৳ ${depositPreview.toLocaleString()}`],
               ['Entitlement', `${plan?.daysPerMonth || 0} days/mo`],
               ['Suite', suite?.id || plan?.suiteId || '—']
@@ -294,8 +317,26 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <div className="mt-4 border-t border-ocean/10 pt-4 text-sm text-ocean/80">
             <div className="flex justify-between">
               <span>Plan price</span>
-              <span>৳ {(plan?.price || 0).toLocaleString()}</span>
+              <span className={discounted ? 'line-through text-ocean/50' : ''}>
+                ৳ {(plan?.price || 0).toLocaleString()}
+              </span>
             </div>
+            {discounted && (
+              <div className="mt-1 flex justify-between">
+                <span className="text-ocean/70">
+                  {plan?.promoName} ({plan?.discountPct}%)
+                </span>
+                <span className="font-semibold text-gold">
+                  − ৳ {((plan?.price || 0) - effectivePrice).toLocaleString()}
+                </span>
+              </div>
+            )}
+            {discounted && (
+              <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2 font-semibold text-ocean">
+                <span>Offer price</span>
+                <span>৳ {effectivePrice.toLocaleString()}</span>
+              </div>
+            )}
             <div className="mt-2 flex justify-between font-semibold text-ocean">
               <span>Deposit today</span>
               <span>৳ {depositPreview.toLocaleString()}</span>

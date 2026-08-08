@@ -46,6 +46,11 @@ export default function InvestPage() {
     return v || '—';
   }
 
+  function formatPromoEnd(iso?: string) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -66,11 +71,12 @@ export default function InvestPage() {
         {plans.map((p: any) => {
           const suite = suites[p.suiteId] || {};
           const isFull = (p.daysPerMonth ?? 0) >= 30;
+          const discounted = typeof p.discountedPrice === 'number';
           return (
             <article
               key={p.id}
               className={`flex flex-col border bg-white p-6 ${
-                isFull ? 'border-gold/50' : 'border-ocean/15'
+                discounted ? 'border-gold/60' : isFull ? 'border-gold/50' : 'border-ocean/15'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -99,7 +105,19 @@ export default function InvestPage() {
                   Lock-in <span className="text-ocean">{p.lockIn ?? 36} mo</span>
                 </div>
               </dl>
-              <p className="mt-5 font-display text-3xl text-ocean">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+              {discounted && (
+                <span className="mt-5 inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
+                  {p.discountPct}% OFF · Ends {formatPromoEnd(p.promoEndsAt)}
+                </span>
+              )}
+              {discounted ? (
+                <div className="mt-2">
+                  <p className="text-sm text-ocean/50 line-through">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+                  <p className="font-display text-3xl text-ocean">৳ {p.discountedPrice.toLocaleString()}</p>
+                </div>
+              ) : (
+                <p className="mt-5 font-display text-3xl text-ocean">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+              )}
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href={`/pricing/plans/${p.id}`}>
                   <Button>Buy this plan</Button>

@@ -35,6 +35,11 @@ const tools = [
     label: 'Terms & Conditions',
     href: '/admin/terms',
     desc: 'Add, edit, or reorder paragraphs on the Terms page.'
+  },
+  {
+    label: 'Promotions',
+    href: '/admin/promotions',
+    desc: 'Create time-bound discount packages to expedite sales.'
   }
 ];
 

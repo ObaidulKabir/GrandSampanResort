@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TimesharesController } from './timeshares.controller';
 import { TimesharesService } from './timeshares.service';
+import { PromotionsModule } from '../promotions/promotions.module';
 
 @Module({
+  imports: [PromotionsModule],
   controllers: [TimesharesController],
   providers: [TimesharesService],
   exports: [TimesharesService]

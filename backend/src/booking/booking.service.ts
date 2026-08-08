@@ -3,6 +3,7 @@ import { Booking, PaymentScheduleItem } from "../domain/models";
 import { BookingRepository } from "./booking.repository";
 import { TimesharesService } from "../timeshares/timeshares.service";
 import { SuitesService } from "../suites/suites.service";
+import { PromotionsService } from "../promotions/promotions.service";
 import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -18,6 +19,7 @@ export class BookingService {
   private repo = new BookingRepository();
   private timeshares = new TimesharesService();
   private suites = new SuitesService();
+  private promotions = new PromotionsService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
 
@@ -146,7 +148,12 @@ export class BookingService {
           (plan as any).planStatus || "Unsold",
         ).toLowerCase();
         if (planStatus !== "unsold") return null;
-        const total = plan.price;
+        // Re-validate any live promotion server-side; never trust client-sent prices.
+        const discount = await this.promotions.discountForPlan(
+          plan,
+          (suite as any)?.type ?? null,
+        );
+        const total = discount ? discount.discountedPrice : plan.price;
         const schedule = this.generateSchedule(
           total,
           new Date(start),
