@@ -16,6 +16,7 @@ import { MediaModule } from './media/media.module';
 import { FaqModule } from './faq/faq.module';
 import { TermsModule } from './terms/terms.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { PromotionsModule } from './promotions/promotions.module';
     MediaModule,
     FaqModule,
     TermsModule,
-    PromotionsModule
+    PromotionsModule,
+    MailModule
   ],
   controllers: [AppController],
   providers: [AppService]

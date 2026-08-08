@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { Logger } from "@nestjs/common";
 import {
   Booking,
   BookingDepositPayment,
@@ -10,6 +11,7 @@ import { BookingRepository } from "./booking.repository";
 import { TimesharesService } from "../timeshares/timeshares.service";
 import { SuitesService } from "../suites/suites.service";
 import { PromotionsService } from "../promotions/promotions.service";
+import { MailService, BookingMailContext } from "../mail/mail.service";
 import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -71,12 +73,110 @@ function normalizeDeposit(
 
 @Injectable()
 export class BookingService {
+  private readonly logger = new Logger(BookingService.name);
   private repo = new BookingRepository();
   private timeshares = new TimesharesService();
   private suites = new SuitesService();
   private promotions = new PromotionsService();
+  private mail = new MailService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
+
+  private depositAmountOf(booking: {
+    amountTotal?: number | null;
+    schedule?: { type: string; amount: number }[] | null;
+  }) {
+    const fromSchedule = (booking.schedule || []).find((s) => s.type === "deposit");
+    if (fromSchedule) return fromSchedule.amount;
+    return Math.round((booking.amountTotal || 0) * BookingService.DEPOSIT_PCT);
+  }
+
+  private async buildMailContext(
+    booking: any,
+    client?: any | null,
+    plan?: any | null,
+    schedule?: { type: string; amount: number }[] | null,
+  ): Promise<BookingMailContext | null> {
+    const kyc = client || booking?.client || null;
+    const to = String(kyc?.email || "").trim();
+    if (!to) return null;
+    const planRow = plan || (booking.planId ? await this.timeshares.get(booking.planId) : null);
+    const sched =
+      schedule ||
+      booking.schedule ||
+      (await this.schedule(booking.id)) ||
+      [];
+    return {
+      to,
+      buyerName: kyc?.name || "Investor",
+      bookingId: booking.id,
+      planName: planRow?.name || booking.planId || "Share plan",
+      planId: booking.planId || "",
+      suiteId: booking.suiteId || "",
+      totalPrice: booking.amountTotal || planRow?.price || 0,
+      depositAmount: this.depositAmountOf({
+        amountTotal: booking.amountTotal,
+        schedule: sched as any,
+      }),
+      depositMethod: booking.depositMethod || "",
+      depositReference: booking.depositReference || "",
+      buyerContact: kyc?.contact || "",
+      buyerNid: kyc?.nid || "",
+      buyerAddress: kyc?.address || "",
+    };
+  }
+
+  private async safeMail(
+    label: string,
+    fn: () => Promise<unknown>,
+  ) {
+    try {
+      await fn();
+    } catch (err: any) {
+      this.logger.warn(`Email ${label} failed: ${err?.message || err}`);
+    }
+  }
+
+  private async loadClient(clientId?: string | null) {
+    if (!clientId) return null;
+    if (this.prisma) {
+      return this.prisma.client.findUnique({ where: { id: clientId } });
+    }
+    return null;
+  }
+
+  private async notifyAfterAdminAction(
+    booking: any,
+    result: { completed: boolean; depositConfirmed: boolean; kycVerified: boolean },
+    kind: "deposit" | "kyc" | "reject",
+  ) {
+    await this.safeMail(kind, async () => {
+      const client = await this.loadClient(booking.clientId);
+      const plan = booking.planId ? await this.timeshares.get(booking.planId) : null;
+      const schedule = (await this.schedule(booking.id)) || [];
+      const ctx = await this.buildMailContext(
+        { ...booking, schedule },
+        client,
+        plan,
+        schedule as any,
+      );
+      if (!ctx) return;
+      if (kind === "reject") {
+        await this.mail.notifyBookingRejected(ctx);
+        return;
+      }
+      if (result.completed) {
+        await this.mail.notifyBookingCompleted(ctx);
+        return;
+      }
+      if (kind === "deposit" && result.depositConfirmed) {
+        await this.mail.notifyDepositConfirmed(ctx);
+      }
+      if (kind === "kyc" && result.kycVerified) {
+        await this.mail.notifyKycVerified(ctx);
+      }
+    });
+  }
 
   async listByInvestor(investorId: string) {
     if (this.prisma) {
@@ -385,7 +485,12 @@ export class BookingService {
               data: { planStatus: 'Reserved' },
             }),
           ]);
-          return { ok: true as const, booking: b, client: { id: clientId, ...normalizedKyc } };
+          const client = { id: clientId, ...normalizedKyc };
+          await this.safeMail('booking_submitted', async () => {
+            const ctx = await this.buildMailContext(b, client, plan, schedule);
+            if (ctx) await this.mail.notifyBookingSubmitted(ctx);
+          });
+          return { ok: true as const, booking: b, client };
         }
         const created = await this.repo.create({
           ...b,
@@ -394,10 +499,15 @@ export class BookingService {
         await this.timeshares.update(normalizedPlanId, {
           planStatus: 'Reserved',
         } as any);
+        const client = { id: clientId, ...normalizedKyc };
+        await this.safeMail('booking_submitted', async () => {
+          const ctx = await this.buildMailContext(created, client, plan, schedule);
+          if (ctx) await this.mail.notifyBookingSubmitted(ctx);
+        });
         return {
           ok: true as const,
           booking: created,
-          client: { id: clientId, ...normalizedKyc },
+          client,
         };
       }
 
@@ -616,13 +726,15 @@ export class BookingService {
       }
       if (booking.depositConfirmedAt) {
         const ready = await this.finalizeIfReady(booking);
-        return {
+        const out = {
           ok: true as const,
           completed: ready.completed,
           status: ready.status,
           depositConfirmed: true,
           kycVerified: !!booking.kycVerified,
         };
+        await this.notifyAfterAdminAction(booking, out, "deposit");
+        return out;
       }
       const deposit = await this.prisma.paymentScheduleItem.findFirst({
         where: { bookingId, type: "deposit" },
@@ -654,13 +766,19 @@ export class BookingService {
         );
       }
       await this.prisma.$transaction(ops);
-      return {
+      const out = {
         ok: true as const,
         completed: !!booking.kycVerified,
         status: nextStatus,
         depositConfirmed: true,
         kycVerified: !!booking.kycVerified,
       };
+      await this.notifyAfterAdminAction(
+        { ...booking, depositConfirmedAt: confirmedAt, status: nextStatus },
+        out,
+        "deposit",
+      );
+      return out;
     }
 
     const booking = await this.repo.findById(bookingId);
@@ -680,13 +798,15 @@ export class BookingService {
     }
     const ready = await this.finalizeIfReady(booking);
     booking.status = ready.status;
-    return {
+    const out = {
       ok: true as const,
       completed: ready.completed,
       status: ready.status,
       depositConfirmed: true,
       kycVerified: !!booking.kycVerified,
     };
+    await this.notifyAfterAdminAction(booking, out, "deposit");
+    return out;
   }
 
   /** Admin marks per-booking KYC as valid. Completes booking if deposit already confirmed. */
@@ -727,13 +847,19 @@ export class BookingService {
         );
       }
       await this.prisma.$transaction(ops);
-      return {
+      const out = {
         ok: true as const,
         completed: depositOk,
         status: nextStatus,
         depositConfirmed: depositOk,
         kycVerified: true,
       };
+      await this.notifyAfterAdminAction(
+        { ...booking, kycVerified: true, kycVerifiedAt: verifiedAt, status: nextStatus },
+        out,
+        "kyc",
+      );
+      return out;
     }
 
     const booking = await this.repo.findById(bookingId);
@@ -751,13 +877,15 @@ export class BookingService {
     booking.kycVerifiedAt = new Date().toISOString();
     const ready = await this.finalizeIfReady(booking);
     booking.status = ready.status;
-    return {
+    const out = {
       ok: true as const,
       completed: ready.completed,
       status: ready.status,
       depositConfirmed: !!booking.depositConfirmedAt,
       kycVerified: true,
     };
+    await this.notifyAfterAdminAction(booking, out, "kyc");
+    return out;
   }
 
   /** Admin rejects pending booking; release reserved plan. */
@@ -790,6 +918,11 @@ export class BookingService {
         }
       }
       await this.prisma.$transaction(ops);
+      await this.notifyAfterAdminAction(
+        { ...booking, status: "cancelled" },
+        { completed: false, depositConfirmed: !!booking.depositConfirmedAt, kycVerified: !!booking.kycVerified },
+        "reject",
+      );
       return { ok: true as const };
     }
 
@@ -805,6 +938,11 @@ export class BookingService {
         await this.timeshares.update(booking.planId, { planStatus: "Unsold" } as any);
       }
     }
+    await this.notifyAfterAdminAction(
+      booking,
+      { completed: false, depositConfirmed: !!booking.depositConfirmedAt, kycVerified: !!booking.kycVerified },
+      "reject",
+    );
     return { ok: true as const };
   }
 }

@@ -396,6 +396,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             {plan?.name ? `Your ${plan.name} plan` : 'Your plan'}
             {suite?.id ? ` on suite ${suite.id}` : ''} is reserved. The booking will be completed after
             our team confirms deposit receipt (or bank encashment) and verifies your KYC details.
+            A confirmation email was sent to the KYC email address; you will also receive an invoice when
+            the booking is completed.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <div className="bg-pearl p-4">

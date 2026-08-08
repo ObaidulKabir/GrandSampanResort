@@ -36,6 +36,14 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_NAME=${ADMIN_NAME}
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-https://www.grandsampanresort.com}
+      - SMTP_HOST=${SMTP_HOST:-smtppro.zoho.com}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_SECURE=${SMTP_SECURE:-true}
+      - SMTP_USER=${SMTP_USER:-admin@grandsampanresort.com}
+      - SMTP_PASS=${SMTP_PASS}
+      - MAIL_FROM=${MAIL_FROM:-Grand Sampan Resort <admin@grandsampanresort.com>}
+      - MAIL_BCC=${MAIL_BCC:-admin@grandsampanresort.com}
     volumes:
       # Persist uploaded media across container rebuilds/redeploys.
       - uploads_data:/app/uploads
