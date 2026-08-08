@@ -80,3 +80,21 @@ export type MediaAsset = {
   createdAt: Date;
 };
 
+export type FaqEntry = {
+  id: string;
+  question: string;
+  answer: string;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type TermsParagraph = {
+  id: string;
+  title: string;
+  body: string;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+

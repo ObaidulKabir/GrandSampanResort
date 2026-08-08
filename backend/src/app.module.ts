@@ -13,6 +13,8 @@ import { ClientsModule } from './clients/clients.module';
 import { SeedModule } from './seed/seed.module';
 import { SettingsModule } from './settings/settings.module';
 import { MediaModule } from './media/media.module';
+import { FaqModule } from './faq/faq.module';
+import { TermsModule } from './terms/terms.module';
 
 @Module({
   imports: [
@@ -26,7 +28,9 @@ import { MediaModule } from './media/media.module';
     ClientsModule,
     SeedModule,
     SettingsModule,
-    MediaModule
+    MediaModule,
+    FaqModule,
+    TermsModule
   ],
   controllers: [AppController],
   providers: [AppService]

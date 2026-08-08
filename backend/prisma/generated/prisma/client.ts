@@ -72,3 +72,13 @@ export type User = Prisma.UserModel
  * 
  */
 export type MediaAsset = Prisma.MediaAssetModel
+/**
+ * Model FaqEntry
+ * 
+ */
+export type FaqEntry = Prisma.FaqEntryModel
+/**
+ * Model TermsParagraph
+ * 
+ */
+export type TermsParagraph = Prisma.TermsParagraphModel

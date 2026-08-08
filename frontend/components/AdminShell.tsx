@@ -9,6 +9,8 @@ const links = [
   { href: '/admin/units', label: 'Units' },
   { href: '/admin/units/new', label: 'New Unit' },
   { href: '/admin/media', label: 'Media' },
+  { href: '/admin/faq', label: 'FAQ' },
+  { href: '/admin/terms', label: 'Terms' },
   { href: '/admin/policy', label: 'Policy' }
 ];
 

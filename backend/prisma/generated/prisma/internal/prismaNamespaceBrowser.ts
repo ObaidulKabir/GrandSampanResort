@@ -57,7 +57,9 @@ export const ModelName = {
   PaymentScheduleItem: 'PaymentScheduleItem',
   Client: 'Client',
   User: 'User',
-  MediaAsset: 'MediaAsset'
+  MediaAsset: 'MediaAsset',
+  FaqEntry: 'FaqEntry',
+  TermsParagraph: 'TermsParagraph'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -176,6 +178,30 @@ export const MediaAssetScalarFieldEnum = {
 } as const
 
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
+
+
+export const FaqEntryScalarFieldEnum = {
+  id: 'id',
+  question: 'question',
+  answer: 'answer',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FaqEntryScalarFieldEnum = (typeof FaqEntryScalarFieldEnum)[keyof typeof FaqEntryScalarFieldEnum]
+
+
+export const TermsParagraphScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  body: 'body',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TermsParagraphScalarFieldEnum = (typeof TermsParagraphScalarFieldEnum)[keyof typeof TermsParagraphScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -30,6 +30,13 @@ export default function AdminMediaPage() {
           labelOptions={['Standard', 'Delux', 'Premium']}
           emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
         />
+        <MediaManager
+          category="about_project"
+          title="About Project — project views"
+          help="Up to two photos shown in the About Project section (/about). Landscape project or exterior shots work best."
+          maxImages={2}
+          emptyHint="No project images uploaded yet — the About page is showing placeholder graphics until you add up to two photos."
+        />
       </div>
     </main>
   );

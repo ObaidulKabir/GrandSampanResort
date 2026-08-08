@@ -25,6 +25,16 @@ const tools = [
     label: 'Media Library',
     href: '/admin/media',
     desc: 'Upload real resort photos to replace placeholder images.'
+  },
+  {
+    label: 'FAQ',
+    href: '/admin/faq',
+    desc: 'Add, edit, or remove question-and-answer cards on the FAQ page.'
+  },
+  {
+    label: 'Terms & Conditions',
+    href: '/admin/terms',
+    desc: 'Add, edit, or reorder paragraphs on the Terms page.'
   }
 ];
 

@@ -1,38 +1,42 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
+
+type FaqItem = { id: string; question: string; answer: string };
+
 export default function FAQPage() {
-  const faqs = [
-    {
-      q: 'How does fractional ownership work?',
-      a: 'You purchase a share plan that entitles you to usage days per month and potential revenue share per policy.'
-    },
-    {
-      q: 'Can I transfer or resell my plan?',
-      a: 'Transfers and resales are subject to company review and compliance; please contact support for procedures.'
-    },
-    {
-      q: 'What payment schedule applies?',
-      a: 'Typical schedules include deposit, downpayment and monthly installments. Due dates appear in your investor dashboard.'
-    },
-    {
-      q: 'Where is the resort located?',
-      a: 'Marine Dirve Road, Rupayan Beach View Innani, Cox\'s Bazar.'
-    },
-    {
-      q: 'What amenities are available in the compound?',
-      a: 'As part of Rupayan Beach View: secured boundary, CC surveillance, amusement and water parks, mall, mosque, children play area, boat club, beach security, restaurant, pickup/drop-off and hospital.'
-    }
-  ];
+  const [items, setItems] = useState<FaqItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/faq')
+      .then((json) => setItems(Array.isArray(json?.items) ? json.items : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
-      <h1 className="font-['Playfair Display'] text-4xl text-ocean">Frequently Asked Questions</h1>
+      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Support</p>
+      <h1 className="font-display mt-1 text-4xl text-ocean">Frequently Asked Questions</h1>
+      <p className="mt-3 max-w-2xl text-ocean/75">
+        Answers to common questions about ownership, payments, and the resort.
+      </p>
+
       <div className="mt-8 space-y-6">
-        {faqs.map((item, i) => (
-          <div key={i} className="rounded-lg border border-gold/30 bg-white p-5">
-            <div className="text-xl text-ocean">{item.q}</div>
-            <div className="mt-2 text-ocean/80">{item.a}</div>
+        {loading && <div className="text-sm text-ocean/60">Loading...</div>}
+        {!loading && items.length === 0 && (
+          <div className="border border-dashed border-ocean/20 p-6 text-sm text-ocean/60">
+            No FAQ entries published yet.
+          </div>
+        )}
+        {items.map((item) => (
+          <div key={item.id} className="border border-gold/30 bg-white p-5">
+            <div className="font-display text-xl text-ocean">{item.question}</div>
+            <div className="mt-2 text-ocean/80">{item.answer}</div>
           </div>
         ))}
       </div>
     </main>
   );
 }
-

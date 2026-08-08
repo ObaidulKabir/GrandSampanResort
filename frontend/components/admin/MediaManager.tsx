@@ -23,6 +23,7 @@ export default function MediaManager({
   labelOptions,
   suiteId,
   singleImage,
+  maxImages,
   emptyHint
 }: {
   category: string;
@@ -32,6 +33,8 @@ export default function MediaManager({
   suiteId?: string;
   /** When true, a newly uploaded image replaces any existing one instead of adding to a gallery. */
   singleImage?: boolean;
+  /** Cap gallery size; uploading past the limit replaces the oldest image. */
+  maxImages?: number;
   emptyHint?: string;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -70,7 +73,8 @@ export default function MediaManager({
     setError('');
     setUploading(true);
     try {
-      const previous = singleImage ? items : [];
+      const limit = singleImage ? 1 : maxImages;
+      const previous = limit && items.length >= limit ? items.slice(0, items.length - limit + 1) : [];
       const form = new FormData();
       form.append('file', file);
       form.append('category', category);
@@ -91,6 +95,8 @@ export default function MediaManager({
     }
     setUploading(false);
   }
+
+  const atLimit = singleImage ? items.length >= 1 : typeof maxImages === 'number' && items.length >= maxImages;
 
   async function onDelete(id: string) {
     try {
@@ -150,9 +156,20 @@ export default function MediaManager({
           disabled={uploading}
           className="h-[42px] bg-ocean px-5 text-sm font-semibold text-white hover:bg-ocean/90 disabled:opacity-60"
         >
-          {uploading ? 'Uploading...' : singleImage && items.length ? 'Replace image' : 'Upload image'}
+          {uploading
+            ? 'Uploading...'
+            : atLimit
+              ? singleImage || maxImages === 1
+                ? 'Replace image'
+                : 'Upload (replaces oldest)'
+              : 'Upload image'}
         </button>
       </form>
+      {typeof maxImages === 'number' && !singleImage && (
+        <p className="mt-2 text-xs text-ocean/60">
+          {items.length}/{maxImages} images used for this section.
+        </p>
+      )}
       {error && <div className="mt-3 border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div>}
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">

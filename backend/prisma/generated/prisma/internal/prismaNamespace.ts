@@ -390,7 +390,9 @@ export const ModelName = {
   PaymentScheduleItem: 'PaymentScheduleItem',
   Client: 'Client',
   User: 'User',
-  MediaAsset: 'MediaAsset'
+  MediaAsset: 'MediaAsset',
+  FaqEntry: 'FaqEntry',
+  TermsParagraph: 'TermsParagraph'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -406,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "suite" | "sharePlan" | "booking" | "paymentScheduleItem" | "client" | "user" | "mediaAsset"
+    modelProps: "suite" | "sharePlan" | "booking" | "paymentScheduleItem" | "client" | "user" | "mediaAsset" | "faqEntry" | "termsParagraph"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -928,6 +930,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FaqEntry: {
+      payload: Prisma.$FaqEntryPayload<ExtArgs>
+      fields: Prisma.FaqEntryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FaqEntryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FaqEntryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        findFirst: {
+          args: Prisma.FaqEntryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FaqEntryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        findMany: {
+          args: Prisma.FaqEntryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>[]
+        }
+        create: {
+          args: Prisma.FaqEntryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        createMany: {
+          args: Prisma.FaqEntryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FaqEntryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>[]
+        }
+        delete: {
+          args: Prisma.FaqEntryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        update: {
+          args: Prisma.FaqEntryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        deleteMany: {
+          args: Prisma.FaqEntryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FaqEntryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FaqEntryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>[]
+        }
+        upsert: {
+          args: Prisma.FaqEntryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FaqEntryPayload>
+        }
+        aggregate: {
+          args: Prisma.FaqEntryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFaqEntry>
+        }
+        groupBy: {
+          args: Prisma.FaqEntryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FaqEntryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FaqEntryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FaqEntryCountAggregateOutputType> | number
+        }
+      }
+    }
+    TermsParagraph: {
+      payload: Prisma.$TermsParagraphPayload<ExtArgs>
+      fields: Prisma.TermsParagraphFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TermsParagraphFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TermsParagraphFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        findFirst: {
+          args: Prisma.TermsParagraphFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TermsParagraphFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        findMany: {
+          args: Prisma.TermsParagraphFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>[]
+        }
+        create: {
+          args: Prisma.TermsParagraphCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        createMany: {
+          args: Prisma.TermsParagraphCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TermsParagraphCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>[]
+        }
+        delete: {
+          args: Prisma.TermsParagraphDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        update: {
+          args: Prisma.TermsParagraphUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        deleteMany: {
+          args: Prisma.TermsParagraphDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TermsParagraphUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TermsParagraphUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>[]
+        }
+        upsert: {
+          args: Prisma.TermsParagraphUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TermsParagraphPayload>
+        }
+        aggregate: {
+          args: Prisma.TermsParagraphAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTermsParagraph>
+        }
+        groupBy: {
+          args: Prisma.TermsParagraphGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TermsParagraphGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TermsParagraphCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TermsParagraphCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1067,6 +1217,30 @@ export const MediaAssetScalarFieldEnum = {
 } as const
 
 export type MediaAssetScalarFieldEnum = (typeof MediaAssetScalarFieldEnum)[keyof typeof MediaAssetScalarFieldEnum]
+
+
+export const FaqEntryScalarFieldEnum = {
+  id: 'id',
+  question: 'question',
+  answer: 'answer',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FaqEntryScalarFieldEnum = (typeof FaqEntryScalarFieldEnum)[keyof typeof FaqEntryScalarFieldEnum]
+
+
+export const TermsParagraphScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  body: 'body',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TermsParagraphScalarFieldEnum = (typeof TermsParagraphScalarFieldEnum)[keyof typeof TermsParagraphScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1263,6 +1437,8 @@ export type GlobalOmitConfig = {
   client?: Prisma.ClientOmit
   user?: Prisma.UserOmit
   mediaAsset?: Prisma.MediaAssetOmit
+  faqEntry?: Prisma.FaqEntryOmit
+  termsParagraph?: Prisma.TermsParagraphOmit
 }
 
 /* Types for Logging */

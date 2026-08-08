@@ -1,28 +1,9 @@
-import Image from 'next/image';
+import AboutProject from '@/components/AboutProject';
 
 export default function AboutPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-16">
-      <section className="mx-auto max-w-4xl">
-        <h1 className="font-['Playfair Display'] text-4xl text-ocean">About Project</h1>
-        <p className="mt-4 text-ocean/80">
-          Unitech Grand Sampan Resort is a boutique beachfront development located along Marine Drive, Innani. Designed for serene oceanfront living, the project blends hospitality and fractional ownership to provide premium stays and sustainable returns.
-        </p>
-        <ul className="mt-6 space-y-2 text-ocean/80">
-          <li>Prime location with direct beach access</li>
-          <li>32 suites, each with private balcony and sea breeze ventilation</li>
-          <li>Rooftop café designed for sunset dining</li>
-          <li>Concierge and modern amenities in a cozy, luxury format</li>
-        </ul>
-        <div className="mt-8 grid md:grid-cols-2 gap-6">
-          <div className="relative h-56 w-full rounded-lg overflow-hidden border border-gold/30">
-            <Image src="/images/resort-rooms.svg" alt="Resort rooms overview" fill sizes="100vw" />
-          </div>
-          <div className="relative h-56 w-full rounded-lg overflow-hidden border border-gold/30">
-            <Image src="/images/rooftop-cafe.svg" alt="Rooftop café" fill sizes="100vw" />
-          </div>
-        </div>
-      </section>
+      <AboutProject />
 
       <section className="mx-auto mt-12 max-w-4xl">
         <h2 className="font-['Playfair Display'] text-3xl text-ocean">About Suites</h2>
