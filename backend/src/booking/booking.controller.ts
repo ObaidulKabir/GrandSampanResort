@@ -24,7 +24,14 @@ export class BookingController {
 
   @Post()
   async book(@Body(new ValidationPipe({ whitelist: true })) body: CreateBookingDto) {
-    return this.service.book(body.suiteId, body.planId, body.start, body.end, body.investorId);
+    return this.service.book(
+      body.suiteId,
+      body.planId,
+      body.start,
+      body.end,
+      body.investorId,
+      body.cadence
+    );
   }
 
   @Get('investor/:id')

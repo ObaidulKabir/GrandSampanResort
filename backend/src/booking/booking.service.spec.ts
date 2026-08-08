@@ -46,11 +46,25 @@ describe('BookingService', () => {
     if (!res.ok) return;
     expect(res.booking.planId).toBe(planId);
     expect(Array.isArray(res.booking.schedule)).toBe(true);
-    expect(res.booking.schedule!.length).toBeGreaterThan(2);
     const types = res.booking.schedule!.map((s) => s.type);
     expect(types).toContain('deposit');
     expect(types).toContain('downpayment');
     expect(types).toContain('installment');
+    // 1 deposit + 1 downpayment + 24 monthly installments
+    expect(res.booking.schedule!.filter((s) => s.type === 'installment')).toHaveLength(24);
+
+    await plans.update(planId, { planStatus: 'Unsold' } as any);
+    const quarterly = await svc.book(
+      suiteId,
+      planId,
+      new Date(now.getTime() + 4 * 86400000).toISOString(),
+      new Date(now.getTime() + 5 * 86400000).toISOString(),
+      'I-1',
+      'quarterly'
+    );
+    expect(quarterly.ok).toBe(true);
+    if (!quarterly.ok) return;
+    expect(quarterly.booking.schedule!.filter((s) => s.type === 'installment')).toHaveLength(8);
   });
 });
 

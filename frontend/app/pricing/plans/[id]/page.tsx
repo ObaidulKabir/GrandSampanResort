@@ -52,6 +52,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [depositPct, setDepositPct] = useState<number>(10);
   const [downPct, setDownPct] = useState<number>(20);
   const [cadence, setCadence] = useState<'monthly' | 'quarterly'>('monthly');
+  /** Remaining balance after booking + downpayment is paid over 24 months. */
+  const INSTALLMENT_MONTHS = 24;
   const [tab, setTab] = useState<'payment' | 'returns'>('payment');
   const [adr, setAdr] = useState<number>(8000);
   const [occupancy, setOccupancy] = useState<number>(0.6);
@@ -155,7 +157,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           planId: plan.id,
           start: start.toISOString(),
           end: end.toISOString(),
-          investorId: user.id
+          investorId: user.id,
+          cadence
         })
       });
       if (!res?.ok || !res.booking?.id) {
@@ -206,9 +209,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const discounted = typeof plan?.discountedPrice === 'number';
   const effectivePrice = discounted ? (plan!.discountedPrice as number) : plan?.price || 0;
 
-  const depositPreview = useMemo(() => {
-    return Math.round(effectivePrice * 0.1);
-  }, [effectivePrice]);
+  const depositPreview = useMemo(() => Math.round(effectivePrice * 0.1), [effectivePrice]);
+  const downPreview = useMemo(() => Math.round(effectivePrice * 0.2), [effectivePrice]);
+  const remainderPreview = useMemo(
+    () => Math.round((effectivePrice - depositPreview - downPreview) * 100) / 100,
+    [effectivePrice, depositPreview, downPreview]
+  );
+  const installmentCount = cadence === 'monthly' ? INSTALLMENT_MONTHS : Math.ceil(INSTALLMENT_MONTHS / 3);
+  const installmentAmount = useMemo(() => {
+    if (installmentCount <= 0) return 0;
+    return Math.floor((remainderPreview / installmentCount) * 100) / 100;
+  }, [remainderPreview, installmentCount]);
 
   const schedule = useMemo(() => {
     if (!plan) return [];
@@ -216,7 +227,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     const deposit = Math.round(total * (depositPct / 100) * 100) / 100;
     const down = Math.round(total * (downPct / 100) * 100) / 100;
     const remainder = Math.round((total - deposit - down) * 100) / 100;
-    const durationMonths = plan.lockIn ?? 36;
+    const durationMonths = INSTALLMENT_MONTHS;
     const stepMonths = cadence === 'monthly' ? 1 : 3;
     const installments = cadence === 'monthly' ? durationMonths : Math.ceil(durationMonths / 3);
     const baseAmount = Math.floor((remainder / installments) * 100) / 100;
@@ -235,7 +246,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       items.push({ id: 'S-' + i, type: 'installment', dueDate: due.toISOString(), amount: amt });
     }
     return items;
-  }, [plan, startDate, depositPct, downPct, cadence]);
+  }, [plan, startDate, depositPct, downPct, cadence, effectivePrice]);
 
   const available = (plan?.planStatus || 'Unsold').toLowerCase() === 'unsold';
 
@@ -449,6 +460,47 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               className="field mt-1"
             />
           </label>
+
+          <div className="mt-5">
+            <p className="text-sm font-semibold text-ocean">Installment plan (24 months)</p>
+            <p className="mt-1 text-xs text-ocean/65">
+              After booking (10%) and downpayment (20%), pay the rest over 24 months.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment cadence">
+              {(
+                [
+                  {
+                    value: 'monthly' as const,
+                    label: 'Monthly',
+                    detail: `${INSTALLMENT_MONTHS} payments`
+                  },
+                  {
+                    value: 'quarterly' as const,
+                    label: 'Quarterly',
+                    detail: `${Math.ceil(INSTALLMENT_MONTHS / 3)} payments`
+                  }
+                ] as const
+              ).map((opt) => {
+                const selected = cadence === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setCadence(opt.value)}
+                    className={`border px-3 py-3 text-left transition ${
+                      selected ? 'border-gold bg-gold/10' : 'border-ocean/15 hover:border-gold/50'
+                    }`}
+                  >
+                    <div className="font-semibold text-ocean">{opt.label}</div>
+                    <div className="mt-0.5 text-xs text-ocean/65">{opt.detail}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="mt-4 border-t border-ocean/10 pt-4 text-sm text-ocean/80">
             <div className="flex justify-between">
               <span>Total price</span>
@@ -472,6 +524,21 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <span className="font-semibold text-ocean">{formatMoney(effectivePrice)}</span>
               </div>
             )}
+            <div className="mt-3 space-y-2 border border-ocean/10 bg-pearl px-3 py-3">
+              <div className="flex justify-between">
+                <span>Downpayment (20%)</span>
+                <span className="font-semibold text-ocean">{formatMoney(downPreview)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>
+                  {cadence === 'monthly' ? 'Monthly' : 'Quarterly'} installment × {installmentCount}
+                </span>
+                <span className="font-semibold text-ocean">{formatMoney(installmentAmount)}</span>
+              </div>
+              <p className="text-[11px] text-ocean/60">
+                Installments start after the downpayment and finish within 24 months.
+              </p>
+            </div>
             <div className="mt-3 border border-gold/50 bg-gold/10 px-3 py-3">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</span>
@@ -581,7 +648,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                     </tbody>
                   </table>
                 </div>
-                <p className="mt-2 text-xs text-ocean/60">Preview only. Checkout uses the standard 10% deposit schedule.</p>
+                <p className="mt-2 text-xs text-ocean/60">
+                  Preview of the first rows. Checkout uses booking 10% + downpayment 20% + 24-month{' '}
+                  {cadence} installments ({installmentCount} payments of about {formatMoney(installmentAmount)}).
+                </p>
               </div>
             )}
 

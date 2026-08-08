@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class AvailabilityQueryDto {
   @IsNotEmpty()
@@ -24,4 +24,8 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   investorId?: string;
+  /** After booking + downpayment, remaining balance is paid over 24 months. */
+  @IsOptional()
+  @IsIn(['monthly', 'quarterly'])
+  cadence?: 'monthly' | 'quarterly';
 }

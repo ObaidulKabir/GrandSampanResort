@@ -131,14 +131,21 @@ export class BookingService {
    * Create a booking. Investment purchases MUST pass planId (FK to SharePlan).
    * Guest stay bookings omit planId.
    */
+  /** Remaining balance after booking + downpayment is always paid over 24 months. */
+  static readonly INSTALLMENT_MONTHS = 24;
+  static readonly DEPOSIT_PCT = 0.1;
+  static readonly DOWNPAYMENT_PCT = 0.2;
+
   async book(
     suiteId: string,
     planId: string | undefined,
     start: string,
     end: string,
     investorId?: string,
+    cadence: 'monthly' | 'quarterly' = 'monthly',
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
+    const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
     const lockKey = normalizedPlanId
       ? `plan:${normalizedPlanId}`
       : `stay:${suiteId}`;
@@ -171,8 +178,8 @@ export class BookingService {
         const schedule = this.generateSchedule(
           total,
           new Date(start),
-          plan.lockIn || 36,
-          'monthly',
+          BookingService.INSTALLMENT_MONTHS,
+          payCadence,
         );
         const b: Booking = {
           id: 'B-' + Math.random().toString(36).slice(2, 8),
@@ -296,39 +303,44 @@ export class BookingService {
     }
   }
 
+  /**
+   * Schedule: booking (10%) today → downpayment (20%) in 3 months →
+   * remaining 70% as monthly (24) or quarterly (8) installments over 24 months.
+   */
   private generateSchedule(
     total: number,
     anchor: Date,
     durationMonths: number,
-    cadence: "monthly" | "quarterly",
+    cadence: 'monthly' | 'quarterly',
   ) {
-    const deposit = Math.round(total * 0.1 * 100) / 100;
-    const down = Math.round(total * 0.2 * 100) / 100;
+    const months = Math.max(1, durationMonths || BookingService.INSTALLMENT_MONTHS);
+    const deposit = Math.round(total * BookingService.DEPOSIT_PCT * 100) / 100;
+    const down = Math.round(total * BookingService.DOWNPAYMENT_PCT * 100) / 100;
     const remainder = Math.round((total - deposit - down) * 100) / 100;
     const items: PaymentScheduleItem[] = [];
     items.push({
-      id: "PS-" + Math.random().toString(36).slice(2, 8),
-      bookingId: "tmp",
-      type: "deposit",
+      id: 'PS-' + Math.random().toString(36).slice(2, 8),
+      bookingId: 'tmp',
+      type: 'deposit',
       dueDate: new Date(anchor).toISOString(),
       amount: deposit,
-      status: "due",
-      currency: "BDT",
+      status: 'due',
+      currency: 'BDT',
     });
     const downDate = new Date(anchor);
     downDate.setMonth(downDate.getMonth() + 3);
     items.push({
-      id: "PS-" + Math.random().toString(36).slice(2, 8),
-      bookingId: "tmp",
-      type: "downpayment",
+      id: 'PS-' + Math.random().toString(36).slice(2, 8),
+      bookingId: 'tmp',
+      type: 'downpayment',
       dueDate: downDate.toISOString(),
       amount: down,
-      status: "due",
-      currency: "BDT",
+      status: 'due',
+      currency: 'BDT',
     });
-    const stepMonths = cadence === "monthly" ? 1 : 3;
+    const stepMonths = cadence === 'monthly' ? 1 : 3;
     const installments =
-      cadence === "monthly" ? durationMonths : Math.ceil(durationMonths / 3);
+      cadence === 'monthly' ? months : Math.ceil(months / 3);
     const baseAmount = Math.floor((remainder / installments) * 100) / 100;
     let sum = 0;
     for (let i = 1; i <= installments; i++) {
@@ -340,13 +352,13 @@ export class BookingService {
           : baseAmount;
       sum += amt;
       items.push({
-        id: "PS-" + Math.random().toString(36).slice(2, 8),
-        bookingId: "tmp",
-        type: "installment",
+        id: 'PS-' + Math.random().toString(36).slice(2, 8),
+        bookingId: 'tmp',
+        type: 'installment',
         dueDate: due.toISOString(),
         amount: amt,
-        status: "due",
-        currency: "BDT",
+        status: 'due',
+        currency: 'BDT',
       });
     }
     return items;

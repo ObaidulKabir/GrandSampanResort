@@ -91,7 +91,7 @@ export class TimesharesService {
 
   async create(item: SharePlan) {
     if (item.lockIn === undefined || item.lockIn === null) {
-      item.lockIn = 36;
+      item.lockIn = 24;
     }
     const normalized = this.normalizeFullBleedFields(item) as SharePlan;
     const gate = await this.assertSuitePlanRules(normalized.suiteId, normalized);
