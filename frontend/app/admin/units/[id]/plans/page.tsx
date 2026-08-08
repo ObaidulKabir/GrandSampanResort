@@ -31,6 +31,52 @@ const emptyForm = (suiteId: string): Plan => ({
   planStatus: 'Unsold'
 });
 
+type PresetKey = '3D' | '5D' | 'FULL';
+
+const PRESETS: {
+  key: PresetKey;
+  label: string;
+  days: number;
+  planType: 'DPM' | 'FULL';
+  name: string;
+  idSuffix: string;
+  description: string;
+}[] = [
+  {
+    key: '3D',
+    label: '3 days / month',
+    days: 3,
+    planType: 'DPM',
+    name: '3 days/month',
+    idSuffix: '-3D',
+    description: 'Entry share · 10% of the unit'
+  },
+  {
+    key: '5D',
+    label: '5 days / month',
+    days: 5,
+    planType: 'DPM',
+    name: '5 days/month',
+    idSuffix: '-5D',
+    description: 'Popular share · 16.7% of the unit'
+  },
+  {
+    key: 'FULL',
+    label: 'Full month',
+    days: 30,
+    planType: 'FULL',
+    name: 'Full ownership',
+    idSuffix: '',
+    description: '30 days · locks this unit to a single owner'
+  }
+];
+
+/** S-101 → 101; used to derive plan IDs like P-101-3D / P-101. */
+function suiteNumber(suiteId: string) {
+  const m = suiteId.match(/(\d+.*)$/);
+  return m ? m[1] : suiteId;
+}
+
 export default function AdminSuitePlansPage({ params }: { params: { id: string } }) {
   const suiteId = params.id;
   const [items, setItems] = useState<Plan[]>([]);
@@ -65,6 +111,56 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
 
   const fullBleedPlan = useMemo(() => items.find((p) => isFullBleed(p)) || null, [items]);
   const planCreationLocked = !!fullBleedPlan;
+
+  /** Suggested price = unit total price × time fraction, rounded to whole taka. */
+  function suggestedPrice(days: number) {
+    const total = Number(suite?.totalPrice || 0);
+    if (!total) return 0;
+    return Math.round(total * (Math.min(days, 30) / 30));
+  }
+
+  function presetPlanId(preset: (typeof PRESETS)[number]) {
+    const base = `P-${suiteNumber(suiteId)}${preset.idSuffix}`;
+    if (!items.some((p) => p.id === base)) return base;
+    // ID already taken — append a counter so admins never hit a conflict.
+    for (let n = 2; n < 100; n++) {
+      const candidate = `${base}-${n}`;
+      if (!items.some((p) => p.id === candidate)) return candidate;
+    }
+    return base;
+  }
+
+  function presetDisabledReason(preset: (typeof PRESETS)[number]): string | null {
+    if (planCreationLocked) return 'Unit locked by full-ownership plan';
+    if (preset.planType === 'FULL' && items.length > 0) {
+      return 'Full month needs an empty unit';
+    }
+    if (preset.planType === 'DPM' && items.some((p) => Number(p.daysPerMonth) === preset.days)) {
+      return `A ${preset.days} days/month plan already exists`;
+    }
+    return null;
+  }
+
+  function presetIsActive(preset: (typeof PRESETS)[number]) {
+    return (
+      Number(createForm.daysPerMonth) === preset.days &&
+      (createForm.planType || 'DPM') === preset.planType
+    );
+  }
+
+  function applyPreset(preset: (typeof PRESETS)[number]) {
+    if (presetDisabledReason(preset)) return;
+    setError('');
+    setCreateForm({
+      ...createForm,
+      id: presetPlanId(preset),
+      name: preset.name,
+      daysPerMonth: preset.days,
+      planType: preset.planType,
+      price: suggestedPrice(preset.days) || createForm.price,
+      planStatus: 'Unsold'
+    });
+  }
 
   const derivedFraction = useMemo(() => {
     if (createForm.planType === 'FULL' || createForm.daysPerMonth >= 30) return 1;
@@ -239,6 +335,45 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
             <span className="font-semibold">{fullBleedPlan?.id}</span>
             {fullBleedPlan?.name ? ` · ${fullBleedPlan.name}` : ''}). Delete that plan first if you need to add DPM
             share plans instead.
+          </div>
+        )}
+        {!planCreationLocked && (
+          <div className="mt-5">
+            <p className="text-sm font-semibold uppercase tracking-wide text-ocean/70">Quick create</p>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {PRESETS.map((preset) => {
+                const reason = presetDisabledReason(preset);
+                const active = !reason && presetIsActive(preset);
+                const price = suggestedPrice(preset.days);
+                return (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => applyPreset(preset)}
+                    disabled={!!reason}
+                    title={reason || `Auto-fill the form for a ${preset.label} plan`}
+                    className={`border p-4 text-left transition ${
+                      reason
+                        ? 'cursor-not-allowed border-ocean/10 bg-pearl/60 opacity-60'
+                        : active
+                          ? 'border-gold bg-gold/10 shadow-sm'
+                          : 'border-ocean/15 bg-white hover:border-gold hover:bg-gold/5'
+                    }`}
+                  >
+                    <span className="font-display block text-lg text-ocean">{preset.label}</span>
+                    <span className="mt-1 block text-xs text-ocean/70">{preset.description}</span>
+                    <span className="mt-2 block text-sm font-semibold text-ocean">
+                      {price ? formatMoney(price) : 'Set price below'}
+                    </span>
+                    {reason && <span className="mt-1 block text-xs text-red-600">{reason}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-ocean/60">
+              A preset auto-fills the form below (ID, name, days and a suggested price = unit price × days ÷ 30).
+              Every field stays editable before you create the plan.
+            </p>
           </div>
         )}
         <form
