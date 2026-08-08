@@ -7,6 +7,11 @@ services:
       target: production
     container_name: grand-sampan-frontend
     restart: unless-stopped
+    environment:
+      # Server-rendered pages call the backend over the internal Docker
+      # network instead of hairpinning back out through the public domain
+      # and Traefik; the browser still uses NEXT_PUBLIC_API_URL.
+      - API_URL=http://grand-sampan-backend:4000
     networks:
       - traefik-network
     labels:
