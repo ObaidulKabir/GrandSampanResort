@@ -16,7 +16,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grand-sampan-frontend.rule=Host(`grand-sampan.gkibria121.com`)"
+      - "traefik.http.routers.grand-sampan-frontend.rule=Host(`www.grandsampanresort.com`)"
       - "traefik.http.routers.grand-sampan-frontend.entrypoints=web"
       - "traefik.http.services.grand-sampan-frontend.loadbalancer.server.port=3000"
 
@@ -33,7 +33,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.grand-sampan-backend.rule=Host(`grand-sampan.gkibria121.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.grand-sampan-backend.rule=Host(`www.grandsampanresort.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
       - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000"
 
