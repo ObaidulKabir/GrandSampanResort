@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { formatDate, formatMoney } from '@/lib/format';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
@@ -203,16 +204,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             <div className="bg-pearl p-4">
               <div className="text-xs uppercase tracking-wide text-ocean/60">Deposit paid</div>
               <div className="font-display mt-1 text-2xl text-ocean">
-                ৳ {confirmation.depositPaid.toLocaleString()}
+                {formatMoney(confirmation.depositPaid)}
               </div>
             </div>
             {confirmation.nextDue && (
               <div className="border border-gold/40 bg-gold/10 p-4 sm:col-span-2">
                 <div className="text-xs uppercase tracking-wide text-ocean/60">Next payment</div>
                 <div className="mt-1 text-ocean">
-                  <span className="capitalize">{confirmation.nextDue.type}</span> · ৳{' '}
-                  {confirmation.nextDue.amount.toLocaleString()} due{' '}
-                  {new Date(confirmation.nextDue.dueDate).toLocaleDateString()}
+                  <span className="capitalize">{confirmation.nextDue.type}</span> ·{' '}
+                  {formatMoney(confirmation.nextDue.amount)} due {formatDate(confirmation.nextDue.dueDate)}
                 </div>
               </div>
             )}
@@ -253,7 +253,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           {discounted && (
             <div className="mt-4 border border-gold bg-gold/10 px-4 py-3 text-ocean">
               <span className="font-semibold">✦ {plan?.promoName}</span> — {plan?.discountPct}% off until{' '}
-              {plan?.promoEndsAt ? new Date(plan.promoEndsAt).toLocaleDateString() : ''}
+              {plan?.promoEndsAt ? formatDate(plan.promoEndsAt) : ''}
             </div>
           )}
 
@@ -262,15 +262,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               <div className="text-xs uppercase tracking-wide text-ocean/60">Price</div>
               {discounted ? (
                 <>
-                  <div className="text-sm text-ocean/50 line-through">৳ {(plan?.price || 0).toLocaleString()}</div>
-                  <div className="font-display text-xl text-ocean">৳ {effectivePrice.toLocaleString()}</div>
+                  <div className="text-sm text-ocean/50 line-through">{formatMoney(plan?.price || 0)}</div>
+                  <div className="font-display text-xl text-ocean">{formatMoney(effectivePrice)}</div>
                 </>
               ) : (
-                <div className="mt-1 font-display text-xl text-ocean">৳ {(plan?.price || 0).toLocaleString()}</div>
+                <div className="mt-1 font-display text-xl text-ocean">{formatMoney(plan?.price || 0)}</div>
               )}
             </div>
             {[
-              ['Deposit due', `৳ ${depositPreview.toLocaleString()}`],
+              ['Deposit due', formatMoney(depositPreview)],
               ['Entitlement', `${plan?.daysPerMonth || 0} days/mo`],
               ['Suite', suite?.id || plan?.suiteId || '—']
             ].map(([label, value]) => (
@@ -318,7 +318,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             <div className="flex justify-between">
               <span>Plan price</span>
               <span className={discounted ? 'line-through text-ocean/50' : ''}>
-                ৳ {(plan?.price || 0).toLocaleString()}
+                {formatMoney(plan?.price || 0)}
               </span>
             </div>
             {discounted && (
@@ -327,19 +327,19 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   {plan?.promoName} ({plan?.discountPct}%)
                 </span>
                 <span className="font-semibold text-gold">
-                  − ৳ {((plan?.price || 0) - effectivePrice).toLocaleString()}
+                  − {formatMoney((plan?.price || 0) - effectivePrice)}
                 </span>
               </div>
             )}
             {discounted && (
               <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2 font-semibold text-ocean">
                 <span>Offer price</span>
-                <span>৳ {effectivePrice.toLocaleString()}</span>
+                <span>{formatMoney(effectivePrice)}</span>
               </div>
             )}
             <div className="mt-2 flex justify-between font-semibold text-ocean">
               <span>Deposit today</span>
-              <span>৳ {depositPreview.toLocaleString()}</span>
+              <span>{formatMoney(depositPreview)}</span>
             </div>
           </div>
           <Button
@@ -436,8 +436,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                       {schedule.slice(0, 8).map((i) => (
                         <tr key={i.id} className="border-t border-ocean/10">
                           <td className="p-3 capitalize">{i.type}</td>
-                          <td className="p-3">{new Date(i.dueDate).toLocaleDateString()}</td>
-                          <td className="p-3">৳ {i.amount.toLocaleString()}</td>
+                          <td className="p-3">{formatDate(i.dueDate)}</td>
+                          <td className="p-3">{formatMoney(i.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -486,11 +486,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <div className="border border-ocean/10 bg-white p-4 md:col-span-2">
                   <div className="text-xs text-ocean/60">Illustrative annual net</div>
                   <div className="font-display mt-1 text-2xl text-ocean">
-                    ৳{' '}
                     {(() => {
                       const gross = adr * (1 + rentUpliftPct / 100) * (plan?.daysPerMonth || 0) * occupancy;
                       const net = gross * (1 - costPct / 100);
-                      return Math.round(net * 12).toLocaleString();
+                      return formatMoney(Math.round(net * 12));
                     })()}
                   </div>
                 </div>

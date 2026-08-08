@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { formatMoney } from '@/lib/format';
 
 export default function ReturnsIncomePage() {
   const [planDays, setPlanDays] = useState(3);
@@ -45,7 +46,7 @@ export default function ReturnsIncomePage() {
             />
           </label>
           <label className="block">
-            <span className="text-ocean">Average Daily Rate (BDT): {adr}</span>
+            <span className="text-ocean">Average Daily Rate: {formatMoney(adr)}</span>
             <input
               type="range"
               min={60}
@@ -61,8 +62,8 @@ export default function ReturnsIncomePage() {
           <h2 className="font-['Playfair Display'] text-2xl text-ocean">Expected Monthly Income</h2>
           <ul className="mt-4 space-y-2 text-ocean/80">
             <li>Rentable days: {result.rentableDays}</li>
-            <li>Gross revenue: BDT {result.grossRevenue.toFixed(2)}</li>
-            <li>Investor share (60%): BDT {result.investorShare.toFixed(2)}</li>
+            <li>Gross revenue: {formatMoney(result.grossRevenue)}</li>
+            <li>Investor share (60%): {formatMoney(result.investorShare)}</li>
           </ul>
           <p className="mt-4 text-xs text-ocean/60">Actual earnings depend on ADR, seasonality, fees, and taxes.</p>
         </div>

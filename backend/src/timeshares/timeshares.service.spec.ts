@@ -41,7 +41,7 @@ describe('TimesharesService', () => {
       planType: 'DPM',
       planStatus: 'Unsold'
     } as any);
-    expect(created).toBeTruthy();
+    expect(created.ok).toBe(true);
     const fetched = await svc.get(planId);
     expect(fetched).toBeTruthy();
     expect(fetched?.id).toBe(planId);
@@ -50,9 +50,48 @@ describe('TimesharesService', () => {
     expect(Array.isArray(bySuite)).toBe(true);
     expect(!!bySuite.find((p: any) => p.id === planId)).toBe(true);
     const updated = await svc.update(planId, { price: 51000 });
-    expect((updated as any)?.price).toBe(51000);
+    expect(updated.ok).toBe(true);
+    expect((updated as any)?.plan?.price).toBe(51000);
     const removed = await svc.remove(planId);
     expect(removed).toBe(true);
+  });
+
+  it('blocks further plans after a full-bleed plan exists on the suite', async () => {
+    const fullId = 'T-SP-FULL';
+    const extraId = 'T-SP-EXTRA';
+    try {
+      await svc.remove(fullId);
+    } catch {}
+    try {
+      await svc.remove(extraId);
+    } catch {}
+    const full = await svc.create({
+      id: fullId,
+      name: 'Full ownership',
+      daysPerMonth: 30,
+      lockIn: 36,
+      price: 250000,
+      currency: 'BDT',
+      suiteId,
+      planType: 'FULL',
+      planStatus: 'Unsold'
+    } as any);
+    expect(full.ok).toBe(true);
+    expect((full as any).plan?.planType).toBe('FULL');
+    const blocked = await svc.create({
+      id: extraId,
+      name: 'Extra DPM',
+      daysPerMonth: 5,
+      lockIn: 12,
+      price: 50000,
+      currency: 'BDT',
+      suiteId,
+      planType: 'DPM',
+      planStatus: 'Unsold'
+    } as any);
+    expect(blocked.ok).toBe(false);
+    expect((blocked as any).error).toBe('full_ownership_locked');
+    await svc.remove(fullId);
   });
 });
 

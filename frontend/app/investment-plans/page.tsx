@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 export default function InvestmentPlansPage() {
@@ -53,7 +54,7 @@ export default function InvestmentPlansPage() {
               <p className="mt-2 text-sm text-ocean/70">
                 {p.suiteId || '—'} · {suite.type || '—'} · {suite.view || '—'}
               </p>
-              <p className="mt-5 font-display text-3xl text-ocean">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+              <p className="mt-5 font-display text-3xl text-ocean">{formatMoney(p.price)}</p>
               <div className="mt-6">
                 <Link href={`/pricing/plans/${p.id}`}>
                   <Button>Buy this plan</Button>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 export default function AdminUnitsListPage() {
@@ -77,7 +78,7 @@ export default function AdminUnitsListPage() {
                   <td className="p-3">{i.type}</td>
                   <td className="p-3">{i.size} sq ft</td>
                   <td className="p-3">{i.view}</td>
-                  <td className="p-3">৳ {(i.totalPrice || 0).toLocaleString()}</td>
+                  <td className="p-3">{formatMoney(i.totalPrice || 0)}</td>
                   <td className="p-3">
                     {stats.total === 0 ? (
                       <span className="inline-block border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">

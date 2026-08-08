@@ -43,30 +43,34 @@ export class SeedService {
 
     const planA =
       (await this.plans.get('P-7D')) ||
-      (await this.plans.create({
-        id: 'P-7D',
-        name: '7 days/month',
-        daysPerMonth: 7,
-        lockIn: 36,
-        price: 70000,
-        currency: 'BDT',
-        suiteId: 'S-303',
-        planType: 'DPM',
-        planStatus: 'Unsold'
-      } as any));
+      (await this.plans
+        .create({
+          id: 'P-7D',
+          name: '7 days/month',
+          daysPerMonth: 7,
+          lockIn: 36,
+          price: 70000,
+          currency: 'BDT',
+          suiteId: 'S-303',
+          planType: 'DPM',
+          planStatus: 'Unsold'
+        } as any)
+        .then((r) => (r.ok ? r.plan : null)));
     const planB =
       (await this.plans.get('P-FULL')) ||
-      (await this.plans.create({
-        id: 'P-FULL',
-        name: 'Full Share',
-        daysPerMonth: 30,
-        lockIn: 48,
-        price: 350000,
-        currency: 'BDT',
-        suiteId: 'S-404',
-        planType: 'FULL',
-        planStatus: 'Unsold'
-      } as any));
+      (await this.plans
+        .create({
+          id: 'P-FULL',
+          name: 'Full Share',
+          daysPerMonth: 30,
+          lockIn: 48,
+          price: 350000,
+          currency: 'BDT',
+          suiteId: 'S-404',
+          planType: 'FULL',
+          planStatus: 'Unsold'
+        } as any)
+        .then((r) => (r.ok ? r.plan : null)));
 
     const today = new Date();
     const dates: string[] = [];

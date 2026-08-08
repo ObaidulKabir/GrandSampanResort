@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 type Plan = {
@@ -59,15 +60,63 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     load();
   }, []);
 
+  const isFullBleed = (p: Pick<Plan, 'planType' | 'daysPerMonth'>) =>
+    String(p.planType || '').toUpperCase() === 'FULL' || Number(p.daysPerMonth || 0) >= 30;
+
+  const fullBleedPlan = useMemo(() => items.find((p) => isFullBleed(p)) || null, [items]);
+  const planCreationLocked = !!fullBleedPlan;
+
   const derivedFraction = useMemo(() => {
+    if (createForm.planType === 'FULL' || createForm.daysPerMonth >= 30) return 1;
     const dpm = createForm.daysPerMonth || 0;
     return dpm > 0 ? dpm / 30 : 0;
-  }, [createForm.daysPerMonth]);
+  }, [createForm.daysPerMonth, createForm.planType]);
 
-  const canSubmit = createForm.id.trim().length > 0 && createForm.price > 0;
+  const canSubmit =
+    !planCreationLocked && createForm.id.trim().length > 0 && createForm.price > 0;
+
+  function planErrorMessage(code?: string) {
+    if (code === 'conflict') return 'A plan with this ID already exists';
+    if (code === 'full_ownership_locked') {
+      return 'This unit already has a full-ownership (30 days/month) plan. Further plans cannot be created.';
+    }
+    if (code === 'full_requires_empty_suite') {
+      return 'Full ownership can only be created when this unit has no other plans. Remove existing DPM plans first.';
+    }
+    return code || 'Failed to create plan';
+  }
+
+  function setCreateType(planType: Plan['planType']) {
+    if (planType === 'FULL') {
+      setCreateForm({ ...createForm, planType: 'FULL', daysPerMonth: 30 });
+      return;
+    }
+    setCreateForm({
+      ...createForm,
+      planType: 'DPM',
+      daysPerMonth: createForm.daysPerMonth >= 30 ? 7 : createForm.daysPerMonth
+    });
+  }
+
+  function setCreateDays(daysPerMonth: number) {
+    const days = Math.max(0, Math.min(30, Number(daysPerMonth) || 0));
+    if (days >= 30) {
+      setCreateForm({ ...createForm, daysPerMonth: 30, planType: 'FULL' });
+      return;
+    }
+    setCreateForm({
+      ...createForm,
+      daysPerMonth: days,
+      planType: createForm.planType === 'FULL' ? 'DPM' : createForm.planType
+    });
+  }
 
   async function createPlan(e: React.FormEvent) {
     e.preventDefault();
+    if (planCreationLocked) {
+      setError(planErrorMessage('full_ownership_locked'));
+      return;
+    }
     if (!canSubmit) {
       setError('Plan ID and a price above zero are required');
       return;
@@ -75,6 +124,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setCreating(true);
     setError('');
     setNotice('');
+    const full = isFullBleed(createForm);
     try {
       const json = await api('/timeshares', {
         method: 'POST',
@@ -83,19 +133,23 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           id: createForm.id.trim(),
           suiteId,
           currency: 'BDT',
+          planType: full ? 'FULL' : createForm.planType || 'DPM',
+          daysPerMonth: full ? 30 : createForm.daysPerMonth,
           timeFraction: derivedFraction
         })
       });
       if (json?.ok) {
         setNotice(
-          createForm.planStatus === 'Unsold'
-            ? `Plan ${createForm.id.trim()} is live in the buyer catalog.`
-            : `Plan ${createForm.id.trim()} created (status: ${createForm.planStatus}).`
+          full
+            ? `Full-ownership plan ${createForm.id.trim()} created. Further plans on this unit are now locked.`
+            : createForm.planStatus === 'Unsold'
+              ? `Plan ${createForm.id.trim()} is live in the buyer catalog.`
+              : `Plan ${createForm.id.trim()} created (status: ${createForm.planStatus}).`
         );
         setCreateForm(emptyForm(suiteId));
         await load();
       } else {
-        setError(json?.error === 'conflict' ? 'A plan with this ID already exists' : json?.error || 'Failed to create plan');
+        setError(planErrorMessage(json?.error));
       }
     } catch {
       setError('Failed to create plan');
@@ -138,7 +192,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
         setNotice(`Plan ${id} updated.`);
         await load();
       } else {
-        setError(json?.error || 'Failed to update plan');
+        setError(planErrorMessage(json?.error).replace('Failed to create plan', 'Failed to update plan'));
       }
     } catch {
       setError('Failed to update plan');
@@ -155,7 +209,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           <h1 className="font-display mt-1 text-4xl text-ocean">Share plans · {suiteId}</h1>
           <p className="mt-2 text-ocean/75">
             {suite
-              ? `${suite.type || 'Suite'} · ${suite.view || ''} view · Floor ${suite.floor ?? '—'} · ৳ ${(suite.totalPrice || 0).toLocaleString()}`
+              ? `${suite.type || 'Suite'} · ${suite.view || ''} view · Floor ${suite.floor ?? '—'} · ${formatMoney(suite.totalPrice || 0)}`
               : 'Plans marked Unsold appear in the buyer catalog immediately.'}
           </p>
         </div>
@@ -177,12 +231,25 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
         <h2 className="font-display text-2xl text-ocean">Create plan</h2>
         <p className="mt-1 text-sm text-ocean/70">
           Revenue share is derived automatically from days per month. Status “Unsold” publishes it for sale.
+          A full-ownership plan (30 days/month) locks the unit — no further plans can be added.
         </p>
-        <form onSubmit={createPlan} className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+        {planCreationLocked && (
+          <div className="mt-4 border border-gold/50 bg-gold/10 p-4 text-ocean">
+            Plan creation is disabled because this unit already has a full-ownership plan (
+            <span className="font-semibold">{fullBleedPlan?.id}</span>
+            {fullBleedPlan?.name ? ` · ${fullBleedPlan.name}` : ''}). Delete that plan first if you need to add DPM
+            share plans instead.
+          </div>
+        )}
+        <form
+          onSubmit={createPlan}
+          className={`mt-5 grid grid-cols-1 gap-5 md:grid-cols-3 ${planCreationLocked ? 'pointer-events-none opacity-50' : ''}`}
+        >
           <label className="block text-sm font-medium text-ocean">
             Plan ID
             <input
               required
+              disabled={planCreationLocked}
               value={createForm.id}
               onChange={(e) => setCreateForm({ ...createForm, id: e.target.value })}
               className="field mt-1"
@@ -192,6 +259,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           <label className="block text-sm font-medium text-ocean">
             Name
             <input
+              disabled={planCreationLocked}
               value={createForm.name}
               onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
               className="field mt-1"
@@ -204,8 +272,9 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
               type="number"
               min={0}
               max={30}
+              disabled={planCreationLocked}
               value={createForm.daysPerMonth}
-              onChange={(e) => setCreateForm({ ...createForm, daysPerMonth: Number(e.target.value) })}
+              onChange={(e) => setCreateDays(Number(e.target.value))}
               className="field mt-1"
             />
           </label>
@@ -214,6 +283,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
             <input
               type="number"
               min={0}
+              disabled={planCreationLocked}
               value={createForm.price}
               onChange={(e) => setCreateForm({ ...createForm, price: Number(e.target.value) })}
               className="field mt-1"
@@ -222,17 +292,26 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           <label className="block text-sm font-medium text-ocean">
             Type
             <select
+              disabled={planCreationLocked || items.length > 0}
               value={createForm.planType}
-              onChange={(e) => setCreateForm({ ...createForm, planType: e.target.value as Plan['planType'] })}
+              onChange={(e) => setCreateType(e.target.value as Plan['planType'])}
               className="field mt-1"
+              title={
+                items.length > 0
+                  ? 'Full ownership is only available when this unit has no other plans'
+                  : undefined
+              }
             >
               <option value="DPM">Days per month (DPM)</option>
-              <option value="FULL">Full ownership</option>
+              <option value="FULL" disabled={items.length > 0}>
+                Full ownership (30 days)
+              </option>
             </select>
           </label>
           <label className="block text-sm font-medium text-ocean">
             Status
             <select
+              disabled={planCreationLocked}
               value={createForm.planStatus}
               onChange={(e) => setCreateForm({ ...createForm, planStatus: e.target.value as Plan['planStatus'] })}
               className="field mt-1"
@@ -244,10 +323,14 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           </label>
           <div className="flex items-end gap-4 md:col-span-3">
             <div className="border border-ocean/10 bg-pearl px-4 py-2 text-sm text-ocean/80">
-              Revenue share: <span className="font-semibold text-ocean">{(derivedFraction * 100).toFixed(1)}%</span>
+              Revenue share:{' '}
+              <span className="font-semibold text-ocean">{(derivedFraction * 100).toFixed(1)}%</span>
+              {(createForm.planType === 'FULL' || createForm.daysPerMonth >= 30) && (
+                <span className="ml-2 text-gold">· Full ownership</span>
+              )}
             </div>
-            <Button type="submit" disabled={creating || !canSubmit}>
-              {creating ? 'Creating...' : 'Create plan'}
+            <Button type="submit" disabled={creating || !canSubmit || planCreationLocked}>
+              {creating ? 'Creating...' : planCreationLocked ? 'Locked' : 'Create plan'}
             </Button>
           </div>
         </form>
@@ -344,7 +427,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
                       </td>
                       <td className="p-3">{p.planType}</td>
                       <td className="p-3">{p.daysPerMonth}</td>
-                      <td className="p-3">৳ {(p.price || 0).toLocaleString()}</td>
+                      <td className="p-3">{formatMoney(p.price || 0)}</td>
                       <td className="p-3">{((p.timeFraction ?? 0) * 100).toFixed(1)}%</td>
                       <td className="p-3">
                         <span

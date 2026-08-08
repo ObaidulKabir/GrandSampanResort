@@ -90,7 +90,14 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
           })
         });
         if (!createJson?.ok) {
-          setError(createJson?.error || 'Failed to create with new ID');
+          const code = createJson?.error;
+          setError(
+            code === 'full_ownership_locked'
+              ? 'This unit already has a full-ownership plan; further plans cannot be created.'
+              : code === 'full_requires_empty_suite'
+                ? 'Full ownership can only be created when this unit has no other plans.'
+                : code || 'Failed to create with new ID'
+          );
           setSaving(false);
           return;
         }
@@ -111,6 +118,16 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
             timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
           })
         });
+        if (!json?.ok) {
+          const code = json?.error;
+          setError(
+            code === 'full_ownership_locked'
+              ? 'This unit already has a full-ownership plan.'
+              : code === 'full_requires_empty_suite'
+                ? 'Cannot switch to full ownership while other plans exist on this unit.'
+                : code || 'Failed to save plan'
+          );
+        }
         setResult(json);
       }
     } catch {
@@ -180,8 +197,18 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
             <label className="block text-sm text-ocean">Days/Month</label>
             <input
               type="number"
+              min={0}
+              max={30}
               value={form.daysPerMonth ?? 0}
-              onChange={(e) => setForm({ ...form, daysPerMonth: Number(e.target.value) })}
+              onChange={(e) => {
+                const days = Math.max(0, Math.min(30, Number(e.target.value) || 0));
+                setForm({
+                  ...form,
+                  daysPerMonth: days,
+                  planType: days >= 30 ? 'FULL' : form.planType === 'FULL' ? 'DPM' : form.planType,
+                  timeFraction: days >= 30 ? 1 : form.timeFraction
+                });
+              }}
               className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
             />
           </div>
@@ -212,11 +239,18 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
             <label className="block text-sm text-ocean">Type</label>
             <select
               value={form.planType ?? 'DPM'}
-              onChange={(e) => setForm({ ...form, planType: e.target.value as any })}
+              onChange={(e) => {
+                const planType = e.target.value as 'FULL' | 'DPM';
+                setForm(
+                  planType === 'FULL'
+                    ? { ...form, planType: 'FULL', daysPerMonth: 30, timeFraction: 1 }
+                    : { ...form, planType: 'DPM', daysPerMonth: (form.daysPerMonth ?? 0) >= 30 ? 7 : form.daysPerMonth }
+                );
+              }}
               className="mt-1 w-full rounded border border-ocean/20 px-2 py-1"
             >
               <option value="DPM">DPM</option>
-              <option value="FULL">FULL</option>
+              <option value="FULL">FULL (30 days — locks unit)</option>
             </select>
           </div>
           <div>

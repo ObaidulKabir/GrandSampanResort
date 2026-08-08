@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 
 async function getSuites(): Promise<any[]> {
   try {
@@ -20,7 +21,7 @@ export default async function SuitesPage() {
           <div key={s.id} className="rounded-lg border border-gold/30 bg-white p-6">
             <h2 className="text-2xl text-ocean">{s.id}</h2>
             <p className="text-ocean/80">{s.type} • {s.size} sq ft • {s.view}</p>
-            <p className="text-ocean/70">BDT {s.totalPrice}</p>
+            <p className="text-ocean/70">{formatMoney(s.totalPrice)}</p>
           </div>
         ))}
       </div>

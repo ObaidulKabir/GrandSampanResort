@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatDate, formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 import { useAppStore } from '@/store/appStore';
 
@@ -97,7 +98,7 @@ export default function BookingPage() {
           <h1 className="font-display mt-2 text-4xl text-ocean">See you at the beach</h1>
           <p className="mt-3 text-ocean/75">
             {suite ? `${suite.type} suite ${suite.id}` : `Suite ${suiteId}`} ·{' '}
-            {start && new Date(start).toLocaleDateString()} → {end && new Date(end).toLocaleDateString()}
+            {start && formatDate(start)} → {end && formatDate(end)}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <div className="bg-pearl p-4">
@@ -108,7 +109,7 @@ export default function BookingPage() {
               <div className="text-xs uppercase tracking-wide text-ocean/60">
                 {confirmation.paid ? 'Paid' : 'Amount due'}
               </div>
-              <div className="font-display mt-1 text-2xl text-ocean">৳ {confirmation.amount.toLocaleString()}</div>
+              <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(confirmation.amount)}</div>
             </div>
           </div>
           <div className="mt-8 flex flex-wrap gap-3">

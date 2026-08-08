@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 type SaleRow = {
@@ -157,7 +158,7 @@ export default function AdminSalesPage() {
           { label: 'Bookings', value: String(stats.total) },
           { label: 'Investments', value: String(stats.investments) },
           { label: 'Stays', value: String(stats.stays) },
-          { label: 'GMV', value: `৳ ${stats.gmv.toLocaleString()}` },
+          { label: 'GMV', value: formatMoney(stats.gmv) },
           { label: 'Unsold plans', value: String(stats.unsold) },
           { label: 'Booked plans', value: String(stats.booked) },
           { label: 'KYC pending', value: String(stats.pendingKyc) }
@@ -269,7 +270,7 @@ export default function AdminSalesPage() {
                     </td>
                     <td className="p-3">{s.plan?.name || s.booking.planId || '—'}</td>
                     <td className="p-3 font-mono text-xs">{s.booking.investorId || '—'}</td>
-                    <td className="p-3">৳ {(s.booking.amountTotal || 0).toLocaleString()}</td>
+                    <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
                     <td className="p-3 capitalize">{s.booking.status}</td>
                   </tr>
                 ))}
@@ -442,7 +443,7 @@ function PlanTable({ plans, empty }: { plans: any[]; empty: string }) {
               </td>
               <td className="p-3">{p.suiteId || '—'}</td>
               <td className="p-3">{p.daysPerMonth ?? '—'}</td>
-              <td className="p-3">৳ {(p.price || 0).toLocaleString()}</td>
+              <td className="p-3">{formatMoney(p.price || 0)}</td>
               <td className="p-3 capitalize">{p.planStatus || '—'}</td>
               <td className="p-3">
                 {p.suiteId ? (

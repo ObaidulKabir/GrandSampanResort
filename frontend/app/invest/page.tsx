@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatDate, formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 export default function InvestPage() {
@@ -44,11 +45,6 @@ export default function InvestPage() {
     if (s.includes('sea')) return 'Sea View';
     if (s.includes('hill')) return 'Hill View';
     return v || '—';
-  }
-
-  function formatPromoEnd(iso?: string) {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   }
 
   return (
@@ -107,16 +103,16 @@ export default function InvestPage() {
               </dl>
               {discounted && (
                 <span className="mt-5 inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
-                  {p.discountPct}% OFF · Ends {formatPromoEnd(p.promoEndsAt)}
+                  {p.discountPct}% OFF · Ends {formatDate(p.promoEndsAt)}
                 </span>
               )}
               {discounted ? (
                 <div className="mt-2">
-                  <p className="text-sm text-ocean/50 line-through">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
-                  <p className="font-display text-3xl text-ocean">৳ {p.discountedPrice.toLocaleString()}</p>
+                  <p className="text-sm text-ocean/50 line-through">{formatMoney(p.price)}</p>
+                  <p className="font-display text-3xl text-ocean">{formatMoney(p.discountedPrice)}</p>
                 </div>
               ) : (
-                <p className="mt-5 font-display text-3xl text-ocean">৳ {p.price?.toLocaleString?.() ?? p.price}</p>
+                <p className="mt-5 font-display text-3xl text-ocean">{formatMoney(p.price)}</p>
               )}
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href={`/pricing/plans/${p.id}`}>

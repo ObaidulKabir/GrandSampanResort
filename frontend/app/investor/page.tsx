@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/api';
+import { formatDate, formatMoney } from '@/lib/format';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
 
@@ -160,15 +161,15 @@ export default function InvestorPage() {
       <section className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="border border-ocean/10 bg-white p-5">
           <div className="text-xs uppercase tracking-wide text-ocean/60">Portfolio</div>
-          <div className="font-display mt-1 text-3xl text-ocean">৳ {portfolio.toLocaleString()}</div>
+          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(portfolio)}</div>
         </div>
         <div className="border border-ocean/10 bg-white p-5">
           <div className="text-xs uppercase tracking-wide text-ocean/60">Paid</div>
-          <div className="font-display mt-1 text-3xl text-ocean">৳ {paid.toLocaleString()}</div>
+          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(paid)}</div>
         </div>
         <div className="border border-gold/40 bg-gold/10 p-5">
           <div className="text-xs uppercase tracking-wide text-ocean/60">Outstanding</div>
-          <div className="font-display mt-1 text-3xl text-ocean">৳ {outstanding.toLocaleString()}</div>
+          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(outstanding)}</div>
         </div>
       </section>
 
@@ -183,10 +184,10 @@ export default function InvestorPage() {
               >
                 <div>
                   <div className="capitalize text-ocean">{i.type}</div>
-                  <div className="text-sm text-ocean/70">{new Date(i.dueDate).toLocaleDateString()}</div>
+                  <div className="text-sm text-ocean/70">{formatDate(i.dueDate)}</div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-ocean">৳ {i.amount.toLocaleString()}</span>
+                  <span className="font-semibold text-ocean">{formatMoney(i.amount)}</span>
                   <Button onClick={() => pay(i)}>Pay</Button>
                 </div>
               </div>
@@ -224,15 +225,15 @@ export default function InvestorPage() {
                 <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                   <div className="bg-pearl p-3">
                     <div className="text-ocean/60">Total</div>
-                    <div className="text-ocean">৳ {(h.booking.amountTotal || 0).toLocaleString()}</div>
+                    <div className="text-ocean">{formatMoney(h.booking.amountTotal || 0)}</div>
                   </div>
                   <div className="bg-pearl p-3">
                     <div className="text-ocean/60">Paid</div>
-                    <div className="text-ocean">৳ {(sum?.paidTotal || 0).toLocaleString()}</div>
+                    <div className="text-ocean">{formatMoney(sum?.paidTotal || 0)}</div>
                   </div>
                   <div className="bg-pearl p-3">
                     <div className="text-ocean/60">Due</div>
-                    <div className="text-ocean">৳ {(sum?.outstanding || 0).toLocaleString()}</div>
+                    <div className="text-ocean">{formatMoney(sum?.outstanding || 0)}</div>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -240,10 +241,10 @@ export default function InvestorPage() {
                     <div key={i.id} className="flex items-center justify-between border-t border-ocean/10 pt-2 text-sm">
                       <div>
                         <span className="capitalize text-ocean">{i.type}</span>
-                        <span className="ml-2 text-ocean/60">{new Date(i.dueDate).toLocaleDateString()}</span>
+                        <span className="ml-2 text-ocean/60">{formatDate(i.dueDate)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span>৳ {i.amount.toLocaleString()}</span>
+                        <span>{formatMoney(i.amount)}</span>
                         {i.status === 'due' ? (
                           <button
                             onClick={() => pay(i)}

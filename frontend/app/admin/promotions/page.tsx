@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatDate, formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 type Promotion = {
@@ -335,8 +336,8 @@ export default function AdminPromotionsPage() {
                     onChange={() => setForm({ ...form, planIds: toggleInList(form.planIds, p.id) })}
                   />
                   <span>
-                    {p.id} — {p.name} · {p.daysPerMonth} days/mo · {p.suiteId || 'no suite'} · ৳{' '}
-                    {p.price?.toLocaleString?.() ?? p.price}
+                    {p.id} — {p.name} · {p.daysPerMonth} days/mo · {p.suiteId || 'no suite'} ·{' '}
+                    {formatMoney(p.price)}
                   </span>
                 </label>
               ))}
@@ -397,7 +398,7 @@ export default function AdminPromotionsPage() {
                   {p.discountPct}% off · {scopeSummary(p)}
                 </p>
                 <p className="mt-1 text-sm text-ocean/60">
-                  {new Date(p.startsAt).toLocaleDateString()} – {new Date(p.endsAt).toLocaleDateString()}
+                  {formatDate(p.startsAt)} – {formatDate(p.endsAt)}
                   {count !== null && <> · {count} unsold plan{count === 1 ? '' : 's'} eligible</>}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">

@@ -49,17 +49,14 @@ export class TimesharesController {
   async create(@Body(new ValidationPipe({ whitelist: true })) body: CreateSharePlanDto) {
     const id = (body?.id ?? '').trim();
     if (!id) return { ok: false, error: 'missing_id' };
-    const created = await this.service.create({ ...(body as any), id });
-    return { ok: true, plan: created };
+    return this.service.create({ ...(body as any), id });
   }
 
   @Put(':id')
   @UseGuards(RolesGuard)
   @Roles('admin')
   async update(@Param('id') id: string, @Body(new ValidationPipe({ whitelist: true })) body: UpdateSharePlanDto) {
-    const updated = await this.service.update(id, body as any);
-    if (!updated) return { ok: false, error: 'not_found' };
-    return { ok: true, plan: updated };
+    return this.service.update(id, body as any);
   }
 
   @Delete(':id')
