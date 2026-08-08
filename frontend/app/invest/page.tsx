@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
@@ -8,12 +8,37 @@ import { formatDate, formatMoney } from '@/lib/format';
 import { annualReturnRange, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
 
+type Filters = {
+  q: string;
+  view: string;
+  category: string;
+  floor: string;
+  days: string;
+  priceMin: string;
+  priceMax: string;
+};
+
+const emptyFilters: Filters = {
+  q: '',
+  view: '',
+  category: '',
+  floor: '',
+  days: '',
+  priceMin: '',
+  priceMax: ''
+};
+
+function planTotal(p: any) {
+  return typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
+}
+
 export default function InvestPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [suites, setSuites] = useState<Record<string, any>>({});
   const [assumptions, setAssumptions] = useState<ReturnAssumptions | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState<Filters>(emptyFilters);
 
   async function load() {
     setLoading(true);
@@ -40,6 +65,76 @@ export default function InvestPage() {
     load();
   }, []);
 
+  const filterOptions = useMemo(() => {
+    const views = new Set<string>();
+    const categories = new Set<string>();
+    const floors = new Set<number>();
+    const days = new Set<number>();
+    let minPrice = Number.POSITIVE_INFINITY;
+    let maxPrice = 0;
+    for (const p of plans) {
+      const suite = suites[p.suiteId] || {};
+      if (suite.view) views.add(String(suite.view));
+      if (suite.type) categories.add(String(suite.type));
+      if (suite.floor != null && suite.floor !== '') floors.add(Number(suite.floor));
+      if (p.daysPerMonth != null) days.add(Number(p.daysPerMonth));
+      const total = planTotal(p);
+      if (Number.isFinite(total)) {
+        minPrice = Math.min(minPrice, total);
+        maxPrice = Math.max(maxPrice, total);
+      }
+    }
+    return {
+      views: Array.from(views).sort((a, b) => a.localeCompare(b)),
+      categories: Array.from(categories).sort((a, b) => a.localeCompare(b)),
+      floors: Array.from(floors).sort((a, b) => a - b),
+      days: Array.from(days).sort((a, b) => a - b),
+      minPrice: Number.isFinite(minPrice) ? minPrice : 0,
+      maxPrice
+    };
+  }, [plans, suites]);
+
+  const filtered = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+    const priceMin = filters.priceMin === '' ? null : Number(filters.priceMin);
+    const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax);
+    return plans.filter((p) => {
+      const suite = suites[p.suiteId] || {};
+      const total = planTotal(p);
+      if (filters.view && String(suite.view || '').toLowerCase() !== filters.view.toLowerCase()) return false;
+      if (filters.category && String(suite.type || '').toLowerCase() !== filters.category.toLowerCase()) return false;
+      if (filters.floor !== '' && Number(suite.floor) !== Number(filters.floor)) return false;
+      if (filters.days !== '' && Number(p.daysPerMonth) !== Number(filters.days)) return false;
+      if (priceMin != null && Number.isFinite(priceMin) && total < priceMin) return false;
+      if (priceMax != null && Number.isFinite(priceMax) && total > priceMax) return false;
+      if (q) {
+        const hay = [
+          p.id,
+          p.name,
+          p.suiteId,
+          suite.type,
+          suite.view,
+          suite.floor,
+          p.daysPerMonth,
+          p.planType
+        ]
+          .map((x) => String(x ?? '').toLowerCase())
+          .join(' ');
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [plans, suites, filters]);
+
+  const activeFilterCount = useMemo(
+    () => Object.values(filters).filter((v) => String(v).trim() !== '').length,
+    [filters]
+  );
+
+  function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
   function suiteTypeIcon(type: string) {
     const t = (type || '').toLowerCase();
     if (t.includes('premium')) return '/images/icons/security.svg';
@@ -60,7 +155,7 @@ export default function InvestPage() {
         <div>
           <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Live unsold share plans. Choose a plan to review payment terms and complete your purchase.
+            Live unsold share plans. Search by view, floor, price, or category to find the right plan.
           </p>
         </div>
         <Button variant="outline" onClick={load}>
@@ -70,8 +165,107 @@ export default function InvestPage() {
 
       {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
+      <section className="mt-8 border border-ocean/10 bg-white p-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-gold">Find a plan</p>
+            <p className="mt-1 text-sm text-ocean/70">
+              Showing {filtered.length} of {plans.length} available plan{plans.length === 1 ? '' : 's'}
+              {activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} on` : ''}
+            </p>
+          </div>
+          {activeFilterCount > 0 && (
+            <Button type="button" variant="ghost" onClick={() => setFilters(emptyFilters)}>
+              Clear filters
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="block text-sm font-medium text-ocean sm:col-span-2 lg:col-span-2">
+            Search
+            <input
+              value={filters.q}
+              onChange={(e) => setFilter('q', e.target.value)}
+              className="field mt-1"
+              placeholder="Plan ID, name, suite…"
+            />
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            View
+            <select value={filters.view} onChange={(e) => setFilter('view', e.target.value)} className="field mt-1">
+              <option value="">All views</option>
+              {filterOptions.views.map((v) => (
+                <option key={v} value={v}>
+                  {humanView(v)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Category
+            <select
+              value={filters.category}
+              onChange={(e) => setFilter('category', e.target.value)}
+              className="field mt-1"
+            >
+              <option value="">All categories</option>
+              {filterOptions.categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Floor
+            <select value={filters.floor} onChange={(e) => setFilter('floor', e.target.value)} className="field mt-1">
+              <option value="">All floors</option>
+              {filterOptions.floors.map((f) => (
+                <option key={f} value={String(f)}>
+                  Floor {f}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Days / month
+            <select value={filters.days} onChange={(e) => setFilter('days', e.target.value)} className="field mt-1">
+              <option value="">All durations</option>
+              {filterOptions.days.map((d) => (
+                <option key={d} value={String(d)}>
+                  {d >= 30 ? 'Full month (30)' : `${d} days`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Min price (BDT)
+            <input
+              type="number"
+              min={0}
+              value={filters.priceMin}
+              onChange={(e) => setFilter('priceMin', e.target.value)}
+              className="field mt-1"
+              placeholder={filterOptions.minPrice ? String(Math.floor(filterOptions.minPrice)) : '0'}
+            />
+          </label>
+          <label className="block text-sm font-medium text-ocean">
+            Max price (BDT)
+            <input
+              type="number"
+              min={0}
+              value={filters.priceMax}
+              onChange={(e) => setFilter('priceMax', e.target.value)}
+              className="field mt-1"
+              placeholder={filterOptions.maxPrice ? String(Math.ceil(filterOptions.maxPrice)) : ''}
+            />
+          </label>
+        </div>
+      </section>
+
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {plans.map((p: any) => {
+        {filtered.map((p: any) => {
           const suite = suites[p.suiteId] || {};
           const isFull = (p.daysPerMonth ?? 0) >= 30;
           const discounted = typeof p.discountedPrice === 'number';
@@ -93,7 +287,9 @@ export default function InvestPage() {
                 <div className="relative h-8 w-8">
                   <Image src={suiteTypeIcon(suite.type)} alt="" fill sizes="32px" />
                 </div>
-                <span className="text-sm text-ocean/80">{suite.type ?? 'Suite'} · {humanView(suite.view)}</span>
+                <span className="text-sm text-ocean/80">
+                  {suite.type ?? 'Suite'} · {humanView(suite.view)}
+                </span>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-ocean/70">
                 <div>
@@ -115,7 +311,7 @@ export default function InvestPage() {
                 </span>
               )}
               {(() => {
-                const total = discounted ? Number(p.discountedPrice) : Number(p.price || 0);
+                const total = planTotal(p);
                 const bookingAmount = Math.round(total * 0.1);
                 return (
                   <div className="mt-5 space-y-3">
@@ -162,9 +358,11 @@ export default function InvestPage() {
             </article>
           );
         })}
-        {plans.length === 0 && !loading && (
+        {filtered.length === 0 && !loading && (
           <div className="border border-ocean/10 p-6 text-ocean/70 sm:col-span-2 lg:col-span-3">
-            No unsold plans available right now. Check back soon or contact sales.
+            {plans.length === 0
+              ? 'No unsold plans available right now. Check back soon or contact sales.'
+              : 'No plans match these filters. Try widening the price range or clearing filters.'}
           </div>
         )}
       </div>

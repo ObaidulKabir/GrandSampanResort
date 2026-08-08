@@ -366,13 +366,13 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   {suite?.type || 'Suite'} · {suite?.view || '—'}
                 </div>
                 <div className="text-sm text-ocean/70">
-                  Floor {suite?.floor ?? '—'} · {suite?.size ?? '—'} sq ft
+                  Floor {suite?.floor ?? '—'} · {suite?.size ?? '—'} sq ft · Unit {suite?.id || plan?.suiteId || '—'}
                 </div>
               </div>
             </div>
           </section>
 
-          {plan?.suiteId && <SuitePlans suiteId={plan.suiteId} />}
+          {(plan?.suiteId || suite?.id) && <SuitePlans suiteId={plan?.suiteId || suite!.id} />}
         </div>
 
         <aside className="border border-gold/40 bg-white p-6 lg:sticky lg:top-24 lg:self-start">
