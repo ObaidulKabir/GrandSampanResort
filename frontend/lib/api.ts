@@ -1,8 +1,14 @@
+function normalizeOrigin(raw: string) {
+  // Allow either "https://host" or "https://host/api" in env; we always
+  // append `/api` ourselves for JSON routes, so strip a trailing `/api`.
+  return raw.replace(/\/+$/, '').replace(/\/api$/i, '');
+}
+
 function apiOrigin() {
   if (typeof window === 'undefined') {
-    return process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    return normalizeOrigin(process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return normalizeOrigin(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
 }
 
 // The backend mounts every route behind a global `/api` prefix, while the
