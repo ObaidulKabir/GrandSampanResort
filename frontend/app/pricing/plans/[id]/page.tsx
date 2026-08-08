@@ -35,6 +35,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const hydrate = useAppStore((s) => s.hydrate);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [suite, setSuite] = useState<Suite | null>(null);
+  const [unitPlans, setUnitPlans] = useState<Plan[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(false);
   const [buying, setBuying] = useState(false);
@@ -81,13 +82,35 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       setLoading(true);
       setError('');
       try {
-        const pRes = await api(`/timeshares/${planId}`);
+        const [pRes, allPlansRes] = await Promise.all([
+          api(`/timeshares/${planId}`),
+          api('/timeshares').catch(() => [])
+        ]);
         const p = pRes?.id ? pRes : pRes?.plan || null;
         if (p) {
           setPlan(p);
+          const allPlans = Array.isArray(allPlansRes) ? allPlansRes : allPlansRes?.plans ?? [];
           if (p.suiteId) {
             const sRes = await api(`/suites/${p.suiteId}`);
             setSuite(sRes?.suite || sRes || null);
+            const available = allPlans
+              .filter(
+                (x: Plan) =>
+                  x.suiteId === p.suiteId &&
+                  (x.planStatus || 'Unsold').toLowerCase() === 'unsold'
+              )
+              .sort(
+                (a: Plan, b: Plan) =>
+                  Number(a.daysPerMonth || 0) - Number(b.daysPerMonth || 0) ||
+                  String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
+              );
+            // Keep the current selection visible even if status just flipped.
+            if (!available.some((x: Plan) => x.id === p.id)) {
+              available.unshift(p);
+            }
+            setUnitPlans(available);
+          } else {
+            setUnitPlans([p]);
           }
           const rRes = await api(`/pricing/plans/${planId}`);
           setRules(Array.isArray(rRes?.rules) ? rRes.rules : []);
@@ -99,6 +122,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     }
     load();
   }, [planId]);
+
+  function selectUnitPlan(nextId: string) {
+    if (!nextId || nextId === planId) return;
+    router.push(`/pricing/plans/${encodeURIComponent(nextId)}`);
+  }
 
   async function confirmInvestment() {
     if (!plan?.suiteId) {
@@ -269,9 +297,25 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <h1 className="font-display mt-2 text-4xl text-ocean">{plan?.name || 'Plan Details'}</h1>
           <p className="mt-2 text-ocean/75">
             {plan
-              ? `${plan.daysPerMonth} days/month · ${plan.planType || 'DPM'} · Lock-in ${plan.lockIn ?? 36} months`
+              ? `${plan.daysPerMonth} days/month · ${plan.planType || 'DPM'} · Lock-in ${plan.lockIn ?? 36} months · Plan ${plan.id}`
               : 'Loading...'}
           </p>
+          {unitPlans.length > 1 && (
+            <label className="mt-4 block max-w-md text-sm font-medium text-ocean">
+              Switch plan on this unit
+              <select
+                value={planId}
+                onChange={(e) => selectUnitPlan(e.target.value)}
+                className="field mt-1"
+              >
+                {unitPlans.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.id} — {option.name || 'Plan'} ({option.daysPerMonth} days/mo)
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
           {status && <div className="mt-4 rounded-md border border-ocean/15 bg-ocean/5 p-3 text-ocean">{status}</div>}
 
@@ -336,6 +380,66 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <p className="mt-2 text-sm text-ocean/75">
             Reserves this plan, creates your schedule, and captures the 10% deposit.
           </p>
+
+          {unitPlans.length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-ocean">
+                Choose a plan for unit {plan?.suiteId || suite?.id || '—'}
+              </p>
+              <p className="mt-1 text-xs text-ocean/65">
+                Available plan IDs on this unit. Switch anytime before you confirm.
+              </p>
+              <div className="mt-3 space-y-2" role="radiogroup" aria-label="Available plans on this unit">
+                {unitPlans.map((option) => {
+                  const selected = option.id === planId;
+                  const total =
+                    typeof option.discountedPrice === 'number'
+                      ? Number(option.discountedPrice)
+                      : Number(option.price || 0);
+                  const bookingAmount = Math.round(total * 0.1);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => selectUnitPlan(option.id)}
+                      className={`w-full border px-3 py-3 text-left transition ${
+                        selected
+                          ? 'border-gold bg-gold/10'
+                          : 'border-ocean/15 bg-white hover:border-gold/60 hover:bg-gold/5'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-mono text-xs font-semibold text-ocean/70">{option.id}</div>
+                          <div className="mt-0.5 font-medium text-ocean">
+                            {option.name || option.id}
+                            <span className="text-ocean/60"> · {option.daysPerMonth} days/mo</span>
+                          </div>
+                        </div>
+                        <span
+                          className={`mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border ${
+                            selected ? 'border-gold bg-gold' : 'border-ocean/30 bg-white'
+                          }`}
+                          aria-hidden
+                        />
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                        <span className="font-semibold text-ocean">
+                          Booking {formatMoney(bookingAmount)}
+                        </span>
+                        <span className="text-ocean/70">
+                          Total <span className="font-semibold text-ocean">{formatMoney(total)}</span>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <label className="mt-5 block text-sm text-ocean">
             Contract start
             <input
