@@ -54,12 +54,27 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [tab, setTab] = useState<'payment' | 'returns'>('payment');
   const [adr, setAdr] = useState<number>(8000);
   const [occupancy, setOccupancy] = useState<number>(0.6);
-  const [costPct, setCostPct] = useState<number>(0.15);
+  const [costPct, setCostPct] = useState<number>(15);
   const [rentUpliftPct, setRentUpliftPct] = useState<number>(0);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Seed the calculator with the admin-managed assumptions (midpoints of the
+  // bounds shown on plan cards) so buyer-facing numbers stay consistent.
+  useEffect(() => {
+    api('/settings/return-assumptions')
+      .then((a) => {
+        if (!a?.adrHigh) return;
+        setAdr(Math.round((Number(a.adrLow || 0) + Number(a.adrHigh)) / 2));
+        setOccupancy(
+          Math.round(((Number(a.occupancyLowPct || 0) + Number(a.occupancyHighPct || 0)) / 2)) / 100
+        );
+        setCostPct(Number(a.operatingCostPct ?? 15));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function load() {

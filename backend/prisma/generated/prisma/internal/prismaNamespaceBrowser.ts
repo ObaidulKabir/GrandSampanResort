@@ -60,6 +60,7 @@ export const ModelName = {
   MediaAsset: 'MediaAsset',
   FaqEntry: 'FaqEntry',
   TermsParagraph: 'TermsParagraph',
+  AppSetting: 'AppSetting',
   Promotion: 'Promotion'
 } as const
 
@@ -205,6 +206,15 @@ export const TermsParagraphScalarFieldEnum = {
 export type TermsParagraphScalarFieldEnum = (typeof TermsParagraphScalarFieldEnum)[keyof typeof TermsParagraphScalarFieldEnum]
 
 
+export const AppSettingScalarFieldEnum = {
+  key: 'key',
+  value: 'value',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AppSettingScalarFieldEnum = (typeof AppSettingScalarFieldEnum)[keyof typeof AppSettingScalarFieldEnum]
+
+
 export const PromotionScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -230,6 +240,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: 'JsonNull'
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -244,4 +261,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: 'DbNull',
+  JsonNull: 'JsonNull',
+  AnyNull: 'AnyNull'
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

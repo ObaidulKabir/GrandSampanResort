@@ -112,6 +112,12 @@ model TermsParagraph {
   updatedAt DateTime @updatedAt
 }
 
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 model Promotion {
   id          String   @id
   name        String

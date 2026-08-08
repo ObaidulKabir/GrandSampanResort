@@ -5,11 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
+import { annualReturnRange, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
 
 export default function InvestPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [suites, setSuites] = useState<Record<string, any>>({});
+  const [assumptions, setAssumptions] = useState<ReturnAssumptions | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,12 +19,17 @@ export default function InvestPage() {
     setLoading(true);
     setError('');
     try {
-      const [plansJson, suitesJson] = await Promise.all([api('/timeshares'), api('/suites')]);
+      const [plansJson, suitesJson, returnsJson] = await Promise.all([
+        api('/timeshares'),
+        api('/suites'),
+        api('/settings/return-assumptions').catch(() => null)
+      ]);
       const items = Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? [];
       const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
       const byId = Object.fromEntries((suitesArr as any[]).map((s: any) => [s.id, s]));
       setSuites(byId);
       setPlans(items.filter((p: any) => (p.planStatus ?? '').toLowerCase() === 'unsold'));
+      if (returnsJson?.adrHigh) setAssumptions(returnsJson);
     } catch {
       setError('Failed to load plans');
     }
@@ -68,6 +75,7 @@ export default function InvestPage() {
           const suite = suites[p.suiteId] || {};
           const isFull = (p.daysPerMonth ?? 0) >= 30;
           const discounted = typeof p.discountedPrice === 'number';
+          const returns = annualReturnRange(p.daysPerMonth, assumptions);
           return (
             <article
               key={p.id}
@@ -113,6 +121,19 @@ export default function InvestPage() {
                 </div>
               ) : (
                 <p className="mt-5 font-display text-3xl text-ocean">{formatMoney(p.price)}</p>
+              )}
+              {returns && (
+                <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">
+                    Expected return / year
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-ocean">
+                    {formatMoney(returns.low, 0)} – {formatMoney(returns.high, 0)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-ocean/55">
+                    Projected rental income · varies with occupancy & rates
+                  </p>
+                </div>
               )}
               <div className="mt-6 flex flex-wrap gap-2">
                 <Link href={`/pricing/plans/${p.id}`}>

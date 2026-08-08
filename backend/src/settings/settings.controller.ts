@@ -19,5 +19,18 @@ export class SettingsController {
     const updated = await this.service.updateRevenueSettings(body || {});
     return { ok: true, revenuePolicy: updated };
   }
+
+  @Get('return-assumptions')
+  getReturnAssumptions() {
+    return this.service.getReturnAssumptions();
+  }
+
+  @Put('return-assumptions')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async updateReturnAssumptions(@Body() body: any) {
+    const updated = await this.service.updateReturnAssumptions(body || {});
+    return { ok: true, returnAssumptions: updated };
+  }
 }
 
