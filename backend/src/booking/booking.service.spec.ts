@@ -31,13 +31,23 @@ describe('BookingService', () => {
     const svc = new BookingService();
     const now = new Date();
     let res = await svc.book(suiteId, planId, now.toISOString(), new Date(now.getTime() + 86400000).toISOString(), 'I-1');
-    if (!res) {
-      res = await svc.book(suiteId, planId, new Date(now.getTime() + 2 * 86400000).toISOString(), new Date(now.getTime() + 3 * 86400000).toISOString(), 'I-1');
+    if (!res.ok) {
+      // Reset plan if a prior run left it booked, then retry once.
+      await plans.update(planId, { planStatus: 'Unsold' } as any);
+      res = await svc.book(
+        suiteId,
+        planId,
+        new Date(now.getTime() + 2 * 86400000).toISOString(),
+        new Date(now.getTime() + 3 * 86400000).toISOString(),
+        'I-1'
+      );
     }
-    expect(res).toBeTruthy();
-    expect(Array.isArray(res?.schedule)).toBe(true);
-    expect((res as any).schedule.length).toBeGreaterThan(2);
-    const types = (res!.schedule ?? []).map((s) => s.type);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.booking.planId).toBe(planId);
+    expect(Array.isArray(res.booking.schedule)).toBe(true);
+    expect(res.booking.schedule!.length).toBeGreaterThan(2);
+    const types = res.booking.schedule!.map((s) => s.type);
     expect(types).toContain('deposit');
     expect(types).toContain('downpayment');
     expect(types).toContain('installment');

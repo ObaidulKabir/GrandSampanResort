@@ -277,8 +277,12 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
       if (json?.ok) {
         setNotice(`Plan ${id} removed.`);
         await load();
+      } else if (json?.error === 'has_bookings') {
+        setError(
+          `Plan ${id} cannot be deleted because it has ${json.bookingCount || 'linked'} booking(s). Each investment booking stays tied to its planId.`
+        );
       } else {
-        setError('Failed to delete plan');
+        setError(json?.error || 'Failed to delete plan');
       }
     } catch {
       setError('Failed to delete plan');

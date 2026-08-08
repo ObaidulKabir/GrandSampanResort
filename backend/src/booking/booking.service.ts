@@ -127,6 +127,10 @@ export class BookingService {
     return { available: !conflict };
   }
 
+  /**
+   * Create a booking. Investment purchases MUST pass planId (FK to SharePlan).
+   * Guest stay bookings omit planId.
+   */
   async book(
     suiteId: string,
     planId: string | undefined,
@@ -134,20 +138,30 @@ export class BookingService {
     end: string,
     investorId?: string,
   ) {
-    const lockKey = planId ? `plan:${planId}` : `stay:${suiteId}`;
-    if (this.locks.has(lockKey)) return null;
+    const normalizedPlanId = planId?.trim() || undefined;
+    const lockKey = normalizedPlanId
+      ? `plan:${normalizedPlanId}`
+      : `stay:${suiteId}`;
+    if (this.locks.has(lockKey)) {
+      return { ok: false as const, error: 'busy' };
+    }
     this.locks.add(lockKey);
     try {
       const suite = await this.suites.get(suiteId);
-      if (!suite) return null;
+      if (!suite) return { ok: false as const, error: 'suite_not_found' };
 
-      if (planId) {
-        const plan = await this.timeshares.get(planId);
-        if (!plan) return null;
+      if (normalizedPlanId) {
+        const plan = await this.timeshares.get(normalizedPlanId);
+        if (!plan) return { ok: false as const, error: 'plan_not_found' };
+        if (plan.suiteId && plan.suiteId !== suiteId) {
+          return { ok: false as const, error: 'plan_suite_mismatch' };
+        }
         const planStatus = String(
-          (plan as any).planStatus || "Unsold",
+          (plan as any).planStatus || 'Unsold',
         ).toLowerCase();
-        if (planStatus !== "unsold") return null;
+        if (planStatus !== 'unsold') {
+          return { ok: false as const, error: 'plan_not_available' };
+        }
         // Re-validate any live promotion server-side; never trust client-sent prices.
         const discount = await this.promotions.discountForPlan(
           plan,
@@ -158,19 +172,19 @@ export class BookingService {
           total,
           new Date(start),
           plan.lockIn || 36,
-          "monthly",
+          'monthly',
         );
         const b: Booking = {
-          id: "B-" + Math.random().toString(36).slice(2, 8),
+          id: 'B-' + Math.random().toString(36).slice(2, 8),
           suiteId,
-          planId,
+          planId: normalizedPlanId,
           investorId,
           start,
           end,
-          status: "pending",
+          status: 'pending',
           amountTotal: total,
           schedule,
-          currency: "BDT",
+          currency: 'BDT',
         };
         if (this.prisma) {
           await this.prisma.$transaction([
@@ -198,19 +212,21 @@ export class BookingService {
               })),
             }),
             this.prisma.sharePlan.update({
-              where: { id: planId },
-              data: { planStatus: "Booked" },
+              where: { id: normalizedPlanId },
+              data: { planStatus: 'Booked' },
             }),
           ]);
-          return b;
+          return { ok: true as const, booking: b };
         }
         const created = await this.repo.create(b);
-        await this.timeshares.update(planId, { planStatus: "Booked" } as any);
-        return created;
+        await this.timeshares.update(normalizedPlanId, {
+          planStatus: 'Booked',
+        } as any);
+        return { ok: true as const, booking: created };
       }
 
       const av = await this.availability(suiteId, start, end);
-      if (!av.available) return null;
+      if (!av.available) return { ok: false as const, error: 'conflict' };
       const nights = Math.max(
         1,
         Math.ceil(
@@ -225,25 +241,26 @@ export class BookingService {
       const total = nights * nightly;
       const schedule: PaymentScheduleItem[] = [
         {
-          id: "PS-" + Math.random().toString(36).slice(2, 8),
-          bookingId: "tmp",
-          type: "deposit",
+          id: 'PS-' + Math.random().toString(36).slice(2, 8),
+          bookingId: 'tmp',
+          type: 'deposit',
           dueDate: new Date(start).toISOString(),
           amount: total,
-          status: "due",
-          currency: "BDT",
+          status: 'due',
+          currency: 'BDT',
         },
       ];
       const b: Booking = {
-        id: "B-" + Math.random().toString(36).slice(2, 8),
+        id: 'B-' + Math.random().toString(36).slice(2, 8),
         suiteId,
+        planId: undefined,
         investorId,
         start,
         end,
-        status: "pending",
+        status: 'pending',
         amountTotal: total,
         schedule,
-        currency: "BDT",
+        currency: 'BDT',
       };
       if (this.prisma) {
         await this.prisma.$transaction([
@@ -271,9 +288,9 @@ export class BookingService {
             })),
           }),
         ]);
-        return b;
+        return { ok: true as const, booking: b };
       }
-      return this.repo.create(b);
+      return { ok: true as const, booking: await this.repo.create(b) };
     } finally {
       this.locks.delete(lockKey);
     }

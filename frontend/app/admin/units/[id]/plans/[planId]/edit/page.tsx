@@ -68,69 +68,36 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
         setSaving(false);
         return;
       }
-      if (targetId !== planId) {
-        const existsJson = await api(`/timeshares/${targetId}`);
-        if (existsJson && (existsJson.plan || existsJson.id)) {
-          setError('Plan ID already exists');
-          setSaving(false);
-          return;
-        }
-        const createJson = await api(`/timeshares`, {
-          method: 'POST',
-          body: JSON.stringify({
-            id: targetId,
-            name: form.name,
-            daysPerMonth: Number(form.daysPerMonth),
-            price: Number(form.price),
-            currency: 'BDT',
-            suiteId: suiteId,
-            planType: form.planType ?? 'DPM',
-            planStatus: form.planStatus ?? 'Unsold',
-            timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
-          })
-        });
-        if (!createJson?.ok) {
-          const code = createJson?.error;
-          const left = createJson?.remainingDays;
-          setError(
-            code === 'unit_capacity_full' || code === 'full_ownership_locked'
-              ? 'This unit already uses the full 30 days/month; further plans cannot be created.'
-              : code === 'exceeds_month_capacity' || code === 'full_requires_empty_suite'
-                ? `This plan would exceed the unit’s 30 days/month${typeof left === 'number' ? ` (only ${left} left)` : ''}.`
-                : code || 'Failed to create with new ID'
-          );
-          setSaving(false);
-          return;
-        }
-        await api(`/timeshares/${planId}`, {
-          method: 'DELETE'
-        });
-        setResult({ ok: true, plan: createJson.plan });
-        router.replace(`/admin/units/${suiteId}/plans/${targetId}/edit`);
-      } else {
-        const json = await api(`/timeshares/${planId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            name: form.name,
-            daysPerMonth: Number(form.daysPerMonth),
-            price: Number(form.price),
-            planType: form.planType,
-            planStatus: form.planStatus,
-            timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
-          })
-        });
-        if (!json?.ok) {
-          const code = json?.error;
-          const left = json?.remainingDays;
-          setError(
-            code === 'unit_capacity_full' || code === 'full_ownership_locked'
+      const json = await api(`/timeshares/${planId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          id: targetId,
+          name: form.name,
+          daysPerMonth: Number(form.daysPerMonth),
+          price: Number(form.price),
+          planType: form.planType,
+          planStatus: form.planStatus,
+          timeFraction: typeof form.timeFraction === 'number' ? form.timeFraction : undefined
+        })
+      });
+      if (!json?.ok) {
+        const code = json?.error;
+        const left = json?.remainingDays;
+        setError(
+          code === 'conflict'
+            ? 'Plan ID already exists'
+            : code === 'unit_capacity_full' || code === 'full_ownership_locked'
               ? 'This unit already uses the full 30 days/month.'
               : code === 'exceeds_month_capacity' || code === 'full_requires_empty_suite'
                 ? `Updated days would exceed the unit’s 30 days/month${typeof left === 'number' ? ` (only ${left} left for other plans)` : ''}.`
                 : code || 'Failed to save plan'
-          );
-        }
-        setResult(json);
+        );
+        setSaving(false);
+        return;
+      }
+      setResult(json);
+      if (targetId !== planId) {
+        router.replace(`/admin/units/${suiteId}/plans/${targetId}/edit`);
       }
     } catch {
       setError('Failed to save plan');
@@ -142,12 +109,23 @@ export default function AdminEditPlanPage({ params }: { params: { id: string; pl
 
   async function deleteCurrent() {
     setError('');
-    const ok = typeof window !== 'undefined' ? window.confirm('Delete this plan?') : true;
+    const ok =
+      typeof window !== 'undefined'
+        ? window.confirm('Delete this plan? Plans with existing investment bookings cannot be deleted.')
+        : true;
     if (!ok) return;
     try {
-      await api(`/timeshares/${planId}`, {
+      const json = await api(`/timeshares/${planId}`, {
         method: 'DELETE'
       });
+      if (!json?.ok) {
+        setError(
+          json?.error === 'has_bookings'
+            ? `Cannot delete — ${json.bookingCount || 'one or more'} booking(s) are linked to this planId.`
+            : json?.error || 'Failed to delete plan'
+        );
+        return;
+      }
       router.replace(`/admin/units/${suiteId}/plans`);
     } catch {
       setError('Failed to delete plan');

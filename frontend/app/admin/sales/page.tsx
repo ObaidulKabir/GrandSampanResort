@@ -268,7 +268,16 @@ export default function AdminSalesPage() {
                         '—'
                       )}
                     </td>
-                    <td className="p-3">{s.plan?.name || s.booking.planId || '—'}</td>
+                    <td className="p-3">
+                      {s.booking.planId ? (
+                        <div>
+                          <div>{s.plan?.name || s.booking.planId}</div>
+                          <div className="font-mono text-xs text-ocean/60">{s.booking.planId}</div>
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="p-3 font-mono text-xs">{s.booking.investorId || '—'}</td>
                     <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
                     <td className="p-3 capitalize">{s.booking.status}</td>

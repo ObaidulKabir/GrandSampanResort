@@ -269,6 +269,7 @@ export type SharePlanWhereInput = {
   planType?: Prisma.StringNullableFilter<"SharePlan"> | string | null
   timeFraction?: Prisma.FloatNullableFilter<"SharePlan"> | number | null
   suite?: Prisma.XOR<Prisma.SuiteNullableScalarRelationFilter, Prisma.SuiteWhereInput> | null
+  bookings?: Prisma.BookingListRelationFilter
 }
 
 export type SharePlanOrderByWithRelationInput = {
@@ -283,6 +284,7 @@ export type SharePlanOrderByWithRelationInput = {
   planType?: Prisma.SortOrderInput | Prisma.SortOrder
   timeFraction?: Prisma.SortOrderInput | Prisma.SortOrder
   suite?: Prisma.SuiteOrderByWithRelationInput
+  bookings?: Prisma.BookingOrderByRelationAggregateInput
 }
 
 export type SharePlanWhereUniqueInput = Prisma.AtLeast<{
@@ -300,6 +302,7 @@ export type SharePlanWhereUniqueInput = Prisma.AtLeast<{
   planType?: Prisma.StringNullableFilter<"SharePlan"> | string | null
   timeFraction?: Prisma.FloatNullableFilter<"SharePlan"> | number | null
   suite?: Prisma.XOR<Prisma.SuiteNullableScalarRelationFilter, Prisma.SuiteWhereInput> | null
+  bookings?: Prisma.BookingListRelationFilter
 }, "id">
 
 export type SharePlanOrderByWithAggregationInput = {
@@ -347,6 +350,7 @@ export type SharePlanCreateInput = {
   planType?: string | null
   timeFraction?: number | null
   suite?: Prisma.SuiteCreateNestedOneWithoutPlansInput
+  bookings?: Prisma.BookingCreateNestedManyWithoutPlanInput
 }
 
 export type SharePlanUncheckedCreateInput = {
@@ -360,6 +364,7 @@ export type SharePlanUncheckedCreateInput = {
   planStatus?: string | null
   planType?: string | null
   timeFraction?: number | null
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutPlanInput
 }
 
 export type SharePlanUpdateInput = {
@@ -373,6 +378,7 @@ export type SharePlanUpdateInput = {
   planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   suite?: Prisma.SuiteUpdateOneWithoutPlansNestedInput
+  bookings?: Prisma.BookingUpdateManyWithoutPlanNestedInput
 }
 
 export type SharePlanUncheckedUpdateInput = {
@@ -386,6 +392,7 @@ export type SharePlanUncheckedUpdateInput = {
   planStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutPlanNestedInput
 }
 
 export type SharePlanCreateManyInput = {
@@ -489,6 +496,11 @@ export type SharePlanSumOrderByAggregateInput = {
   timeFraction?: Prisma.SortOrder
 }
 
+export type SharePlanNullableScalarRelationFilter = {
+  is?: Prisma.SharePlanWhereInput | null
+  isNot?: Prisma.SharePlanWhereInput | null
+}
+
 export type SharePlanCreateNestedManyWithoutSuiteInput = {
   create?: Prisma.XOR<Prisma.SharePlanCreateWithoutSuiteInput, Prisma.SharePlanUncheckedCreateWithoutSuiteInput> | Prisma.SharePlanCreateWithoutSuiteInput[] | Prisma.SharePlanUncheckedCreateWithoutSuiteInput[]
   connectOrCreate?: Prisma.SharePlanCreateOrConnectWithoutSuiteInput | Prisma.SharePlanCreateOrConnectWithoutSuiteInput[]
@@ -539,6 +551,22 @@ export type NullableFloatFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type SharePlanCreateNestedOneWithoutBookingsInput = {
+  create?: Prisma.XOR<Prisma.SharePlanCreateWithoutBookingsInput, Prisma.SharePlanUncheckedCreateWithoutBookingsInput>
+  connectOrCreate?: Prisma.SharePlanCreateOrConnectWithoutBookingsInput
+  connect?: Prisma.SharePlanWhereUniqueInput
+}
+
+export type SharePlanUpdateOneWithoutBookingsNestedInput = {
+  create?: Prisma.XOR<Prisma.SharePlanCreateWithoutBookingsInput, Prisma.SharePlanUncheckedCreateWithoutBookingsInput>
+  connectOrCreate?: Prisma.SharePlanCreateOrConnectWithoutBookingsInput
+  upsert?: Prisma.SharePlanUpsertWithoutBookingsInput
+  disconnect?: Prisma.SharePlanWhereInput | boolean
+  delete?: Prisma.SharePlanWhereInput | boolean
+  connect?: Prisma.SharePlanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SharePlanUpdateToOneWithWhereWithoutBookingsInput, Prisma.SharePlanUpdateWithoutBookingsInput>, Prisma.SharePlanUncheckedUpdateWithoutBookingsInput>
+}
+
 export type SharePlanCreateWithoutSuiteInput = {
   id: string
   name: string
@@ -549,6 +577,7 @@ export type SharePlanCreateWithoutSuiteInput = {
   planStatus?: string | null
   planType?: string | null
   timeFraction?: number | null
+  bookings?: Prisma.BookingCreateNestedManyWithoutPlanInput
 }
 
 export type SharePlanUncheckedCreateWithoutSuiteInput = {
@@ -561,6 +590,7 @@ export type SharePlanUncheckedCreateWithoutSuiteInput = {
   planStatus?: string | null
   planType?: string | null
   timeFraction?: number | null
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutPlanInput
 }
 
 export type SharePlanCreateOrConnectWithoutSuiteInput = {
@@ -605,6 +635,74 @@ export type SharePlanScalarWhereInput = {
   timeFraction?: Prisma.FloatNullableFilter<"SharePlan"> | number | null
 }
 
+export type SharePlanCreateWithoutBookingsInput = {
+  id: string
+  name: string
+  daysPerMonth: number
+  lockIn: number
+  price: number
+  currency?: string | null
+  planStatus?: string | null
+  planType?: string | null
+  timeFraction?: number | null
+  suite?: Prisma.SuiteCreateNestedOneWithoutPlansInput
+}
+
+export type SharePlanUncheckedCreateWithoutBookingsInput = {
+  id: string
+  name: string
+  daysPerMonth: number
+  lockIn: number
+  price: number
+  currency?: string | null
+  suiteId?: string | null
+  planStatus?: string | null
+  planType?: string | null
+  timeFraction?: number | null
+}
+
+export type SharePlanCreateOrConnectWithoutBookingsInput = {
+  where: Prisma.SharePlanWhereUniqueInput
+  create: Prisma.XOR<Prisma.SharePlanCreateWithoutBookingsInput, Prisma.SharePlanUncheckedCreateWithoutBookingsInput>
+}
+
+export type SharePlanUpsertWithoutBookingsInput = {
+  update: Prisma.XOR<Prisma.SharePlanUpdateWithoutBookingsInput, Prisma.SharePlanUncheckedUpdateWithoutBookingsInput>
+  create: Prisma.XOR<Prisma.SharePlanCreateWithoutBookingsInput, Prisma.SharePlanUncheckedCreateWithoutBookingsInput>
+  where?: Prisma.SharePlanWhereInput
+}
+
+export type SharePlanUpdateToOneWithWhereWithoutBookingsInput = {
+  where?: Prisma.SharePlanWhereInput
+  data: Prisma.XOR<Prisma.SharePlanUpdateWithoutBookingsInput, Prisma.SharePlanUncheckedUpdateWithoutBookingsInput>
+}
+
+export type SharePlanUpdateWithoutBookingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  daysPerMonth?: Prisma.IntFieldUpdateOperationsInput | number
+  lockIn?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.IntFieldUpdateOperationsInput | number
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  planStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  suite?: Prisma.SuiteUpdateOneWithoutPlansNestedInput
+}
+
+export type SharePlanUncheckedUpdateWithoutBookingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  daysPerMonth?: Prisma.IntFieldUpdateOperationsInput | number
+  lockIn?: Prisma.IntFieldUpdateOperationsInput | number
+  price?: Prisma.IntFieldUpdateOperationsInput | number
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suiteId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  planStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+}
+
 export type SharePlanCreateManySuiteInput = {
   id: string
   name: string
@@ -627,6 +725,7 @@ export type SharePlanUpdateWithoutSuiteInput = {
   planStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bookings?: Prisma.BookingUpdateManyWithoutPlanNestedInput
 }
 
 export type SharePlanUncheckedUpdateWithoutSuiteInput = {
@@ -639,6 +738,7 @@ export type SharePlanUncheckedUpdateWithoutSuiteInput = {
   planStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   planType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timeFraction?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutPlanNestedInput
 }
 
 export type SharePlanUncheckedUpdateManyWithoutSuiteInput = {
@@ -654,6 +754,35 @@ export type SharePlanUncheckedUpdateManyWithoutSuiteInput = {
 }
 
 
+/**
+ * Count Type SharePlanCountOutputType
+ */
+
+export type SharePlanCountOutputType = {
+  bookings: number
+}
+
+export type SharePlanCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  bookings?: boolean | SharePlanCountOutputTypeCountBookingsArgs
+}
+
+/**
+ * SharePlanCountOutputType without action
+ */
+export type SharePlanCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SharePlanCountOutputType
+   */
+  select?: Prisma.SharePlanCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * SharePlanCountOutputType without action
+ */
+export type SharePlanCountOutputTypeCountBookingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BookingWhereInput
+}
+
 
 export type SharePlanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -667,6 +796,8 @@ export type SharePlanSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   planType?: boolean
   timeFraction?: boolean
   suite?: boolean | Prisma.SharePlan$suiteArgs<ExtArgs>
+  bookings?: boolean | Prisma.SharePlan$bookingsArgs<ExtArgs>
+  _count?: boolean | Prisma.SharePlanCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sharePlan"]>
 
 export type SharePlanSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -713,6 +844,8 @@ export type SharePlanSelectScalar = {
 export type SharePlanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "daysPerMonth" | "lockIn" | "price" | "currency" | "suiteId" | "planStatus" | "planType" | "timeFraction", ExtArgs["result"]["sharePlan"]>
 export type SharePlanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   suite?: boolean | Prisma.SharePlan$suiteArgs<ExtArgs>
+  bookings?: boolean | Prisma.SharePlan$bookingsArgs<ExtArgs>
+  _count?: boolean | Prisma.SharePlanCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type SharePlanIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   suite?: boolean | Prisma.SharePlan$suiteArgs<ExtArgs>
@@ -725,6 +858,7 @@ export type $SharePlanPayload<ExtArgs extends runtime.Types.Extensions.InternalA
   name: "SharePlan"
   objects: {
     suite: Prisma.$SuitePayload<ExtArgs> | null
+    bookings: Prisma.$BookingPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1132,6 +1266,7 @@ readonly fields: SharePlanFieldRefs;
 export interface Prisma__SharePlanClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   suite<T extends Prisma.SharePlan$suiteArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SharePlan$suiteArgs<ExtArgs>>): Prisma.Prisma__SuiteClient<runtime.Types.Result.GetResult<Prisma.$SuitePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  bookings<T extends Prisma.SharePlan$bookingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.SharePlan$bookingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1583,6 +1718,30 @@ export type SharePlan$suiteArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   include?: Prisma.SuiteInclude<ExtArgs> | null
   where?: Prisma.SuiteWhereInput
+}
+
+/**
+ * SharePlan.bookings
+ */
+export type SharePlan$bookingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Booking
+   */
+  select?: Prisma.BookingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Booking
+   */
+  omit?: Prisma.BookingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BookingInclude<ExtArgs> | null
+  where?: Prisma.BookingWhereInput
+  orderBy?: Prisma.BookingOrderByWithRelationInput | Prisma.BookingOrderByWithRelationInput[]
+  cursor?: Prisma.BookingWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BookingScalarFieldEnum | Prisma.BookingScalarFieldEnum[]
 }
 
 /**

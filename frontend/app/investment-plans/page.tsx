@@ -62,7 +62,30 @@ export default function InvestmentPlansPage() {
               <p className="mt-2 text-sm text-ocean/70">
                 {p.suiteId || '—'} · {suite.type || '—'} · {suite.view || '—'}
               </p>
-              <p className="mt-5 font-display text-3xl text-ocean">{formatMoney(p.price)}</p>
+              {(() => {
+                const total = typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
+                const bookingAmount = Math.round(total * 0.1);
+                return (
+                  <div className="mt-5 space-y-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">Total price</p>
+                      {typeof p.discountedPrice === 'number' && (
+                        <p className="text-sm text-ocean/50 line-through">{formatMoney(p.price)}</p>
+                      )}
+                      <p className="font-display text-2xl font-semibold text-ocean">{formatMoney(total)}</p>
+                    </div>
+                    <div className="border border-gold/50 bg-gold/10 px-3 py-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</p>
+                      <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
+                        {formatMoney(bookingAmount)}
+                      </p>
+                      <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                        Pay only 10% today to reserve this plan
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
               {returns && (
                 <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">

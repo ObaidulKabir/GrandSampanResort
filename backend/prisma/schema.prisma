@@ -32,6 +32,7 @@ model SharePlan {
   planType     String?
   timeFraction Float?
   suite        Suite?  @relation(fields: [suiteId], references: [id])
+  bookings     Booking[]
 }
 
 model Booking {
@@ -44,6 +45,8 @@ model Booking {
   status      String
   amountTotal Int?
   schedule    PaymentScheduleItem[]
+  /// Investment purchases link to a share plan; guest stays leave this null.
+  plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 }
 
 model PaymentScheduleItem {

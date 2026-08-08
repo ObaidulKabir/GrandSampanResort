@@ -122,13 +122,17 @@ export class TimesharesService {
     const created = await this.repo.create(normalized);
     return { ok: true as const, plan: this.withFraction(created) };
   }
-  async update(id: string, item: Partial<SharePlan>) {
+  async update(id: string, item: Partial<SharePlan> & { id?: string }) {
     const current = await this.get(id);
     if (!current) return { ok: false as const, error: 'not_found' };
+
+    const nextId = (item.id !== undefined ? String(item.id).trim() : id) || id;
+    if (!nextId) return { ok: false as const, error: 'missing_id' };
 
     const merged = this.normalizeFullBleedFields({
       ...current,
       ...item,
+      id: nextId,
       planType: item.planType !== undefined ? item.planType : current.planType,
       daysPerMonth: item.daysPerMonth !== undefined ? item.daysPerMonth : current.daysPerMonth
     });
@@ -136,6 +140,10 @@ export class TimesharesService {
     const gate = await this.assertSuitePlanRules(suiteId, merged as SharePlan, id);
     if (!gate.ok) {
       return { ok: false as const, error: gate.error, remainingDays: gate.remainingDays };
+    }
+
+    if (nextId !== id) {
+      return this.rename(id, nextId, merged as SharePlan);
     }
 
     if (this.prisma) {
@@ -167,12 +175,57 @@ export class TimesharesService {
       ? { ok: true as const, plan: this.withFraction(updated) }
       : { ok: false as const, error: 'not_found' };
   }
+
+  /** Rename plan PK and re-point every booking that references it. */
+  private async rename(fromId: string, toId: string, merged: SharePlan) {
+    if (this.prisma) {
+      const clash = await this.prisma.sharePlan.findUnique({ where: { id: toId } });
+      if (clash) return { ok: false as const, error: 'conflict' };
+      const plan = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.sharePlan.create({
+          data: {
+            id: toId,
+            name: merged.name,
+            daysPerMonth: merged.daysPerMonth,
+            lockIn: merged.lockIn,
+            price: merged.price,
+            currency: merged.currency ?? null,
+            suiteId: merged.suiteId ?? null,
+            planStatus: merged.planStatus ?? null,
+            planType: merged.planType ?? null,
+            timeFraction: merged.timeFraction ?? null
+          }
+        });
+        await tx.booking.updateMany({ where: { planId: fromId }, data: { planId: toId } });
+        await tx.sharePlan.delete({ where: { id: fromId } });
+        return created;
+      });
+      return { ok: true as const, plan: this.withFraction(plan as any), renamedFrom: fromId };
+    }
+    if (await this.repo.findById(toId)) return { ok: false as const, error: 'conflict' };
+    await this.repo.create({ ...merged, id: toId });
+    await this.repo.delete(fromId);
+    const plan = await this.repo.findById(toId);
+    return plan
+      ? { ok: true as const, plan: this.withFraction(plan), renamedFrom: fromId }
+      : { ok: false as const, error: 'not_found' };
+  }
+
   async remove(id: string) {
     if (this.prisma) {
-      await this.prisma.sharePlan.delete({ where: { id } });
-      return true;
+      const bookingCount = await this.prisma.booking.count({ where: { planId: id } });
+      if (bookingCount > 0) {
+        return { ok: false as const, error: 'has_bookings', bookingCount };
+      }
+      try {
+        await this.prisma.sharePlan.delete({ where: { id } });
+        return { ok: true as const };
+      } catch {
+        return { ok: false as const, error: 'not_found' };
+      }
     }
-    return this.repo.delete(id);
+    const ok = await this.repo.delete(id);
+    return ok ? { ok: true as const } : { ok: false as const, error: 'not_found' };
   }
   cleanupBlank() {
     return this.repo.deleteBlankId();

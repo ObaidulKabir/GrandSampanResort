@@ -33,6 +33,9 @@ export class CreateSharePlanDto {
 export class UpdateSharePlanDto {
   @IsOptional()
   @IsString()
+  id?: string;
+  @IsOptional()
+  @IsString()
   name?: string;
   @IsOptional()
   @IsInt()

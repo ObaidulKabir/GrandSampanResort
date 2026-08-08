@@ -63,8 +63,7 @@ export class TimesharesController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async remove(@Param('id') id: string) {
-    const ok = await this.service.remove(id);
-    return { ok };
+    return this.service.remove(id);
   }
 
   @Delete('admin/blank')

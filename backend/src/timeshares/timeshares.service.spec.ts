@@ -53,7 +53,7 @@ describe('TimesharesService', () => {
     expect(updated.ok).toBe(true);
     expect((updated as any)?.plan?.price).toBe(51000);
     const removed = await svc.remove(planId);
-    expect(removed).toBe(true);
+    expect(removed.ok).toBe(true);
   });
 
   it('allows multiple DPM plans until combined days reach 30', async () => {

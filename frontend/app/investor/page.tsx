@@ -215,6 +215,7 @@ export default function InvestorPage() {
                       <div className="text-sm text-ocean/70">
                         {h.suite?.type} · {h.suite?.view}
                         {h.plan?.daysPerMonth ? ` · ${h.plan.daysPerMonth} days/mo` : ''}
+                        {h.booking.planId ? ` · Plan ${h.booking.planId}` : ''}
                       </div>
                     </div>
                   </div>

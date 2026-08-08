@@ -131,7 +131,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         })
       });
       if (!res?.ok || !res.booking?.id) {
-        setStatus(res?.error === 'conflict' ? 'Plan already sold or unavailable' : 'Purchase failed');
+        const msg =
+          res?.error === 'plan_not_available' || res?.error === 'conflict'
+            ? 'Plan already sold or unavailable'
+            : res?.error === 'plan_not_found'
+              ? 'Plan not found'
+              : res?.error === 'plan_suite_mismatch'
+                ? 'This plan is not linked to the selected unit'
+                : res?.error === 'suite_not_found'
+                  ? 'Unit not found'
+                  : 'Purchase failed';
+        setStatus(msg);
         setBuying(false);
         return;
       }
@@ -272,20 +282,26 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </div>
           )}
 
-          <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div className="border border-ocean/10 bg-white p-4">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Price</div>
+          <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="border border-ocean/15 bg-white p-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-ocean/60">Total price</div>
               {discounted ? (
                 <>
                   <div className="text-sm text-ocean/50 line-through">{formatMoney(plan?.price || 0)}</div>
-                  <div className="font-display text-xl text-ocean">{formatMoney(effectivePrice)}</div>
+                  <div className="font-display text-2xl font-semibold text-ocean">{formatMoney(effectivePrice)}</div>
                 </>
               ) : (
-                <div className="mt-1 font-display text-xl text-ocean">{formatMoney(plan?.price || 0)}</div>
+                <div className="mt-1 font-display text-2xl font-semibold text-ocean">
+                  {formatMoney(plan?.price || 0)}
+                </div>
               )}
             </div>
+            <div className="border border-gold/50 bg-gold/10 p-4 sm:col-span-1">
+              <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</div>
+              <div className="font-display mt-1 text-3xl font-bold text-ocean">{formatMoney(depositPreview)}</div>
+              <p className="mt-1 text-[11px] font-medium text-ocean/65">Pay only 10% today to reserve</p>
+            </div>
             {[
-              ['Deposit due', formatMoney(depositPreview)],
               ['Entitlement', `${plan?.daysPerMonth || 0} days/mo`],
               ['Suite', suite?.id || plan?.suiteId || '—']
             ].map(([label, value]) => (
@@ -331,8 +347,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           </label>
           <div className="mt-4 border-t border-ocean/10 pt-4 text-sm text-ocean/80">
             <div className="flex justify-between">
-              <span>Plan price</span>
-              <span className={discounted ? 'line-through text-ocean/50' : ''}>
+              <span>Total price</span>
+              <span className={discounted ? 'line-through text-ocean/50' : 'font-semibold text-ocean'}>
                 {formatMoney(plan?.price || 0)}
               </span>
             </div>
@@ -347,14 +363,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </div>
             )}
             {discounted && (
-              <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2 font-semibold text-ocean">
-                <span>Offer price</span>
-                <span>{formatMoney(effectivePrice)}</span>
+              <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2">
+                <span className="font-semibold text-ocean">Offer price</span>
+                <span className="font-semibold text-ocean">{formatMoney(effectivePrice)}</span>
               </div>
             )}
-            <div className="mt-2 flex justify-between font-semibold text-ocean">
-              <span>Deposit today</span>
-              <span>{formatMoney(depositPreview)}</span>
+            <div className="mt-3 border border-gold/50 bg-gold/10 px-3 py-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</span>
+                <span className="font-display text-2xl font-bold text-ocean">{formatMoney(depositPreview)}</span>
+              </div>
+              <p className="mt-1 text-[11px] font-medium text-ocean/65">Pay only 10% today to reserve this plan</p>
             </div>
           </div>
           <Button
