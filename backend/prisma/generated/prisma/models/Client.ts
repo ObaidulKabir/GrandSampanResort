@@ -246,6 +246,7 @@ export type ClientWhereInput = {
   nomineeName?: Prisma.StringFilter<"Client"> | string
   nomineeNid?: Prisma.StringFilter<"Client"> | string
   nomineePicUrl?: Prisma.StringFilter<"Client"> | string
+  bookings?: Prisma.BookingListRelationFilter
 }
 
 export type ClientOrderByWithRelationInput = {
@@ -262,6 +263,7 @@ export type ClientOrderByWithRelationInput = {
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
+  bookings?: Prisma.BookingOrderByRelationAggregateInput
 }
 
 export type ClientWhereUniqueInput = Prisma.AtLeast<{
@@ -281,6 +283,7 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   nomineeName?: Prisma.StringFilter<"Client"> | string
   nomineeNid?: Prisma.StringFilter<"Client"> | string
   nomineePicUrl?: Prisma.StringFilter<"Client"> | string
+  bookings?: Prisma.BookingListRelationFilter
 }, "id">
 
 export type ClientOrderByWithAggregationInput = {
@@ -335,6 +338,7 @@ export type ClientCreateInput = {
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
+  bookings?: Prisma.BookingCreateNestedManyWithoutClientInput
 }
 
 export type ClientUncheckedCreateInput = {
@@ -351,6 +355,7 @@ export type ClientUncheckedCreateInput = {
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
+  bookings?: Prisma.BookingUncheckedCreateNestedManyWithoutClientInput
 }
 
 export type ClientUpdateInput = {
@@ -367,6 +372,7 @@ export type ClientUpdateInput = {
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  bookings?: Prisma.BookingUpdateManyWithoutClientNestedInput
 }
 
 export type ClientUncheckedUpdateInput = {
@@ -383,6 +389,7 @@ export type ClientUncheckedUpdateInput = {
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  bookings?: Prisma.BookingUncheckedUpdateManyWithoutClientNestedInput
 }
 
 export type ClientCreateManyInput = {
@@ -433,6 +440,11 @@ export type ClientUncheckedUpdateManyInput = {
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
+export type ClientNullableScalarRelationFilter = {
+  is?: Prisma.ClientWhereInput | null
+  isNot?: Prisma.ClientWhereInput | null
+}
+
 export type ClientCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
@@ -481,6 +493,131 @@ export type ClientMinOrderByAggregateInput = {
   nomineePicUrl?: Prisma.SortOrder
 }
 
+export type ClientCreateNestedOneWithoutBookingsInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutBookingsInput, Prisma.ClientUncheckedCreateWithoutBookingsInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutBookingsInput
+  connect?: Prisma.ClientWhereUniqueInput
+}
+
+export type ClientUpdateOneWithoutBookingsNestedInput = {
+  create?: Prisma.XOR<Prisma.ClientCreateWithoutBookingsInput, Prisma.ClientUncheckedCreateWithoutBookingsInput>
+  connectOrCreate?: Prisma.ClientCreateOrConnectWithoutBookingsInput
+  upsert?: Prisma.ClientUpsertWithoutBookingsInput
+  disconnect?: Prisma.ClientWhereInput | boolean
+  delete?: Prisma.ClientWhereInput | boolean
+  connect?: Prisma.ClientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ClientUpdateToOneWithWhereWithoutBookingsInput, Prisma.ClientUpdateWithoutBookingsInput>, Prisma.ClientUncheckedUpdateWithoutBookingsInput>
+}
+
+export type ClientCreateWithoutBookingsInput = {
+  id: string
+  name: string
+  fatherName: string
+  nid: string
+  dob: string
+  address: string
+  permanentAddress: string
+  contact: string
+  email: string
+  picUrl: string
+  nomineeName: string
+  nomineeNid: string
+  nomineePicUrl: string
+}
+
+export type ClientUncheckedCreateWithoutBookingsInput = {
+  id: string
+  name: string
+  fatherName: string
+  nid: string
+  dob: string
+  address: string
+  permanentAddress: string
+  contact: string
+  email: string
+  picUrl: string
+  nomineeName: string
+  nomineeNid: string
+  nomineePicUrl: string
+}
+
+export type ClientCreateOrConnectWithoutBookingsInput = {
+  where: Prisma.ClientWhereUniqueInput
+  create: Prisma.XOR<Prisma.ClientCreateWithoutBookingsInput, Prisma.ClientUncheckedCreateWithoutBookingsInput>
+}
+
+export type ClientUpsertWithoutBookingsInput = {
+  update: Prisma.XOR<Prisma.ClientUpdateWithoutBookingsInput, Prisma.ClientUncheckedUpdateWithoutBookingsInput>
+  create: Prisma.XOR<Prisma.ClientCreateWithoutBookingsInput, Prisma.ClientUncheckedCreateWithoutBookingsInput>
+  where?: Prisma.ClientWhereInput
+}
+
+export type ClientUpdateToOneWithWhereWithoutBookingsInput = {
+  where?: Prisma.ClientWhereInput
+  data: Prisma.XOR<Prisma.ClientUpdateWithoutBookingsInput, Prisma.ClientUncheckedUpdateWithoutBookingsInput>
+}
+
+export type ClientUpdateWithoutBookingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  fatherName?: Prisma.StringFieldUpdateOperationsInput | string
+  nid?: Prisma.StringFieldUpdateOperationsInput | string
+  dob?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  permanentAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contact?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type ClientUncheckedUpdateWithoutBookingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  fatherName?: Prisma.StringFieldUpdateOperationsInput | string
+  nid?: Prisma.StringFieldUpdateOperationsInput | string
+  dob?: Prisma.StringFieldUpdateOperationsInput | string
+  address?: Prisma.StringFieldUpdateOperationsInput | string
+  permanentAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  contact?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
+  nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+
+/**
+ * Count Type ClientCountOutputType
+ */
+
+export type ClientCountOutputType = {
+  bookings: number
+}
+
+export type ClientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  bookings?: boolean | ClientCountOutputTypeCountBookingsArgs
+}
+
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClientCountOutputType
+   */
+  select?: Prisma.ClientCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ClientCountOutputType without action
+ */
+export type ClientCountOutputTypeCountBookingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BookingWhereInput
+}
 
 
 export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -497,6 +634,8 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   nomineeName?: boolean
   nomineeNid?: boolean
   nomineePicUrl?: boolean
+  bookings?: boolean | Prisma.Client$bookingsArgs<ExtArgs>
+  _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["client"]>
 
 export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -548,10 +687,18 @@ export type ClientSelectScalar = {
 }
 
 export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "fatherName" | "nid" | "dob" | "address" | "permanentAddress" | "contact" | "email" | "picUrl" | "nomineeName" | "nomineeNid" | "nomineePicUrl", ExtArgs["result"]["client"]>
+export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  bookings?: boolean | Prisma.Client$bookingsArgs<ExtArgs>
+  _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type ClientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type ClientIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Client"
-  objects: {}
+  objects: {
+    bookings: Prisma.$BookingPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     name: string
@@ -960,6 +1107,7 @@ readonly fields: ClientFieldRefs;
  */
 export interface Prisma__ClientClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  bookings<T extends Prisma.Client$bookingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Client$bookingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BookingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1019,6 +1167,10 @@ export type ClientFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1037,6 +1189,10 @@ export type ClientFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1054,6 +1210,10 @@ export type ClientFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * Filter, which Client to fetch.
    */
@@ -1103,6 +1263,10 @@ export type ClientFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Client to fetch.
    */
   where?: Prisma.ClientWhereInput
@@ -1151,6 +1315,10 @@ export type ClientFindManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter, which Clients to fetch.
    */
   where?: Prisma.ClientWhereInput
@@ -1193,6 +1361,10 @@ export type ClientCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * The data needed to create a Client.
    */
@@ -1241,6 +1413,10 @@ export type ClientUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
   /**
    * The data needed to update a Client.
    */
@@ -1308,6 +1484,10 @@ export type ClientUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * The filter to search for the Client to update in case it exists.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1334,6 +1514,10 @@ export type ClientDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
+  /**
    * Filter which Client to delete.
    */
   where: Prisma.ClientWhereUniqueInput
@@ -1354,6 +1538,30 @@ export type ClientDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
+ * Client.bookings
+ */
+export type Client$bookingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Booking
+   */
+  select?: Prisma.BookingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Booking
+   */
+  omit?: Prisma.BookingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BookingInclude<ExtArgs> | null
+  where?: Prisma.BookingWhereInput
+  orderBy?: Prisma.BookingOrderByWithRelationInput | Prisma.BookingOrderByWithRelationInput[]
+  cursor?: Prisma.BookingWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BookingScalarFieldEnum | Prisma.BookingScalarFieldEnum[]
+}
+
+/**
  * Client without action
  */
 export type ClientDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1365,4 +1573,8 @@ export type ClientDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the Client
    */
   omit?: Prisma.ClientOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClientInclude<ExtArgs> | null
 }

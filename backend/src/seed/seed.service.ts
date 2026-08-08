@@ -114,7 +114,22 @@ export class SeedService {
       'P-7D',
       start.toISOString(),
       end.toISOString(),
-      client.id
+      client.id,
+      'monthly',
+      {
+        name: client.name,
+        fatherName: client.fatherName,
+        nid: client.nid,
+        dob: client.dob,
+        address: client.address,
+        permanentAddress: client.permanentAddress,
+        contact: client.contact,
+        email: client.email,
+        picUrl: client.picUrl || '/uploads/media/seed-pic.jpg',
+        nomineeName: client.nomineeName,
+        nomineeNid: client.nomineeNid,
+        nomineePicUrl: client.nomineePicUrl || '/uploads/media/seed-nominee.jpg'
+      }
     );
 
     return {

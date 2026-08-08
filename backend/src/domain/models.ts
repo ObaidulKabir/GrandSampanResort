@@ -34,12 +34,29 @@ export type Booking = {
   suiteId: string;
   planId?: string;
   investorId?: string;
+  /** KYC snapshot client id for investment purchases. */
+  clientId?: string;
   start: string;
   end: string;
   status: string;
   amountTotal?: number;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
+};
+
+export type BookingKyc = {
+  name: string;
+  fatherName: string;
+  nid: string;
+  dob: string;
+  address: string;
+  permanentAddress: string;
+  contact: string;
+  email: string;
+  picUrl: string;
+  nomineeName: string;
+  nomineeNid: string;
+  nomineePicUrl: string;
 };
 
 export type PaymentScheduleItem = {

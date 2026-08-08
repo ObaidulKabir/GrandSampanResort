@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, apiUpload } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
+import { resolveMediaUrl } from '@/lib/media';
 import { effectiveAdrBand, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -27,6 +28,40 @@ type Plan = {
 };
 type Suite = { id: string; type: string; view: string; floor: number; size: number };
 type Rule = { start: string; end: string; price: number };
+
+type KycForm = {
+  name: string;
+  fatherName: string;
+  nid: string;
+  dob: string;
+  address: string;
+  permanentAddress: string;
+  contact: string;
+  email: string;
+  picUrl: string;
+  nomineeName: string;
+  nomineeNid: string;
+  nomineePicUrl: string;
+};
+
+const emptyKyc = (): KycForm => ({
+  name: '',
+  fatherName: '',
+  nid: '',
+  dob: '',
+  address: '',
+  permanentAddress: '',
+  contact: '',
+  email: '',
+  picUrl: '',
+  nomineeName: '',
+  nomineeNid: '',
+  nomineePicUrl: ''
+});
+
+function isKycComplete(kyc: KycForm) {
+  return (Object.keys(kyc) as (keyof KycForm)[]).every((key) => String(kyc[key] || '').trim().length > 0);
+}
 
 export default function PlanDetailsPage({ params }: { params: { id: string } }) {
   const planId = params.id;
@@ -61,6 +96,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [costPct, setCostPct] = useState<number>(15);
   const [rentUpliftPct, setRentUpliftPct] = useState<number>(0);
   const [returnAssumptions, setReturnAssumptions] = useState<ReturnAssumptions | null>(null);
+  const [kyc, setKyc] = useState<KycForm>(() => emptyKyc());
+  const [uploadingPic, setUploadingPic] = useState<'pic' | 'nominee' | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    setKyc((prev) => ({
+      ...prev,
+      name: prev.name || user.name || '',
+      email: prev.email || user.email || ''
+    }));
+  }, [user]);
 
   useEffect(() => {
     hydrate();
@@ -138,6 +184,34 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     router.push(`/pricing/plans/${encodeURIComponent(nextId)}`);
   }
 
+  function updateKyc<K extends keyof KycForm>(key: K, value: KycForm[K]) {
+    setKyc((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function uploadKycPhoto(kind: 'pic' | 'nominee', file: File | null) {
+    if (!file) return;
+    if (!token || !user?.id) {
+      router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      return;
+    }
+    setUploadingPic(kind);
+    setStatus('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await apiUpload('/media/kyc-upload', form);
+      if (!res?.ok || !res.url) {
+        setStatus('Photo upload failed. Use JPG, PNG, WEBP, or GIF under 8MB.');
+        return;
+      }
+      updateKyc(kind === 'pic' ? 'picUrl' : 'nomineePicUrl', res.url);
+    } catch {
+      setStatus('Photo upload failed');
+    } finally {
+      setUploadingPic(null);
+    }
+  }
+
   async function confirmInvestment() {
     if (!plan?.suiteId) {
       setStatus('This plan is not linked to a suite');
@@ -145,6 +219,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     }
     if (!token || !user?.id) {
       router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      return;
+    }
+    if (!isKycComplete(kyc)) {
+      setStatus('Complete all KYC fields and upload both photographs before confirming');
       return;
     }
     const sold = (plan.planStatus || '').toLowerCase() !== 'unsold';
@@ -166,20 +244,36 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           start: start.toISOString(),
           end: end.toISOString(),
           investorId: user.id,
-          cadence
+          cadence,
+          kyc: {
+            name: kyc.name.trim(),
+            fatherName: kyc.fatherName.trim(),
+            nid: kyc.nid.trim(),
+            dob: kyc.dob.trim(),
+            address: kyc.address.trim(),
+            permanentAddress: kyc.permanentAddress.trim(),
+            contact: kyc.contact.trim(),
+            email: kyc.email.trim(),
+            picUrl: kyc.picUrl.trim(),
+            nomineeName: kyc.nomineeName.trim(),
+            nomineeNid: kyc.nomineeNid.trim(),
+            nomineePicUrl: kyc.nomineePicUrl.trim()
+          }
         })
       });
       if (!res?.ok || !res.booking?.id) {
         const msg =
-          res?.error === 'plan_not_available' || res?.error === 'conflict'
-            ? 'Plan already sold or unavailable'
-            : res?.error === 'plan_not_found'
-              ? 'Plan not found'
-              : res?.error === 'plan_suite_mismatch'
-                ? 'This plan is not linked to the selected unit'
-                : res?.error === 'suite_not_found'
-                  ? 'Unit not found'
-                  : 'Purchase failed';
+          res?.error === 'kyc_required'
+            ? 'Complete all KYC details before booking'
+            : res?.error === 'plan_not_available' || res?.error === 'conflict'
+              ? 'Plan already sold or unavailable'
+              : res?.error === 'plan_not_found'
+                ? 'Plan not found'
+                : res?.error === 'plan_suite_mismatch'
+                  ? 'This plan is not linked to the selected unit'
+                  : res?.error === 'suite_not_found'
+                    ? 'Unit not found'
+                    : 'Purchase failed';
         setStatus(msg);
         setBuying(false);
         return;
@@ -298,7 +392,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </Link>
           </div>
           <p className="mt-6 text-sm text-ocean/60">
-            Our sales team will contact you for KYC verification and paperwork. Questions?{' '}
+            KYC details for this booking were submitted with your purchase. Questions?{' '}
             <a href="mailto:info@grandsampan.com" className="underline">
               info@grandsampan.com
             </a>
@@ -509,6 +603,142 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
+          <div className="mt-6 border-t border-ocean/10 pt-5">
+            <p className="text-sm font-semibold text-ocean">KYC details</p>
+            <p className="mt-1 text-xs text-ocean/65">
+              Provide identity details for the person this plan is being booked for. Required before paying the deposit.
+            </p>
+            <div className="mt-3 grid gap-3">
+              <label className="block text-sm text-ocean">
+                Full name
+                <input
+                  value={kyc.name}
+                  onChange={(e) => updateKyc('name', e.target.value)}
+                  className="field mt-1"
+                  autoComplete="name"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Father / husband name
+                <input
+                  value={kyc.fatherName}
+                  onChange={(e) => updateKyc('fatherName', e.target.value)}
+                  className="field mt-1"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                NID number
+                <input
+                  value={kyc.nid}
+                  onChange={(e) => updateKyc('nid', e.target.value)}
+                  className="field mt-1"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Date of birth
+                <input
+                  type="date"
+                  value={kyc.dob}
+                  onChange={(e) => updateKyc('dob', e.target.value)}
+                  className="field mt-1"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Present address
+                <textarea
+                  value={kyc.address}
+                  onChange={(e) => updateKyc('address', e.target.value)}
+                  className="field mt-1 min-h-[4.5rem]"
+                  rows={2}
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Permanent address
+                <textarea
+                  value={kyc.permanentAddress}
+                  onChange={(e) => updateKyc('permanentAddress', e.target.value)}
+                  className="field mt-1 min-h-[4.5rem]"
+                  rows={2}
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Contact number
+                <input
+                  value={kyc.contact}
+                  onChange={(e) => updateKyc('contact', e.target.value)}
+                  className="field mt-1"
+                  autoComplete="tel"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Email
+                <input
+                  type="email"
+                  value={kyc.email}
+                  onChange={(e) => updateKyc('email', e.target.value)}
+                  className="field mt-1"
+                  autoComplete="email"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Photograph
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="mt-1 block w-full text-xs text-ocean/80"
+                  disabled={!!uploadingPic}
+                  onChange={(e) => uploadKycPhoto('pic', e.target.files?.[0] || null)}
+                />
+                {uploadingPic === 'pic' && <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>}
+                {kyc.picUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolveMediaUrl(kyc.picUrl)}
+                    alt="Buyer photograph"
+                    className="mt-2 h-20 w-20 object-cover border border-ocean/15"
+                  />
+                )}
+              </label>
+              <label className="block text-sm text-ocean">
+                Nominee name
+                <input
+                  value={kyc.nomineeName}
+                  onChange={(e) => updateKyc('nomineeName', e.target.value)}
+                  className="field mt-1"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Nominee NID
+                <input
+                  value={kyc.nomineeNid}
+                  onChange={(e) => updateKyc('nomineeNid', e.target.value)}
+                  className="field mt-1"
+                />
+              </label>
+              <label className="block text-sm text-ocean">
+                Nominee photograph
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="mt-1 block w-full text-xs text-ocean/80"
+                  disabled={!!uploadingPic}
+                  onChange={(e) => uploadKycPhoto('nominee', e.target.files?.[0] || null)}
+                />
+                {uploadingPic === 'nominee' && (
+                  <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>
+                )}
+                {kyc.nomineePicUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolveMediaUrl(kyc.nomineePicUrl)}
+                    alt="Nominee photograph"
+                    className="mt-2 h-20 w-20 object-cover border border-ocean/15"
+                  />
+                )}
+              </label>
+            </div>
+          </div>
+
           <div className="mt-4 border-t border-ocean/10 pt-4 text-sm text-ocean/80">
             <div className="flex justify-between">
               <span>Total price</span>
@@ -558,9 +788,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <Button
             className="mt-6 w-full bg-gold text-ocean hover:bg-gold/90"
             onClick={confirmInvestment}
-            disabled={buying || loading || !available}
+            disabled={buying || loading || !available || !!uploadingPic || !isKycComplete(kyc)}
           >
-            {buying ? 'Processing...' : available ? 'Confirm & pay deposit' : 'No longer available'}
+            {buying
+              ? 'Processing...'
+              : !available
+                ? 'No longer available'
+                : !isKycComplete(kyc)
+                  ? 'Complete KYC to continue'
+                  : 'Confirm & pay deposit'}
           </Button>
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/investor" className="text-ocean underline">

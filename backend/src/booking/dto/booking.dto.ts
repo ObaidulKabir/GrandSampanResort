@@ -1,4 +1,13 @@
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested
+} from 'class-validator';
 
 export class AvailabilityQueryDto {
   @IsNotEmpty()
@@ -8,6 +17,45 @@ export class AvailabilityQueryDto {
   start!: string;
   @IsDateString()
   end!: string;
+}
+
+/** Per-booking KYC for the person the investment is purchased for. */
+export class BookingKycDto {
+  @IsNotEmpty()
+  @IsString()
+  name!: string;
+  @IsNotEmpty()
+  @IsString()
+  fatherName!: string;
+  @IsNotEmpty()
+  @IsString()
+  nid!: string;
+  @IsNotEmpty()
+  @IsString()
+  dob!: string;
+  @IsNotEmpty()
+  @IsString()
+  address!: string;
+  @IsNotEmpty()
+  @IsString()
+  permanentAddress!: string;
+  @IsNotEmpty()
+  @IsString()
+  contact!: string;
+  @IsEmail()
+  email!: string;
+  @IsNotEmpty()
+  @IsString()
+  picUrl!: string;
+  @IsNotEmpty()
+  @IsString()
+  nomineeName!: string;
+  @IsNotEmpty()
+  @IsString()
+  nomineeNid!: string;
+  @IsNotEmpty()
+  @IsString()
+  nomineePicUrl!: string;
 }
 
 export class CreateBookingDto {
@@ -28,4 +76,9 @@ export class CreateBookingDto {
   @IsOptional()
   @IsIn(['monthly', 'quarterly'])
   cadence?: 'monthly' | 'quarterly';
+  /** Required for investment purchases (when planId is set). */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BookingKycDto)
+  kyc?: BookingKycDto;
 }

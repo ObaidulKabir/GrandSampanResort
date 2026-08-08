@@ -47,6 +47,16 @@ export class MediaController {
     return { ok: true, media: created };
   }
 
+  /** Investor/admin photo upload for per-booking KYC (returns URL only). */
+  @Post('kyc-upload')
+  @UseGuards(RolesGuard)
+  @Roles('investor', 'admin')
+  @UseInterceptors(FileInterceptor('file', mediaMulterOptions))
+  async kycUpload(@UploadedFile() file: Express.Multer.File) {
+    if (!file) return { ok: false, error: 'no_file' };
+    return { ok: true, url: `/uploads/media/${file.filename}` };
+  }
+
   @Patch(':id/move')
   @UseGuards(RolesGuard)
   @Roles('admin')

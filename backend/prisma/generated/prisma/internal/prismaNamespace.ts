@@ -1301,6 +1301,7 @@ export const BookingScalarFieldEnum = {
   suiteId: 'suiteId',
   planId: 'planId',
   investorId: 'investorId',
+  clientId: 'clientId',
   start: 'start',
   end: 'end',
   status: 'status',

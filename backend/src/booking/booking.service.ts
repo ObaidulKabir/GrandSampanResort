@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Booking, PaymentScheduleItem } from "../domain/models";
+import { Booking, BookingKyc, PaymentScheduleItem } from "../domain/models";
 import { BookingRepository } from "./booking.repository";
 import { TimesharesService } from "../timeshares/timeshares.service";
 import { SuitesService } from "../suites/suites.service";
@@ -12,6 +12,32 @@ function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   const bS = new Date(bStart).getTime();
   const bE = new Date(bEnd).getTime();
   return aS <= bE && bS <= aE;
+}
+
+const KYC_FIELDS: (keyof BookingKyc)[] = [
+  "name",
+  "fatherName",
+  "nid",
+  "dob",
+  "address",
+  "permanentAddress",
+  "contact",
+  "email",
+  "picUrl",
+  "nomineeName",
+  "nomineeNid",
+  "nomineePicUrl",
+];
+
+function normalizeKyc(kyc?: Partial<BookingKyc> | null): BookingKyc | null {
+  if (!kyc) return null;
+  const out: any = {};
+  for (const key of KYC_FIELDS) {
+    const value = String((kyc as any)[key] ?? "").trim();
+    if (!value) return null;
+    out[key] = value;
+  }
+  return out as BookingKyc;
 }
 
 @Injectable()
@@ -50,26 +76,44 @@ export class BookingService {
     const planIds = Array.from(
       new Set(bookings.map((b) => b.planId).filter(Boolean)),
     );
+    const clientIds = Array.from(
+      new Set(bookings.map((b) => b.clientId).filter(Boolean)),
+    );
     const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
     const plans = await Promise.all(
       planIds.map((id) => (id ? this.timeshares.get(id as string) : null)),
     );
+    let clients: any[] = [];
+    if (clientIds.length) {
+      if (this.prisma) {
+        clients = await this.prisma.client.findMany({
+          where: { id: { in: clientIds as string[] } },
+        });
+      }
+    }
     const suiteById = Object.fromEntries(
       (suites || []).filter(Boolean).map((s: any) => [s.id, s]),
     );
     const planById = Object.fromEntries(
       (plans || []).filter(Boolean).map((p: any) => [p.id, p]),
     );
+    const clientById = Object.fromEntries(
+      (clients || []).filter(Boolean).map((c: any) => [c.id, c]),
+    );
     return bookings.map((b) => ({
       booking: b,
       suite: suiteById[b.suiteId] || null,
       plan: b.planId ? planById[b.planId] || null : null,
+      client: b.clientId ? clientById[b.clientId] || null : null,
     }));
   }
 
   async summary(id: string) {
     if (this.prisma) {
-      const booking = await this.prisma.booking.findUnique({ where: { id } });
+      const booking = await this.prisma.booking.findUnique({
+        where: { id },
+        include: { client: true },
+      });
       if (!booking) return null;
       const items = await this.prisma.paymentScheduleItem.findMany({
         where: { bookingId: id },
@@ -86,7 +130,15 @@ export class BookingService {
         );
       const nextDue = dueItems[0] || null;
       const handoverDate = new Date(booking.end).toISOString();
-      return { booking, paidTotal, outstanding, nextDue, handoverDate };
+      const { client, ...bookingRow } = booking as any;
+      return {
+        booking: bookingRow,
+        client: client || null,
+        paidTotal,
+        outstanding,
+        nextDue,
+        handoverDate,
+      };
     }
     const booking = await this.repo.findById(id);
     if (!booking) return null;
@@ -102,7 +154,14 @@ export class BookingService {
       );
     const nextDue = dueItems[0] || null;
     const handoverDate = new Date(booking.end).toISOString();
-    return { booking, paidTotal, outstanding, nextDue, handoverDate };
+    return {
+      booking,
+      client: (booking as any).client || null,
+      paidTotal,
+      outstanding,
+      nextDue,
+      handoverDate,
+    };
   }
 
   async availability(suiteId: string, start: string, end: string) {
@@ -143,6 +202,7 @@ export class BookingService {
     end: string,
     investorId?: string,
     cadence: 'monthly' | 'quarterly' = 'monthly',
+    kyc?: BookingKyc | null,
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
     const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
@@ -158,6 +218,10 @@ export class BookingService {
       if (!suite) return { ok: false as const, error: 'suite_not_found' };
 
       if (normalizedPlanId) {
+        const normalizedKyc = normalizeKyc(kyc);
+        if (!normalizedKyc) {
+          return { ok: false as const, error: 'kyc_required' };
+        }
         const plan = await this.timeshares.get(normalizedPlanId);
         if (!plan) return { ok: false as const, error: 'plan_not_found' };
         if (plan.suiteId && plan.suiteId !== suiteId) {
@@ -181,11 +245,13 @@ export class BookingService {
           BookingService.INSTALLMENT_MONTHS,
           payCadence,
         );
+        const clientId = 'C-' + Math.random().toString(36).slice(2, 10);
         const b: Booking = {
           id: 'B-' + Math.random().toString(36).slice(2, 8),
           suiteId,
           planId: normalizedPlanId,
           investorId,
+          clientId,
           start,
           end,
           status: 'pending',
@@ -195,12 +261,19 @@ export class BookingService {
         };
         if (this.prisma) {
           await this.prisma.$transaction([
+            this.prisma.client.create({
+              data: {
+                id: clientId,
+                ...normalizedKyc,
+              },
+            }),
             this.prisma.booking.create({
               data: {
                 id: b.id,
                 suiteId: b.suiteId,
                 planId: b.planId,
                 investorId: b.investorId,
+                clientId,
                 start: new Date(b.start),
                 end: new Date(b.end),
                 status: b.status,
@@ -223,13 +296,20 @@ export class BookingService {
               data: { planStatus: 'Booked' },
             }),
           ]);
-          return { ok: true as const, booking: b };
+          return { ok: true as const, booking: b, client: { id: clientId, ...normalizedKyc } };
         }
-        const created = await this.repo.create(b);
+        const created = await this.repo.create({
+          ...b,
+          client: { id: clientId, ...normalizedKyc },
+        } as any);
         await this.timeshares.update(normalizedPlanId, {
           planStatus: 'Booked',
         } as any);
-        return { ok: true as const, booking: created };
+        return {
+          ok: true as const,
+          booking: created,
+          client: { id: clientId, ...normalizedKyc },
+        };
       }
 
       const av = await this.availability(suiteId, start, end);
