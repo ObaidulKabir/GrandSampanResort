@@ -14,8 +14,6 @@ type MediaItem = {
   order: number;
 };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
-
 export default function MediaManager({
   category,
   title,
@@ -81,11 +79,11 @@ export default function MediaManager({
       if (suiteId) form.append('suiteId', suiteId);
       if (altText.trim()) form.append('alt', altText.trim());
       if (labelOptions && label) form.append('label', label);
-      const json = await apiUpload('/media/upload', form, adminHeaders);
+      const json = await apiUpload('/media/upload', form);
       if (json?.ok) {
         setAltText('');
         if (fileRef.current) fileRef.current.value = '';
-        await Promise.all(previous.map((p) => api(`/media/${p.id}`, { method: 'DELETE', headers: adminHeaders })));
+        await Promise.all(previous.map((p) => api(`/media/${p.id}`, { method: 'DELETE' })));
         await load();
       } else {
         setError(json?.error || json?.message || 'Upload failed');
@@ -100,7 +98,7 @@ export default function MediaManager({
 
   async function onDelete(id: string) {
     try {
-      const json = await api(`/media/${id}`, { method: 'DELETE', headers: adminHeaders });
+      const json = await api(`/media/${id}`, { method: 'DELETE' });
       if (json?.ok) setItems((prev) => prev.filter((i) => i.id !== id));
     } catch {
       setError('Failed to delete image');
@@ -111,7 +109,6 @@ export default function MediaManager({
     try {
       const json = await api(`/media/${id}/move`, {
         method: 'PATCH',
-        headers: adminHeaders,
         body: JSON.stringify({ direction })
       });
       if (json?.ok && Array.isArray(json.media)) setItems(json.media);

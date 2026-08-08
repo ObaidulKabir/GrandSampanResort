@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { prisma } from '../../prisma/client';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
   private memoryUsers: {
     id: string;
     name: string;
@@ -18,6 +19,51 @@ export class AuthService {
 
   private get db() {
     return process.env.DATABASE_URL ? prisma : null;
+  }
+
+  async onModuleInit() {
+    await this.bootstrapAdmin();
+  }
+
+  // Ensures at least one admin account exists so the admin panel is never
+  // locked out. Only creates the account if that email doesn't exist yet;
+  // it never overwrites an existing user's password or role on restart.
+  private async bootstrapAdmin() {
+    const rawEmail = process.env.ADMIN_EMAIL;
+    const rawPassword = process.env.ADMIN_PASSWORD;
+    if (!rawEmail || !rawPassword) {
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.warn('ADMIN_EMAIL/ADMIN_PASSWORD not set; skipping admin bootstrap.');
+      }
+      return;
+    }
+    const email = rawEmail.toLowerCase().trim();
+    const name = process.env.ADMIN_NAME?.trim() || 'Administrator';
+    try {
+      if (this.db) {
+        const existing = await this.db.user.findUnique({ where: { email } });
+        if (existing) return;
+        const passwordHash = await bcrypt.hash(rawPassword, 10);
+        await this.db.user.create({
+          data: { id: 'U-' + Math.random().toString(36).slice(2, 8), name, email, passwordHash, kyc: true, role: 'admin' }
+        });
+        this.logger.log(`Bootstrapped admin account for ${email}.`);
+        return;
+      }
+      if (this.memoryUsers.some((u) => u.email === email)) return;
+      const passwordHash = await bcrypt.hash(rawPassword, 10);
+      this.memoryUsers.push({
+        id: 'U-' + Math.random().toString(36).slice(2, 8),
+        name,
+        email,
+        kyc: true,
+        role: 'admin',
+        passwordHash
+      });
+      this.logger.log(`Bootstrapped in-memory admin account for ${email}.`);
+    } catch (e) {
+      this.logger.error('Admin bootstrap failed', e as Error);
+    }
   }
 
   async register(name: string, email: string, password: string) {

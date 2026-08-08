@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAppStore } from '@/store/appStore';
 
 const links = [
   { href: '/admin', label: 'Home', exact: true },
@@ -15,8 +16,23 @@ const links = [
   { href: '/admin/policy', label: 'Policy' }
 ];
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+type AdminUser = { id: string; name: string; email: string } | null;
+
+export default function AdminShell({
+  children,
+  adminUser
+}: {
+  children: React.ReactNode;
+  adminUser?: AdminUser;
+}) {
   const pathname = usePathname() || '';
+  const router = useRouter();
+  const logout = useAppStore((s) => s.logout);
+
+  function onLogout() {
+    logout();
+    router.replace('/admin/login');
+  }
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8f8f6_0%,#eef2f4_100%)]">
@@ -31,9 +47,19 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               Ops
             </span>
           </div>
-          <Link href="/" className="text-sm text-white/80 hover:text-white">
-            View site
-          </Link>
+          <div className="flex items-center gap-4">
+            {adminUser && <span className="hidden text-sm text-white/70 sm:inline">{adminUser.email}</span>}
+            <Link href="/" className="text-sm text-white/80 hover:text-white">
+              View site
+            </Link>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="text-sm text-white/80 underline underline-offset-2 hover:text-white"
+            >
+              Logout
+            </button>
+          </div>
         </div>
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-6 pb-3">
           {links.map((l) => {

@@ -5,8 +5,6 @@ import { api } from '@/lib/api';
 import Button from '@/components/Button';
 import MediaManager from '@/components/admin/MediaManager';
 
-const adminHeaders = { Authorization: 'Bearer admin' };
-
 export default function AdminEditUnitPage({ params }: { params: { id: string } }) {
   const unitId = params.id;
   const [form, setForm] = useState({ id: unitId, floor: '', type: 'Standard', size: '', view: 'Sea', totalPrice: '' } as any);
@@ -44,7 +42,6 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
     try {
       const json = await api(`/suites/${unitId}`, {
         method: 'PUT',
-        headers: adminHeaders,
         body: JSON.stringify({
           floor: Number(form.floor),
           type: form.type,

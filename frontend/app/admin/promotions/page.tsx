@@ -25,7 +25,6 @@ type Plan = {
   planStatus?: string;
 };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
 const SUITE_TYPES = ['Standard', 'Delux', 'Premium'];
 
 function toDateInput(iso: string) {
@@ -157,12 +156,10 @@ export default function AdminPromotionsPage() {
       const res = editingId
         ? await api(`/promotions/${editingId}`, {
             method: 'PUT',
-            headers: adminHeaders,
             body: JSON.stringify(payload)
           })
         : await api('/promotions', {
             method: 'POST',
-            headers: adminHeaders,
             body: JSON.stringify(payload)
           });
       if (!res?.ok) {
@@ -183,7 +180,6 @@ export default function AdminPromotionsPage() {
     try {
       const res = await api(`/promotions/${p.id}`, {
         method: 'PUT',
-        headers: adminHeaders,
         body: JSON.stringify({ active: !p.active })
       });
       if (res?.ok) await load();
@@ -197,7 +193,7 @@ export default function AdminPromotionsPage() {
     if (!confirm('Delete this promotion package?')) return;
     setError('');
     try {
-      const res = await api(`/promotions/${id}`, { method: 'DELETE', headers: adminHeaders });
+      const res = await api(`/promotions/${id}`, { method: 'DELETE' });
       if (res?.ok) {
         setNotice('Package deleted.');
         if (editingId === id) startCreate();

@@ -9,8 +9,6 @@ type RevenuePolicy = {
   maintenanceReserveRate: number;
 };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
-
 const fields: { key: keyof RevenuePolicy; label: string; hint: string }[] = [
   { key: 'taxRate', label: 'Tax rate', hint: 'e.g. 0.10 = 10% deducted before distribution' },
   { key: 'serviceChargeRate', label: 'Service charge rate', hint: 'Operator service charge share' },
@@ -49,7 +47,6 @@ export default function AdminPolicyPage() {
     try {
       const json = await api('/settings/revenue-policy', {
         method: 'PUT',
-        headers: adminHeaders,
         body: JSON.stringify(policy)
       });
       if (json?.ok) setOk('Policy saved. New rates apply to future revenue calculations.');

@@ -17,7 +17,6 @@ type Plan = {
   timeFraction?: number;
 };
 
-const adminHeaders = { Authorization: 'Bearer admin' };
 const STATUSES = ['Unsold', 'Reserved', 'Booked', 'Resale', 'Transferred'] as const;
 
 const emptyForm = (suiteId: string): Plan => ({
@@ -79,7 +78,6 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     try {
       const json = await api('/timeshares', {
         method: 'POST',
-        headers: adminHeaders,
         body: JSON.stringify({
           ...createForm,
           id: createForm.id.trim(),
@@ -109,7 +107,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     setNotice('');
     try {
-      const json = await api(`/timeshares/${id}`, { method: 'DELETE', headers: adminHeaders });
+      const json = await api(`/timeshares/${id}`, { method: 'DELETE' });
       if (json?.ok) {
         setNotice(`Plan ${id} removed.`);
         await load();
@@ -132,7 +130,6 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     try {
       const json = await api(`/timeshares/${id}`, {
         method: 'PUT',
-        headers: adminHeaders,
         body: JSON.stringify(editForm)
       });
       if (json?.ok) {
