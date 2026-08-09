@@ -398,6 +398,15 @@ export class BookingService {
         if (!normalizedDeposit) {
           return { ok: false as const, error: 'deposit_payment_required' };
         }
+        if (investorId && this.prisma) {
+          const investor = await this.prisma.user.findUnique({
+            where: { id: investorId },
+            select: { emailVerified: true, role: true },
+          });
+          if (!investor || (investor.role !== 'admin' && !investor.emailVerified)) {
+            return { ok: false as const, error: 'email_not_verified' };
+          }
+        }
         const plan = await this.timeshares.get(normalizedPlanId);
         if (!plan) return { ok: false as const, error: 'plan_not_found' };
         if (plan.suiteId && plan.suiteId !== suiteId) {

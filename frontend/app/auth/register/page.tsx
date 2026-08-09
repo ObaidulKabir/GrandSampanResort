@@ -25,12 +25,22 @@ export default function RegisterPage() {
     }
     const login = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     if (login?.ok && login.token && login.user) {
-      setAuth({ id: login.user.id, email: login.user.email, name: login.user.name }, login.token);
-      setStatus('Account created');
-      router.push('/invest');
+      setAuth(
+        {
+          id: login.user.id,
+          email: login.user.email,
+          name: login.user.name,
+          emailVerified: !!login.user.emailVerified,
+          role: login.user.role,
+          kyc: login.user.kyc
+        },
+        login.token
+      );
+      setStatus('Account created — check your email to verify before booking.');
+      router.push('/auth/verify');
       return;
     }
-    setStatus('Account created. Please sign in.');
+    setStatus('Account created. Please sign in, then verify your email.');
   };
 
   return (

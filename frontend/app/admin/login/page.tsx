@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Button from '@/components/Button';
@@ -75,6 +76,11 @@ export default function AdminLoginPage() {
               required
             />
           </label>
+          <p className="text-right text-sm">
+            <Link href="/auth/forgot-password" className="font-semibold text-ocean underline">
+              Forgot password?
+            </Link>
+          </p>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button className="w-full" type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}

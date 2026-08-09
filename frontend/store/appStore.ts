@@ -1,13 +1,21 @@
 'use client';
 import { create } from 'zustand';
 
-type User = { id: string; email: string; name?: string };
+export type User = {
+  id: string;
+  email: string;
+  name?: string;
+  emailVerified?: boolean;
+  role?: string;
+  kyc?: boolean;
+};
 
 type AppState = {
   user: User | null;
   token: string | null;
   hydrated: boolean;
   setAuth: (user: User | null, token: string | null) => void;
+  patchUser: (patch: Partial<User>) => void;
   hydrate: () => void;
   logout: () => void;
 };
@@ -15,7 +23,7 @@ type AppState = {
 const TOKEN_KEY = 'gsr_token';
 const USER_KEY = 'gsr_user';
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   token: null,
   hydrated: false,
@@ -30,6 +38,15 @@ export const useAppStore = create<AppState>((set) => ({
       }
     }
     set({ user, token });
+  },
+  patchUser: (patch) => {
+    const current = get().user;
+    if (!current) return;
+    const next = { ...current, ...patch };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+    }
+    set({ user: next });
   },
   hydrate: () => {
     if (typeof window === 'undefined') {

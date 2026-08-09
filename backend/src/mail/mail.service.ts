@@ -128,6 +128,48 @@ export class MailService {
     return { ok: false as const, error: 'send_failed', detail: (result as any).error };
   }
 
+  async sendEmailVerification(opts: { to: string; name: string; verifyUrl: string }) {
+    const subject = 'Verify your Grand Sampan Resort account email';
+    const text = [
+      `Dear ${opts.name},`,
+      ``,
+      `Please verify your email to complete investment bookings:`,
+      opts.verifyUrl,
+      ``,
+      `This link expires in 48 hours. You can still sign in before verifying.`,
+    ].join('\n');
+    const html = this.wrapHtml(
+      'Verify your email',
+      `<p>Dear ${escapeHtml(opts.name)},</p>
+       <p>Please verify your account email so you can submit investment bookings.</p>
+       <p><a href="${escapeHtml(opts.verifyUrl)}" style="display:inline-block;background:#0b2a3a;color:#fff;padding:10px 16px;text-decoration:none;">Verify email</a></p>
+       <p style="font-size:13px;color:#567;">Or open this link:<br/>${escapeHtml(opts.verifyUrl)}</p>
+       <p style="font-size:13px;color:#567;">This link expires in 48 hours. You can still sign in before verifying.</p>`
+    );
+    return this.send({ to: opts.to, subject, html, text });
+  }
+
+  async sendPasswordReset(opts: { to: string; name: string; resetUrl: string }) {
+    const subject = 'Reset your Grand Sampan Resort password';
+    const text = [
+      `Dear ${opts.name},`,
+      ``,
+      `We received a request to reset your password. Open this link to choose a new one:`,
+      opts.resetUrl,
+      ``,
+      `This link expires in 1 hour. If you did not request a reset, you can ignore this email.`,
+    ].join('\n');
+    const html = this.wrapHtml(
+      'Reset your password',
+      `<p>Dear ${escapeHtml(opts.name)},</p>
+       <p>We received a request to reset your password. Click below to choose a new one.</p>
+       <p><a href="${escapeHtml(opts.resetUrl)}" style="display:inline-block;background:#0b2a3a;color:#fff;padding:10px 16px;text-decoration:none;">Reset password</a></p>
+       <p style="font-size:13px;color:#567;">Or open this link:<br/>${escapeHtml(opts.resetUrl)}</p>
+       <p style="font-size:13px;color:#567;">This link expires in 1 hour. If you did not request a reset, ignore this email.</p>`
+    );
+    return this.send({ to: opts.to, subject, html, text });
+  }
+
   async notifyBookingSubmitted(ctx: BookingMailContext) {
     const portal = `${this.siteUrl()}/investor`;
     const subject = `Booking submitted — ${ctx.bookingId} (plan reserved)`;

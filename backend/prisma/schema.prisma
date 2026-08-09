@@ -97,6 +97,12 @@ model User {
   email        String   @unique
   passwordHash String
   kyc          Boolean  @default(false)
+  /// Soft gate: login allowed; investment booking blocked until true.
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?
+  emailVerifyExpires  DateTime?
+  passwordResetToken  String?
+  passwordResetExpires DateTime?
   role         String   @default("investor")
   createdAt    DateTime @default(now())
 }

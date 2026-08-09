@@ -30,6 +30,11 @@ export type UserMinAggregateOutputType = {
   email: string | null
   passwordHash: string | null
   kyc: boolean | null
+  emailVerified: boolean | null
+  emailVerifyToken: string | null
+  emailVerifyExpires: Date | null
+  passwordResetToken: string | null
+  passwordResetExpires: Date | null
   role: string | null
   createdAt: Date | null
 }
@@ -40,6 +45,11 @@ export type UserMaxAggregateOutputType = {
   email: string | null
   passwordHash: string | null
   kyc: boolean | null
+  emailVerified: boolean | null
+  emailVerifyToken: string | null
+  emailVerifyExpires: Date | null
+  passwordResetToken: string | null
+  passwordResetExpires: Date | null
   role: string | null
   createdAt: Date | null
 }
@@ -50,6 +60,11 @@ export type UserCountAggregateOutputType = {
   email: number
   passwordHash: number
   kyc: number
+  emailVerified: number
+  emailVerifyToken: number
+  emailVerifyExpires: number
+  passwordResetToken: number
+  passwordResetExpires: number
   role: number
   createdAt: number
   _all: number
@@ -62,6 +77,11 @@ export type UserMinAggregateInputType = {
   email?: true
   passwordHash?: true
   kyc?: true
+  emailVerified?: true
+  emailVerifyToken?: true
+  emailVerifyExpires?: true
+  passwordResetToken?: true
+  passwordResetExpires?: true
   role?: true
   createdAt?: true
 }
@@ -72,6 +92,11 @@ export type UserMaxAggregateInputType = {
   email?: true
   passwordHash?: true
   kyc?: true
+  emailVerified?: true
+  emailVerifyToken?: true
+  emailVerifyExpires?: true
+  passwordResetToken?: true
+  passwordResetExpires?: true
   role?: true
   createdAt?: true
 }
@@ -82,6 +107,11 @@ export type UserCountAggregateInputType = {
   email?: true
   passwordHash?: true
   kyc?: true
+  emailVerified?: true
+  emailVerifyToken?: true
+  emailVerifyExpires?: true
+  passwordResetToken?: true
+  passwordResetExpires?: true
   role?: true
   createdAt?: true
   _all?: true
@@ -165,6 +195,11 @@ export type UserGroupByOutputType = {
   email: string
   passwordHash: string
   kyc: boolean
+  emailVerified: boolean
+  emailVerifyToken: string | null
+  emailVerifyExpires: Date | null
+  passwordResetToken: string | null
+  passwordResetExpires: Date | null
   role: string
   createdAt: Date
   _count: UserCountAggregateOutputType | null
@@ -196,6 +231,11 @@ export type UserWhereInput = {
   email?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
   kyc?: Prisma.BoolFilter<"User"> | boolean
+  emailVerified?: Prisma.BoolFilter<"User"> | boolean
+  emailVerifyToken?: Prisma.StringNullableFilter<"User"> | string | null
+  emailVerifyExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordResetToken?: Prisma.StringNullableFilter<"User"> | string | null
+  passwordResetExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   role?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
 }
@@ -206,6 +246,11 @@ export type UserOrderByWithRelationInput = {
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   kyc?: Prisma.SortOrder
+  emailVerified?: Prisma.SortOrder
+  emailVerifyToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailVerifyExpires?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordResetToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordResetExpires?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -219,6 +264,11 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"User"> | string
   passwordHash?: Prisma.StringFilter<"User"> | string
   kyc?: Prisma.BoolFilter<"User"> | boolean
+  emailVerified?: Prisma.BoolFilter<"User"> | boolean
+  emailVerifyToken?: Prisma.StringNullableFilter<"User"> | string | null
+  emailVerifyExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordResetToken?: Prisma.StringNullableFilter<"User"> | string | null
+  passwordResetExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   role?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
 }, "id" | "email">
@@ -229,6 +279,11 @@ export type UserOrderByWithAggregationInput = {
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   kyc?: Prisma.SortOrder
+  emailVerified?: Prisma.SortOrder
+  emailVerifyToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailVerifyExpires?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordResetToken?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordResetExpires?: Prisma.SortOrderInput | Prisma.SortOrder
   role?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
@@ -245,6 +300,11 @@ export type UserScalarWhereWithAggregatesInput = {
   email?: Prisma.StringWithAggregatesFilter<"User"> | string
   passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
   kyc?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  emailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  emailVerifyToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  emailVerifyExpires?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  passwordResetToken?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  passwordResetExpires?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
@@ -255,6 +315,11 @@ export type UserCreateInput = {
   email: string
   passwordHash: string
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: string | null
+  emailVerifyExpires?: Date | string | null
+  passwordResetToken?: string | null
+  passwordResetExpires?: Date | string | null
   role?: string
   createdAt?: Date | string
 }
@@ -265,6 +330,11 @@ export type UserUncheckedCreateInput = {
   email: string
   passwordHash: string
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: string | null
+  emailVerifyExpires?: Date | string | null
+  passwordResetToken?: string | null
+  passwordResetExpires?: Date | string | null
   role?: string
   createdAt?: Date | string
 }
@@ -275,6 +345,11 @@ export type UserUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   kyc?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerifyToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerifyExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordResetToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordResetExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -285,6 +360,11 @@ export type UserUncheckedUpdateInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   kyc?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerifyToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerifyExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordResetToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordResetExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -295,6 +375,11 @@ export type UserCreateManyInput = {
   email: string
   passwordHash: string
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: string | null
+  emailVerifyExpires?: Date | string | null
+  passwordResetToken?: string | null
+  passwordResetExpires?: Date | string | null
   role?: string
   createdAt?: Date | string
 }
@@ -305,6 +390,11 @@ export type UserUpdateManyMutationInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   kyc?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerifyToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerifyExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordResetToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordResetExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -315,6 +405,11 @@ export type UserUncheckedUpdateManyInput = {
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
   kyc?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  emailVerifyToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailVerifyExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordResetToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordResetExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   role?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -325,6 +420,11 @@ export type UserCountOrderByAggregateInput = {
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   kyc?: Prisma.SortOrder
+  emailVerified?: Prisma.SortOrder
+  emailVerifyToken?: Prisma.SortOrder
+  emailVerifyExpires?: Prisma.SortOrder
+  passwordResetToken?: Prisma.SortOrder
+  passwordResetExpires?: Prisma.SortOrder
   role?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -335,6 +435,11 @@ export type UserMaxOrderByAggregateInput = {
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   kyc?: Prisma.SortOrder
+  emailVerified?: Prisma.SortOrder
+  emailVerifyToken?: Prisma.SortOrder
+  emailVerifyExpires?: Prisma.SortOrder
+  passwordResetToken?: Prisma.SortOrder
+  passwordResetExpires?: Prisma.SortOrder
   role?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -345,6 +450,11 @@ export type UserMinOrderByAggregateInput = {
   email?: Prisma.SortOrder
   passwordHash?: Prisma.SortOrder
   kyc?: Prisma.SortOrder
+  emailVerified?: Prisma.SortOrder
+  emailVerifyToken?: Prisma.SortOrder
+  emailVerifyExpires?: Prisma.SortOrder
+  passwordResetToken?: Prisma.SortOrder
+  passwordResetExpires?: Prisma.SortOrder
   role?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -357,6 +467,11 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   email?: boolean
   passwordHash?: boolean
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: boolean
+  emailVerifyExpires?: boolean
+  passwordResetToken?: boolean
+  passwordResetExpires?: boolean
   role?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -367,6 +482,11 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   passwordHash?: boolean
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: boolean
+  emailVerifyExpires?: boolean
+  passwordResetToken?: boolean
+  passwordResetExpires?: boolean
   role?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -377,6 +497,11 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   email?: boolean
   passwordHash?: boolean
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: boolean
+  emailVerifyExpires?: boolean
+  passwordResetToken?: boolean
+  passwordResetExpires?: boolean
   role?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
@@ -387,11 +512,16 @@ export type UserSelectScalar = {
   email?: boolean
   passwordHash?: boolean
   kyc?: boolean
+  emailVerified?: boolean
+  emailVerifyToken?: boolean
+  emailVerifyExpires?: boolean
+  passwordResetToken?: boolean
+  passwordResetExpires?: boolean
   role?: boolean
   createdAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "kyc" | "role" | "createdAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "kyc" | "emailVerified" | "emailVerifyToken" | "emailVerifyExpires" | "passwordResetToken" | "passwordResetExpires" | "role" | "createdAt", ExtArgs["result"]["user"]>
 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
@@ -402,6 +532,14 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     email: string
     passwordHash: string
     kyc: boolean
+    /**
+     * Soft gate: login allowed; investment booking blocked until true.
+     */
+    emailVerified: boolean
+    emailVerifyToken: string | null
+    emailVerifyExpires: Date | null
+    passwordResetToken: string | null
+    passwordResetExpires: Date | null
     role: string
     createdAt: Date
   }, ExtArgs["result"]["user"]>
@@ -832,6 +970,11 @@ export interface UserFieldRefs {
   readonly email: Prisma.FieldRef<"User", 'String'>
   readonly passwordHash: Prisma.FieldRef<"User", 'String'>
   readonly kyc: Prisma.FieldRef<"User", 'Boolean'>
+  readonly emailVerified: Prisma.FieldRef<"User", 'Boolean'>
+  readonly emailVerifyToken: Prisma.FieldRef<"User", 'String'>
+  readonly emailVerifyExpires: Prisma.FieldRef<"User", 'DateTime'>
+  readonly passwordResetToken: Prisma.FieldRef<"User", 'String'>
+  readonly passwordResetExpires: Prisma.FieldRef<"User", 'DateTime'>
   readonly role: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
 }

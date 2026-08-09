@@ -77,6 +77,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const user = useAppStore((s) => s.user);
   const token = useAppStore((s) => s.token);
   const hydrate = useAppStore((s) => s.hydrate);
+  const setAuth = useAppStore((s) => s.setAuth);
+  const emailVerified = !!user?.emailVerified || user?.role === 'admin';
   const [plan, setPlan] = useState<Plan | null>(null);
   const [suite, setSuite] = useState<Suite | null>(null);
   const [unitPlans, setUnitPlans] = useState<Plan[]>([]);
@@ -125,6 +127,28 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Refresh emailVerified (and other profile flags) from the server after hydrate.
+  useEffect(() => {
+    if (!token) return;
+    api('/auth/me')
+      .then((res) => {
+        if (res?.ok && res.user) {
+          setAuth(
+            {
+              id: res.user.id,
+              email: res.user.email,
+              name: res.user.name,
+              emailVerified: !!res.user.emailVerified,
+              role: res.user.role,
+              kyc: res.user.kyc
+            },
+            token
+          );
+        }
+      })
+      .catch(() => {});
+  }, [token, setAuth]);
 
   // Seed occupancy/cost from admin settings; ADR scales with suite category + size.
   useEffect(() => {
@@ -259,6 +283,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
       return;
     }
+    if (!emailVerified) {
+      setStatus('Verify your account email before submitting a booking');
+      router.push(`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      return;
+    }
     if (!isKycComplete(kyc)) {
       setStatus('Complete all KYC fields and upload both photographs before confirming');
       return;
@@ -309,19 +338,24 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       });
       if (!res?.ok || !res.booking?.id) {
         const msg =
-          res?.error === 'kyc_required'
-            ? 'Complete all KYC details before booking'
-            : res?.error === 'deposit_payment_required'
-              ? 'Select a payment method and enter the payment reference'
-              : res?.error === 'plan_not_available' || res?.error === 'conflict'
-                ? 'Plan already sold or unavailable'
-                : res?.error === 'plan_not_found'
-                  ? 'Plan not found'
-                  : res?.error === 'plan_suite_mismatch'
-                    ? 'This plan is not linked to the selected unit'
-                    : res?.error === 'suite_not_found'
-                      ? 'Unit not found'
-                      : 'Purchase failed';
+          res?.error === 'email_not_verified'
+            ? 'Verify your account email before booking'
+            : res?.error === 'kyc_required'
+              ? 'Complete all KYC details before booking'
+              : res?.error === 'deposit_payment_required'
+                ? 'Select a payment method and enter the payment reference'
+                : res?.error === 'plan_not_available' || res?.error === 'conflict'
+                  ? 'Plan already sold or unavailable'
+                  : res?.error === 'plan_not_found'
+                    ? 'Plan not found'
+                    : res?.error === 'plan_suite_mismatch'
+                      ? 'This plan is not linked to the selected unit'
+                      : res?.error === 'suite_not_found'
+                        ? 'Unit not found'
+                        : 'Purchase failed';
+        if (res?.error === 'email_not_verified') {
+          router.push(`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+        }
         setStatus(msg);
         setBuying(false);
         return;
@@ -903,6 +937,14 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </p>
             </div>
           </div>
+          {token && user && !emailVerified && (
+            <div className="mt-4 border border-gold/50 bg-gold/10 px-3 py-3 text-sm text-ocean">
+              Verify your account email before submitting a booking.{' '}
+              <Link href={`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`} className="font-semibold underline">
+                Verify email
+              </Link>
+            </div>
+          )}
           <Button
             className="mt-6 w-full bg-gold text-ocean hover:bg-gold/90"
             onClick={confirmInvestment}
@@ -912,6 +954,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               !available ||
               !!uploadingPic ||
               uploadingProof ||
+              (!!token && !emailVerified) ||
               !isKycComplete(kyc) ||
               !depositReference.trim()
             }
@@ -920,11 +963,13 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               ? 'Submitting...'
               : !available
                 ? 'No longer available'
-                : !isKycComplete(kyc)
-                  ? 'Complete KYC to continue'
-                  : !depositReference.trim()
-                    ? 'Enter payment reference'
-                    : 'Submit booking'}
+                : token && !emailVerified
+                  ? 'Verify email to continue'
+                  : !isKycComplete(kyc)
+                    ? 'Complete KYC to continue'
+                    : !depositReference.trim()
+                      ? 'Enter payment reference'
+                      : 'Submit booking'}
           </Button>
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/investor" className="text-ocean underline">

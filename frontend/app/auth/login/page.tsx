@@ -19,10 +19,24 @@ export default function LoginPage() {
     setStatus('Signing in...');
     const res = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     if (res?.ok && res.token && res.user) {
-      setAuth({ id: res.user.id, email: res.user.email, name: res.user.name }, res.token);
+      setAuth(
+        {
+          id: res.user.id,
+          email: res.user.email,
+          name: res.user.name,
+          emailVerified: !!res.user.emailVerified,
+          role: res.user.role,
+          kyc: res.user.kyc
+        },
+        res.token
+      );
       setStatus('Signed in');
       const next =
         typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null;
+      if (!res.user.emailVerified && res.user.role !== 'admin') {
+        router.push(next ? `/auth/verify?next=${encodeURIComponent(next)}` : '/auth/verify');
+        return;
+      }
       router.push(next || '/investor');
       return;
     }
@@ -65,6 +79,11 @@ export default function LoginPage() {
             required
           />
         </label>
+        <p className="text-right text-sm">
+          <Link href="/auth/forgot-password" className="font-semibold text-ocean underline">
+            Forgot password?
+          </Link>
+        </p>
         <Button className="w-full" type="submit">
           Continue
         </Button>

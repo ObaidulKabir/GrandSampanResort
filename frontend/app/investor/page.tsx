@@ -148,6 +148,9 @@ export default function InvestorPage() {
           <Link href="/invest">
             <Button>Buy another plan</Button>
           </Link>
+          <Link href="/auth/change-password">
+            <Button variant="outline">Change password</Button>
+          </Link>
           <Button variant="outline" onClick={loadAll}>
             {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
