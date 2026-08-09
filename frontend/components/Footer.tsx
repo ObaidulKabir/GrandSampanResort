@@ -23,7 +23,7 @@ export default function Footer() {
         <div>
           <h4 className="text-ocean font-semibold">Social</h4>
           <ul className="mt-2 space-y-2 text-ocean/80">
-            <li><a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+            <li><a href="https://www.facebook.com/GrandSampanResort" target="_blank" rel="noopener noreferrer">Facebook</a></li>
             <li><a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
             <li><a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a></li>
             <li><a href="https://www.linkedin.com/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
