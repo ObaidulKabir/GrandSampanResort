@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import MailTestButton from '@/components/admin/MailTestButton';
 
 const tools = [
   {
@@ -79,6 +80,8 @@ export default function AdminPage() {
           </Link>
         ))}
       </div>
+
+      <MailTestButton />
     </main>
   );
 }

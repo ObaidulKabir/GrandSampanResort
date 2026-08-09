@@ -11,7 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "smtp:test": "ts-node scripts/test-smtp.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

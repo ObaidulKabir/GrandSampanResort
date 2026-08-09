@@ -149,7 +149,10 @@ export default function AdminSalesPage() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Company sales</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">Sales Desk</h1>
-          <p className="mt-2 text-ocean/75">Investment bookings, inventory, and investors in one place.</p>
+          <p className="mt-2 text-ocean/75">
+            Investment bookings, inventory, and investors. Completing a booking (deposit + KYC) emails the
+            client an invoice.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={load}>{loading ? 'Refreshing...' : 'Refresh'}</Button>

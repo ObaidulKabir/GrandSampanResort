@@ -44,19 +44,20 @@ export class MailService {
     if (!this.enabled()) return null;
     if (this.transporter) return this.transporter;
     const port = Number(process.env.SMTP_PORT || 465);
-    const secure =
-      process.env.SMTP_SECURE === 'true' ||
-      process.env.SMTP_SECURE === '1' ||
-      port === 465;
+    // Port 465 = implicit TLS (secure true). Port 587 = STARTTLS (secure false).
+    // Ignore SMTP_SECURE=true on 587 — that combo commonly fails with Zoho.
+    const secure = port === 465;
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port,
       secure,
+      requireTLS: port === 587,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
+    this.logger.log(`SMTP transport ready (${process.env.SMTP_HOST}:${port}, secure=${secure})`);
     return this.transporter;
   }
 
@@ -104,6 +105,27 @@ export class MailService {
     Questions? Reply to this email or write <a href="mailto:admin@grandsampanresort.com">admin@grandsampanresort.com</a>.
   </p>
 </body></html>`;
+  }
+
+  /** Admin smoke test — verifies Zoho SMTP from the running backend. */
+  async sendTestEmail(to?: string) {
+    const recipient = (to || process.env.MAIL_BCC || process.env.SMTP_USER || '').trim();
+    if (!recipient) {
+      return { ok: false as const, error: 'no_recipient' };
+    }
+    const subject = `Grand Sampan SMTP test ${new Date().toISOString()}`;
+    const text =
+      'This is a test message from the Grand Sampan Resort backend. Transactional booking notifications are configured.';
+    const html = this.wrapHtml(
+      'SMTP test',
+      '<p>This is a test message from the Grand Sampan Resort backend.</p><p>Transactional booking notifications are configured.</p>'
+    );
+    const result = await this.send({ to: recipient, subject, html, text });
+    if (result.ok) return { ok: true as const, to: recipient };
+    if ('skipped' in result && result.skipped) {
+      return { ok: false as const, error: 'smtp_not_configured' };
+    }
+    return { ok: false as const, error: 'send_failed', detail: (result as any).error };
   }
 
   async notifyBookingSubmitted(ctx: BookingMailContext) {
