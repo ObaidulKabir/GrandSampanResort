@@ -1,6 +1,8 @@
+import * as bcrypt from 'bcryptjs';
 import { BookingService } from './booking.service';
 import { SuitesService } from '../suites/suites.service';
 import { TimesharesService } from '../timeshares/timeshares.service';
+import { prisma } from '../../prisma/client';
 
 const sampleKyc = {
   name: 'Test Buyer',
@@ -30,12 +32,41 @@ describe('BookingService', () => {
     const plans = new TimesharesService();
     const suiteId = 'T-JEST-S';
     const planId = 'T-JEST-P';
+    const investorId = 'I-1';
+    const unverifiedId = 'I-UNVERIFIED';
     try {
       await suites.remove(suiteId);
     } catch {}
     try {
       await plans.remove(planId);
     } catch {}
+    const passwordHash = await bcrypt.hash('testpass123', 10);
+    await prisma.user.upsert({
+      where: { id: investorId },
+      update: { emailVerified: true, role: 'investor' },
+      create: {
+        id: investorId,
+        name: 'Jest Investor',
+        email: 'jest-investor@example.com',
+        passwordHash,
+        kyc: false,
+        role: 'investor',
+        emailVerified: true
+      }
+    });
+    await prisma.user.upsert({
+      where: { id: unverifiedId },
+      update: { emailVerified: false, role: 'investor' },
+      create: {
+        id: unverifiedId,
+        name: 'Unverified Investor',
+        email: 'jest-unverified@example.com',
+        passwordHash,
+        kyc: false,
+        role: 'investor',
+        emailVerified: false
+      }
+    });
     await suites.create({ id: suiteId, floor: 3, type: 'Test', size: 200, view: 'Sea', totalPrice: 200000, currency: 'BDT' } as any);
     await plans.create({
       id: planId,
@@ -57,7 +88,7 @@ describe('BookingService', () => {
       planId,
       now.toISOString(),
       new Date(now.getTime() + 86400000).toISOString(),
-      'I-1'
+      investorId
     );
     expect(missingKyc.ok).toBe(false);
     if (!missingKyc.ok) expect(missingKyc.error).toBe('kyc_required');
@@ -67,19 +98,32 @@ describe('BookingService', () => {
       planId,
       now.toISOString(),
       new Date(now.getTime() + 86400000).toISOString(),
-      'I-1',
+      investorId,
       'monthly',
       sampleKyc
     );
     expect(missingDeposit.ok).toBe(false);
     if (!missingDeposit.ok) expect(missingDeposit.error).toBe('deposit_payment_required');
 
+    const blockedUnverified = await svc.book(
+      suiteId,
+      planId,
+      now.toISOString(),
+      new Date(now.getTime() + 86400000).toISOString(),
+      unverifiedId,
+      'monthly',
+      sampleKyc,
+      sampleDeposit
+    );
+    expect(blockedUnverified.ok).toBe(false);
+    if (!blockedUnverified.ok) expect(blockedUnverified.error).toBe('email_not_verified');
+
     let res = await svc.book(
       suiteId,
       planId,
       now.toISOString(),
       new Date(now.getTime() + 86400000).toISOString(),
-      'I-1',
+      investorId,
       'monthly',
       sampleKyc,
       sampleDeposit
@@ -91,7 +135,7 @@ describe('BookingService', () => {
         planId,
         new Date(now.getTime() + 2 * 86400000).toISOString(),
         new Date(now.getTime() + 3 * 86400000).toISOString(),
-        'I-1',
+        investorId,
         'monthly',
         sampleKyc,
         sampleDeposit
@@ -133,7 +177,7 @@ describe('BookingService', () => {
       planId,
       new Date(now.getTime() + 4 * 86400000).toISOString(),
       new Date(now.getTime() + 5 * 86400000).toISOString(),
-      'I-1',
+      investorId,
       'quarterly',
       sampleKyc,
       { depositMethod: 'online_transfer', depositReference: 'TRX-99' }

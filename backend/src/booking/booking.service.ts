@@ -403,7 +403,10 @@ export class BookingService {
             where: { id: investorId },
             select: { emailVerified: true, role: true },
           });
-          if (!investor || (investor.role !== 'admin' && !investor.emailVerified)) {
+          if (!investor) {
+            return { ok: false as const, error: 'investor_not_found' };
+          }
+          if (investor.role !== 'admin' && !investor.emailVerified) {
             return { ok: false as const, error: 'email_not_verified' };
           }
         }
