@@ -1,31 +1,157 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
+import ImageLightbox from '@/components/ImageLightbox';
+import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
 
-async function getSuites(): Promise<any[]> {
-  try {
-    const res = await api('/suites');
-    return Array.isArray(res) ? res : [];
-  } catch {
-    return [];
+type Suite = {
+  id: string;
+  floor?: number;
+  type?: string;
+  size?: number;
+  view?: string;
+  totalPrice?: number;
+};
+
+function firstBySuite(items: MediaItem[]) {
+  const map: Record<string, { src: string; alt: string }> = {};
+  for (const item of items) {
+    const suiteId = item.suiteId;
+    if (!suiteId || map[suiteId] || !item.url) continue;
+    map[suiteId] = {
+      src: resolveMediaUrl(item.url),
+      alt: item.alt || item.label || suiteId
+    };
   }
+  return map;
 }
 
-export default async function SuitesPage() {
-  const suites = await getSuites();
-  return (
-    <main className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-['Playfair Display'] text-4xl text-ocean">Suites</h1>
-      {suites.length === 0 && <p className="mt-4 text-ocean/70">No suites available right now. Check back soon.</p>}
-      <div className="mt-8 grid md:grid-cols-2 gap-6">
-        {suites.map((s: any) => (
-          <div key={s.id} className="rounded-lg border border-gold/30 bg-white p-6">
-            <h2 className="text-2xl text-ocean">{s.id}</h2>
-            <p className="text-ocean/80">{s.type} • {s.size} sq ft • {s.view}</p>
-            <p className="text-ocean/70">{formatMoney(s.totalPrice)}</p>
-          </div>
-        ))}
+function DrawingSlot({
+  title,
+  image,
+  onOpen
+}: {
+  title: string;
+  image?: { src: string; alt: string };
+  onOpen: (img: { src: string; alt: string }) => void;
+}) {
+  if (!image) {
+    return (
+      <div className="flex h-40 items-center justify-center border border-dashed border-ocean/20 bg-pearl/40 px-3 text-center">
+        <p className="text-xs text-ocean/50">{title} not uploaded yet</p>
       </div>
-    </main>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen({ src: image.src, alt: image.alt || title })}
+      className="group w-full text-left"
+      title={`Enlarge ${title}`}
+    >
+      <div className="relative h-40 w-full overflow-hidden border border-ocean/10 bg-pearl/40 p-2 transition group-hover:border-gold/50">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image.src} alt={image.alt || title} className="h-full w-full object-contain" />
+        <span className="pointer-events-none absolute bottom-2 right-2 border border-ocean/15 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-ocean opacity-0 transition group-hover:opacity-100">
+          Enlarge
+        </span>
+      </div>
+      <div className="mt-1.5 text-xs font-semibold text-ocean">{title}</div>
+    </button>
   );
 }
 
+export default function SuitesPage() {
+  const [suites, setSuites] = useState<Suite[]>([]);
+  const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
+  const [keyMapBySuite, setKeyMapBySuite] = useState<Record<string, { src: string; alt: string }>>({});
+  const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [suitesJson, archMedia, keyMedia] = await Promise.all([
+          api('/suites'),
+          fetchMedia('suite_plan'),
+          fetchMedia('suite_keymap')
+        ]);
+        if (cancelled) return;
+        const list = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
+        setSuites(list);
+        setArchBySuite(firstBySuite(archMedia));
+        setKeyMapBySuite(firstBySuite(keyMedia));
+      } catch {
+        if (!cancelled) setSuites([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sorted = useMemo(
+    () =>
+      [...suites].sort((a, b) =>
+        String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' })
+      ),
+    [suites]
+  );
+
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-16">
+      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
+      <h1 className="font-display mt-1 text-4xl text-ocean">Suites</h1>
+      <p className="mt-2 max-w-2xl text-ocean/75">
+        Browse each unit with its architectural plan and key map. Click a drawing to enlarge.
+      </p>
+
+      {loading && <p className="mt-8 text-ocean/70">Loading suites…</p>}
+      {!loading && suites.length === 0 && (
+        <p className="mt-8 text-ocean/70">No suites available right now. Check back soon.</p>
+      )}
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {sorted.map((s) => (
+          <article key={s.id} className="border border-ocean/10 bg-white p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-2xl text-ocean">{s.id}</h2>
+                <p className="mt-1 text-ocean/80">
+                  {s.type} • {s.size} sq ft • {s.view}
+                  {s.floor != null ? ` • Floor ${s.floor}` : ''}
+                </p>
+                <p className="mt-1 text-ocean/70">{formatMoney(s.totalPrice || 0)}</p>
+              </div>
+              <Link
+                href={`/invest?q=${encodeURIComponent(s.id)}`}
+                className="text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
+              >
+                View plans
+              </Link>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <DrawingSlot
+                title="Architectural plan"
+                image={archBySuite[s.id]}
+                onOpen={setLightbox}
+              />
+              <DrawingSlot title="Key map" image={keyMapBySuite[s.id]} onOpen={setLightbox} />
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {lightbox && (
+        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
+      )}
+    </main>
+  );
+}

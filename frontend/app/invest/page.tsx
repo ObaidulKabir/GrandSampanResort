@@ -65,6 +65,12 @@ export default function InvestPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setFilters((f) => ({ ...f, q }));
+  }, []);
+
   const filterOptions = useMemo(() => {
     const views = new Set<string>();
     const categories = new Set<string>();
