@@ -30,6 +30,10 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
+      - name: Prisma generate
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
       - name: Prisma migrate
         run: npm run prisma:migrate:deploy
         env:
@@ -64,6 +68,10 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
+      - name: Prisma generate
+        run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://app:app@localhost:5432/grand_sampan
       - name: Prisma migrate
         run: npm run prisma:migrate:deploy
         env:

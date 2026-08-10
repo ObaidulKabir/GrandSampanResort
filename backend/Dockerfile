@@ -4,8 +4,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm install
-RUN npx prisma generate
 COPY . .
+# Generate after full copy so committed prisma/generated cannot overwrite a fresh client.
+# prisma.config.ts requires DATABASE_URL even for generate.
+ENV DATABASE_URL=postgresql://app:app@db:5432/grand_sampan
+RUN npx prisma generate
 
 FROM base AS development
 ENV NODE_ENV=development
