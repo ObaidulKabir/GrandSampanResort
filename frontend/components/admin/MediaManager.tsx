@@ -19,29 +19,36 @@ export default function MediaManager({
   title,
   help,
   labelOptions,
+  fixedLabel,
   suiteId,
   singleImage,
   maxImages,
-  emptyHint
+  emptyHint,
+  embedded
 }: {
   category: string;
   title: string;
   help: string;
   labelOptions?: string[];
+  /** Lock uploads to this label (e.g. Standard / Delux / Premium) and only show matching images. */
+  fixedLabel?: string;
   suiteId?: string;
   /** When true, a newly uploaded image replaces any existing one instead of adding to a gallery. */
   singleImage?: boolean;
   /** Cap gallery size; uploading past the limit replaces the oldest image. */
   maxImages?: number;
   emptyHint?: string;
+  /** Render without the outer card chrome (for nesting inside another section). */
+  embedded?: boolean;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [altText, setAltText] = useState('');
-  const [label, setLabel] = useState(labelOptions?.[0] || '');
+  const [label, setLabel] = useState(fixedLabel || labelOptions?.[0] || '');
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const activeLabel = fixedLabel || label;
 
   async function load() {
     setLoading(true);
@@ -49,7 +56,12 @@ export default function MediaManager({
       const params = new URLSearchParams({ category });
       if (suiteId) params.set('suiteId', suiteId);
       const json = await api(`/media?${params.toString()}`);
-      setItems(Array.isArray(json?.media) ? json.media : []);
+      const list: MediaItem[] = Array.isArray(json?.media) ? json.media : [];
+      setItems(
+        fixedLabel
+          ? list.filter((m) => (m.label || '').toLowerCase().trim() === fixedLabel.toLowerCase().trim())
+          : list
+      );
     } catch {
       setItems([]);
     }
@@ -59,7 +71,7 @@ export default function MediaManager({
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, suiteId]);
+  }, [category, suiteId, fixedLabel]);
 
   async function onUpload(e: React.FormEvent) {
     e.preventDefault();
@@ -78,7 +90,7 @@ export default function MediaManager({
       form.append('category', category);
       if (suiteId) form.append('suiteId', suiteId);
       if (altText.trim()) form.append('alt', altText.trim());
-      if (labelOptions && label) form.append('label', label);
+      if (fixedLabel || (labelOptions && activeLabel)) form.append('label', fixedLabel || activeLabel);
       const json = await apiUpload('/media/upload', form);
       if (json?.ok) {
         setAltText('');
@@ -118,8 +130,8 @@ export default function MediaManager({
   }
 
   return (
-    <section className="border border-ocean/10 bg-white p-6">
-      <h2 className="font-display text-xl text-ocean">{title}</h2>
+    <section className={embedded ? 'border border-ocean/10 bg-pearl/20 p-4' : 'border border-ocean/10 bg-white p-6'}>
+      <h2 className={`font-display text-ocean ${embedded ? 'text-lg' : 'text-xl'}`}>{title}</h2>
       <p className="mt-1 text-sm text-ocean/70">{help}</p>
 
       <form onSubmit={onUpload} className="mt-5 flex flex-wrap items-end gap-3 border-t border-ocean/10 pt-5">
@@ -127,7 +139,7 @@ export default function MediaManager({
           Image file
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="field mt-1" />
         </label>
-        {labelOptions && (
+        {labelOptions && !fixedLabel && (
           <label className="text-sm font-medium text-ocean">
             Suite type
             <select value={label} onChange={(e) => setLabel(e.target.value)} className="field mt-1">
@@ -138,6 +150,12 @@ export default function MediaManager({
               ))}
             </select>
           </label>
+        )}
+        {fixedLabel && (
+          <div className="text-sm font-medium text-ocean">
+            Suite type
+            <div className="field mt-1 flex items-center bg-pearl/60 text-ocean/80">{fixedLabel}</div>
+          </div>
         )}
         <label className="text-sm font-medium text-ocean">
           Caption (optional)

@@ -23,13 +23,42 @@ export default function AdminMediaPage() {
           help="Images shown in the 'The resort' section on the homepage — pool, common areas, beach, and lounge shots."
           emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
         />
-        <MediaManager
-          category="suites"
-          title="Suite thumbnails"
-          help="One or more photos per unit category, shown on investment cards. Tag each photo with the matching suite type."
-          labelOptions={['Standard', 'Delux', 'Premium']}
-          emptyHint="No images uploaded yet — the site is showing placeholder stock photography for this section until you upload real photos."
-        />
+        <section className="border border-ocean/10 bg-white p-6">
+          <h2 className="font-display text-xl text-ocean">Homepage suite type images</h2>
+          <p className="mt-1 text-sm text-ocean/70">
+            Upload one photo each for Standard, Delux, and Premium. These appear on the homepage available-suites
+            cards and anywhere suite-type thumbnails are shown. Until uploaded, the site uses placeholder photography.
+          </p>
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <MediaManager
+              category="suites"
+              fixedLabel="Standard"
+              singleImage
+              embedded
+              title="Standard suite"
+              help="Homepage / catalog image for Standard units."
+              emptyHint="No Standard suite image yet."
+            />
+            <MediaManager
+              category="suites"
+              fixedLabel="Delux"
+              singleImage
+              embedded
+              title="Delux suite"
+              help="Homepage / catalog image for Delux units."
+              emptyHint="No Delux suite image yet."
+            />
+            <MediaManager
+              category="suites"
+              fixedLabel="Premium"
+              singleImage
+              embedded
+              title="Premium suite"
+              help="Homepage / catalog image for Premium units."
+              emptyHint="No Premium suite image yet."
+            />
+          </div>
+        </section>
         <MediaManager
           category="about_project"
           title="About Project — project views"
