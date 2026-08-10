@@ -12,8 +12,8 @@ export default function Footer() {
         <div>
           <h4 className="text-ocean font-semibold">Contacts</h4>
           <ul className="mt-2 space-y-2 text-ocean/80">
-            <li><a href="tel:+8801700000000">+880 17 0000 0000</a></li>
-            <li><a href="mailto:info@grandsampan.com">info@grandsampan.com</a></li>
+            <li><a href="tel:+8801300999750">+880 1300-999750</a></li>
+            <li><a href="mailto:admin@grandsampanresort.com">admin@grandsampanresort.com</a></li>
             <li><Link href="/about">About</Link></li>
             <li><Link href="/invest">Invest</Link></li>
             <li><Link href="/faq">FAQ</Link></li>
