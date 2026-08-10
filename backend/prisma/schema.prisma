@@ -57,6 +57,9 @@ model Booking {
   /// Set when admin verifies per-booking KYC snapshot is valid.
   kycVerified   Boolean  @default(false)
   kycVerifiedAt DateTime?
+  /// Admin cancellation reason (required when status becomes cancelled).
+  cancellationReason String?
+  cancelledAt        DateTime?
   schedule    PaymentScheduleItem[]
   /// Investment purchases link to a share plan; guest stays leave this null.
   plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)

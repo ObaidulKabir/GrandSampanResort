@@ -29,6 +29,8 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
   const [actionMsg, setActionMsg] = useState('');
   const [summary, setSummary] = useState<any>(null);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelForm, setShowCancelForm] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,10 +117,15 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
     setActing(false);
   }
 
-  async function rejectDeposit() {
+  async function cancelBooking() {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      setActionMsg('Enter a cancellation reason before cancelling.');
+      return;
+    }
     if (
       !window.confirm(
-        'Reject this booking and release the reserved plan back to unsold? This cannot be undone.'
+        'Cancel this booking and set the share plan back to Unsold? This cannot be undone.'
       )
     ) {
       return;
@@ -126,22 +133,34 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
     setActing(true);
     setActionMsg('');
     try {
-      const res = await api(`/booking/${encodeURIComponent(bookingId)}/reject-deposit`, {
+      const res = await api(`/booking/${encodeURIComponent(bookingId)}/cancel`, {
         method: 'POST',
-        body: JSON.stringify({})
+        body: JSON.stringify({ reason })
       });
       if (!res?.ok) {
         setActionMsg(
-          res?.error === 'not_pending_review' || res?.error === 'not_awaiting_payment'
-            ? 'This booking is not pending admin review'
-            : 'Could not reject booking'
+          res?.error === 'reason_required'
+            ? 'Cancellation reason is required'
+            : res?.error === 'already_cancelled'
+              ? 'This booking is already cancelled'
+              : res?.error === 'not_cancellable'
+                ? 'This booking cannot be cancelled in its current status'
+                : res?.error === 'not_investment_booking'
+                  ? 'Only investment bookings with a plan can be cancelled here'
+                  : 'Could not cancel booking'
         );
       } else {
-        setActionMsg('Booking cancelled and plan released.');
+        setActionMsg(
+          res.planReleased
+            ? 'Booking cancelled. Plan released to Unsold.'
+            : 'Booking cancelled.'
+        );
+        setShowCancelForm(false);
+        setCancelReason('');
         await load();
       }
     } catch {
-      setActionMsg('Could not reject booking');
+      setActionMsg('Could not cancel booking');
     }
     setActing(false);
   }
@@ -153,6 +172,11 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
   const investor = summary?.investor;
   const pendingReview =
     booking?.status === 'awaiting_payment' || booking?.status === 'awaiting_kyc';
+  const canCancel =
+    !!booking?.planId &&
+    (booking?.status === 'awaiting_payment' ||
+      booking?.status === 'awaiting_kyc' ||
+      booking?.status === 'confirmed');
   const depositConfirmed = !!booking?.depositConfirmedAt;
   const kycVerified = !!booking?.kycVerified;
 
@@ -230,11 +254,72 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                       {acting ? 'Working…' : 'Verify KYC'}
                     </Button>
                   )}
-                  <Button variant="outline" onClick={rejectDeposit} disabled={acting}>
-                    Reject & release plan
-                  </Button>
                 </div>
               )}
+            </section>
+          )}
+
+          {canCancel && (
+            <section className="border border-red-200 bg-red-50/40 p-5">
+              <h2 className="font-display text-2xl text-ocean">Cancel booking</h2>
+              <p className="mt-1 text-sm text-ocean/70">
+                Cancel for operational reasons and release the share plan back to Unsold. A reason is required and
+                emailed to the buyer.
+              </p>
+              {!showCancelForm ? (
+                <div className="mt-4">
+                  <Button variant="outline" onClick={() => setShowCancelForm(true)} disabled={acting}>
+                    Cancel booking &amp; release plan
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <label className="block text-sm font-medium text-ocean">
+                    Cancellation reason
+                    <textarea
+                      className="field mt-1 min-h-[96px]"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="e.g. Buyer withdrew / payment not received / duplicate booking"
+                      maxLength={1000}
+                      required
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={cancelBooking} disabled={acting || !cancelReason.trim()}>
+                      {acting ? 'Cancelling…' : 'Confirm cancellation'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowCancelForm(false);
+                        setCancelReason('');
+                      }}
+                      disabled={acting}
+                    >
+                      Keep booking
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {booking?.status === 'cancelled' && (
+            <section className="border border-ocean/10 bg-white p-5">
+              <h2 className="font-display text-2xl text-ocean">Cancellation</h2>
+              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div className="border-b border-ocean/10 pb-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Cancelled at</dt>
+                  <dd className="mt-0.5 text-ocean">
+                    {booking.cancelledAt ? formatDate(booking.cancelledAt) : '—'}
+                  </dd>
+                </div>
+                <div className="border-b border-ocean/10 pb-2 sm:col-span-2">
+                  <dt className="text-xs uppercase tracking-wide text-ocean/55">Reason</dt>
+                  <dd className="mt-0.5 text-ocean">{booking.cancellationReason || '—'}</dd>
+                </div>
+              </dl>
             </section>
           )}
 

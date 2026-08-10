@@ -186,7 +186,7 @@ describe('BookingService', () => {
     if (!quarterly.ok) return;
     expect(quarterly.booking.schedule!.filter((s) => s.type === 'installment')).toHaveLength(8);
 
-    const rejected = await svc.rejectDeposit(quarterly.booking.id);
+    const rejected = await svc.cancelBooking(quarterly.booking.id, 'Test cancellation — release plan');
     expect(rejected.ok).toBe(true);
     const released = await plans.get(planId);
     expect(String((released as any)?.planStatus)).toBe('Unsold');

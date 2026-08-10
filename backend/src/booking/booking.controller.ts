@@ -57,11 +57,18 @@ export class BookingController {
     return this.service.verifyKyc(id);
   }
 
+  @Post(':id/cancel')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async cancel(@Param('id') id: string, @Body() body: any) {
+    return this.service.cancelBooking(id, body?.reason || '');
+  }
+
   @Post(':id/reject-deposit')
   @UseGuards(RolesGuard)
   @Roles('admin')
-  async rejectDeposit(@Param('id') id: string) {
-    return this.service.rejectDeposit(id);
+  async rejectDeposit(@Param('id') id: string, @Body() body: any) {
+    return this.service.cancelBooking(id, body?.reason || '');
   }
 
   @Get('investor/:id')

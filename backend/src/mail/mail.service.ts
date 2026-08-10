@@ -17,6 +17,7 @@ export type BookingMailContext = {
   buyerContact?: string;
   buyerNid?: string;
   buyerAddress?: string;
+  cancellationReason?: string;
 };
 
 @Injectable()
@@ -288,13 +289,24 @@ export class MailService {
   }
 
   async notifyBookingRejected(ctx: BookingMailContext) {
+    const reason = (ctx.cancellationReason || '').trim();
     const subject = `Booking cancelled — ${ctx.bookingId}`;
-    const text = `Dear ${ctx.buyerName},\n\nBooking ${ctx.bookingId} for ${ctx.planName} was not completed and the plan reservation has been released. Contact admin@grandsampanresort.com if you have questions.`;
+    const text = [
+      `Dear ${ctx.buyerName},`,
+      ``,
+      `Booking ${ctx.bookingId} for ${ctx.planName} has been cancelled and the share plan is available again.`,
+      reason ? `Reason: ${reason}` : '',
+      ``,
+      `Contact admin@grandsampanresort.com if you have questions.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
     const html = this.wrapHtml(
       'Booking cancelled',
       `<p>Dear ${escapeHtml(ctx.buyerName)},</p>
        <p>Booking <strong>${escapeHtml(ctx.bookingId)}</strong> for
-       <strong>${escapeHtml(ctx.planName)}</strong> was not completed. The plan reservation has been released.</p>
+       <strong>${escapeHtml(ctx.planName)}</strong> has been cancelled. The share plan is available again.</p>
+       ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>` : ''}
        <p>If you believe this is an error, please contact us.</p>`
     );
     return this.send({ to: ctx.to, subject, html, text });

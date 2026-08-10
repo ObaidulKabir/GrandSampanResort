@@ -123,6 +123,7 @@ export class BookingService {
       buyerContact: kyc?.contact || "",
       buyerNid: kyc?.nid || "",
       buyerAddress: kyc?.address || "",
+      cancellationReason: booking.cancellationReason || undefined,
     };
   }
 
@@ -900,61 +901,120 @@ export class BookingService {
     return out;
   }
 
-  /** Admin rejects pending booking; release reserved plan. */
-  async rejectDeposit(bookingId: string) {
+  private canCancelInvestment(status: string) {
+    return (
+      status === "awaiting_payment" ||
+      status === "awaiting_kyc" ||
+      status === "confirmed"
+    );
+  }
+
+  private shouldReleasePlan(planStatus?: string | null) {
+    const st = String(planStatus || "").toLowerCase();
+    return st === "reserved" || st === "booked";
+  }
+
+  /**
+   * Admin cancels an investment booking with a required reason.
+   * Releases Reserved/Booked plans back to Unsold.
+   */
+  async cancelBooking(bookingId: string, reason: string) {
+    const cleaned = String(reason || "").trim();
+    if (!cleaned) return { ok: false as const, error: "reason_required" };
+    if (cleaned.length > 1000) return { ok: false as const, error: "reason_too_long" };
+    const cancelledAt = new Date();
+
     if (this.prisma) {
       const booking = await this.prisma.booking.findUnique({
         where: { id: bookingId },
       });
       if (!booking) return { ok: false as const, error: "not_found" };
-      if (!this.isPendingAdminReview(booking.status)) {
-        return { ok: false as const, error: "not_pending_review" };
+      if (!booking.planId) return { ok: false as const, error: "not_investment_booking" };
+      if (booking.status === "cancelled") {
+        return { ok: false as const, error: "already_cancelled" };
       }
+      if (!this.canCancelInvestment(booking.status)) {
+        return { ok: false as const, error: "not_cancellable" };
+      }
+
       const ops: any[] = [
         this.prisma.booking.update({
           where: { id: bookingId },
-          data: { status: "cancelled" },
+          data: {
+            status: "cancelled",
+            cancellationReason: cleaned,
+            cancelledAt,
+          },
         }),
       ];
-      if (booking.planId) {
-        const plan = await this.prisma.sharePlan.findUnique({
-          where: { id: booking.planId },
-        });
-        if (plan && String(plan.planStatus || "").toLowerCase() === "reserved") {
-          ops.push(
-            this.prisma.sharePlan.update({
-              where: { id: booking.planId },
-              data: { planStatus: "Unsold" },
-            }),
-          );
-        }
+      const plan = await this.prisma.sharePlan.findUnique({
+        where: { id: booking.planId },
+      });
+      if (plan && this.shouldReleasePlan(plan.planStatus)) {
+        ops.push(
+          this.prisma.sharePlan.update({
+            where: { id: booking.planId },
+            data: { planStatus: "Unsold" },
+          }),
+        );
       }
       await this.prisma.$transaction(ops);
+
+      const updated = {
+        ...booking,
+        status: "cancelled",
+        cancellationReason: cleaned,
+        cancelledAt,
+      };
       await this.notifyAfterAdminAction(
-        { ...booking, status: "cancelled" },
-        { completed: false, depositConfirmed: !!booking.depositConfirmedAt, kycVerified: !!booking.kycVerified },
+        updated,
+        {
+          completed: false,
+          depositConfirmed: !!booking.depositConfirmedAt,
+          kycVerified: !!booking.kycVerified,
+        },
         "reject",
       );
-      return { ok: true as const };
+      return {
+        ok: true as const,
+        status: "cancelled" as const,
+        planReleased: !!(plan && this.shouldReleasePlan(plan.planStatus)),
+      };
     }
 
     const booking = await this.repo.findById(bookingId);
     if (!booking) return { ok: false as const, error: "not_found" };
-    if (!this.isPendingAdminReview(booking.status)) {
-      return { ok: false as const, error: "not_pending_review" };
+    if (!booking.planId) return { ok: false as const, error: "not_investment_booking" };
+    if (booking.status === "cancelled") {
+      return { ok: false as const, error: "already_cancelled" };
     }
+    if (!this.canCancelInvestment(booking.status)) {
+      return { ok: false as const, error: "not_cancellable" };
+    }
+
     booking.status = "cancelled";
-    if (booking.planId) {
-      const plan = await this.timeshares.get(booking.planId);
-      if (plan && String((plan as any).planStatus || "").toLowerCase() === "reserved") {
-        await this.timeshares.update(booking.planId, { planStatus: "Unsold" } as any);
-      }
+    booking.cancellationReason = cleaned;
+    booking.cancelledAt = cancelledAt.toISOString();
+    let planReleased = false;
+    const plan = await this.timeshares.get(booking.planId);
+    if (plan && this.shouldReleasePlan((plan as any).planStatus)) {
+      await this.timeshares.update(booking.planId, { planStatus: "Unsold" } as any);
+      planReleased = true;
     }
     await this.notifyAfterAdminAction(
       booking,
-      { completed: false, depositConfirmed: !!booking.depositConfirmedAt, kycVerified: !!booking.kycVerified },
+      {
+        completed: false,
+        depositConfirmed: !!booking.depositConfirmedAt,
+        kycVerified: !!booking.kycVerified,
+      },
       "reject",
     );
-    return { ok: true as const };
+    return { ok: true as const, status: "cancelled" as const, planReleased };
+  }
+
+  /** @deprecated Prefer cancelBooking — kept for older admin clients. */
+  async rejectDeposit(bookingId: string, reason?: string) {
+    return this.cancelBooking(bookingId, reason || "");
   }
 }
