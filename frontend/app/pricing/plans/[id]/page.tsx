@@ -1076,7 +1076,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
                 <label className="text-sm text-ocean">
                   ADR (BDT)
-                  <input type="number" value={adr} onChange={(e) => setAdr(Number(e.target.value))} className="field mt-1" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={Number.isFinite(adr) ? String(adr) : ''}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/[^\d]/g, '');
+                      setAdr(cleaned === '' ? 0 : Number(cleaned));
+                    }}
+                    className="field mt-1"
+                  />
                 </label>
                 <label className="text-sm text-ocean">
                   Occupancy (0–1)
