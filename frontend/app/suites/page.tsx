@@ -66,6 +66,7 @@ function DrawingSlot({
 
 export default function SuitesPage() {
   const [suites, setSuites] = useState<Suite[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
   const [keyMapBySuite, setKeyMapBySuite] = useState<Record<string, { src: string; alt: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -76,18 +77,24 @@ export default function SuitesPage() {
     (async () => {
       setLoading(true);
       try {
-        const [suitesJson, archMedia, keyMedia] = await Promise.all([
+        const [suitesJson, plansJson, archMedia, keyMedia] = await Promise.all([
           api('/suites'),
+          api('/timeshares'),
           fetchMedia('suite_plan'),
           fetchMedia('suite_keymap')
         ]);
         if (cancelled) return;
         const list = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
+        const planList = Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? [];
         setSuites(list);
+        setPlans(planList);
         setArchBySuite(firstBySuite(archMedia));
         setKeyMapBySuite(firstBySuite(keyMedia));
       } catch {
-        if (!cancelled) setSuites([]);
+        if (!cancelled) {
+          setSuites([]);
+          setPlans([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -96,6 +103,20 @@ export default function SuitesPage() {
       cancelled = true;
     };
   }, []);
+
+  const planStatsBySuite = useMemo(() => {
+    const map: Record<string, { total: number; sold: number }> = {};
+    for (const p of plans) {
+      const suiteId = p?.suiteId;
+      if (!suiteId) continue;
+      if (!map[suiteId]) map[suiteId] = { total: 0, sold: 0 };
+      map[suiteId].total += 1;
+      if ((p.planStatus || '').toLowerCase() !== 'unsold') {
+        map[suiteId].sold += 1;
+      }
+    }
+    return map;
+  }, [plans]);
 
   const sorted = useMemo(
     () =>
@@ -119,7 +140,9 @@ export default function SuitesPage() {
       )}
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        {sorted.map((s) => (
+        {sorted.map((s) => {
+          const stats = planStatsBySuite[s.id] || { total: 0, sold: 0 };
+          return (
           <article key={s.id} className="border border-ocean/10 bg-white p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -129,6 +152,23 @@ export default function SuitesPage() {
                   {s.floor != null ? ` • Floor ${s.floor}` : ''}
                 </p>
                 <p className="mt-1 text-ocean/70">{formatMoney(s.totalPrice || 0)}</p>
+                <p className="mt-2">
+                  {stats.total === 0 ? (
+                    <span className="inline-block border border-ocean/15 bg-pearl px-2 py-0.5 text-xs text-ocean/70">
+                      No share plans
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-block border px-2 py-0.5 text-xs font-semibold ${
+                        stats.sold >= stats.total
+                          ? 'border-ocean/20 bg-pearl text-ocean/80'
+                          : 'border-gold/50 bg-gold/10 text-ocean'
+                      }`}
+                    >
+                      {stats.sold} sold / {stats.total} plans
+                    </span>
+                  )}
+                </p>
               </div>
               <Link
                 href={`/invest?q=${encodeURIComponent(s.id)}`}
@@ -146,7 +186,8 @@ export default function SuitesPage() {
               <DrawingSlot title="Key map" image={keyMapBySuite[s.id]} onOpen={setLightbox} />
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
 
       {lightbox && (
