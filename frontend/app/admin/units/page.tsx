@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+import ImageLightbox from '@/components/ImageLightbox';
+import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
 
 type SortKey = 'id' | 'floor' | 'type' | 'size' | 'view' | 'totalPrice' | 'plans';
 type SortDir = 'asc' | 'desc';
@@ -18,22 +20,70 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'plans', label: 'Plans' }
 ];
 
+function firstBySuite(items: MediaItem[]) {
+  const map: Record<string, { src: string; alt: string }> = {};
+  for (const item of items) {
+    const suiteId = item.suiteId;
+    if (!suiteId || map[suiteId] || !item.url) continue;
+    map[suiteId] = {
+      src: resolveMediaUrl(item.url),
+      alt: item.alt || item.label || suiteId
+    };
+  }
+  return map;
+}
+
+function DrawingThumb({
+  label,
+  image,
+  onOpen
+}: {
+  label: string;
+  image?: { src: string; alt: string };
+  onOpen: (img: { src: string; alt: string }) => void;
+}) {
+  if (!image) {
+    return <span className="text-xs text-ocean/45">Not uploaded</span>;
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen({ src: image.src, alt: image.alt || label })}
+      className="group block w-20 overflow-hidden border border-ocean/15 bg-pearl/40 transition hover:border-gold/50"
+      title={`View ${label}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image.src} alt={image.alt || label} className="h-14 w-full object-contain p-1" />
+    </button>
+  );
+}
+
 export default function AdminUnitsListPage() {
   const [items, setItems] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
+  const [keyMapBySuite, setKeyMapBySuite] = useState<Record<string, { src: string; alt: string }>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [deletingId, setDeletingId] = useState('');
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
 
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const [suitesJson, plansJson] = await Promise.all([api('/suites'), api('/timeshares')]);
+      const [suitesJson, plansJson, archMedia, keyMedia] = await Promise.all([
+        api('/suites'),
+        api('/timeshares'),
+        fetchMedia('suite_plan'),
+        fetchMedia('suite_keymap')
+      ]);
       setItems(Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? []);
       setPlans(Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? []);
+      setArchBySuite(firstBySuite(archMedia));
+      setKeyMapBySuite(firstBySuite(keyMedia));
     } catch {
       setError('Failed to load units');
     }
@@ -158,6 +208,8 @@ export default function AdminUnitsListPage() {
               {COLUMNS.map((col) => (
                 <SortHeader key={col.key} col={col} />
               ))}
+              <th className="p-3 font-medium text-ocean/70">Architectural plan</th>
+              <th className="p-3 font-medium text-ocean/70">Key map</th>
               <th className="p-3 font-medium text-ocean/70">Actions</th>
             </tr>
           </thead>
@@ -190,6 +242,16 @@ export default function AdminUnitsListPage() {
                     )}
                   </td>
                   <td className="p-3">
+                    <DrawingThumb
+                      label="Architectural plan"
+                      image={archBySuite[i.id]}
+                      onOpen={setLightbox}
+                    />
+                  </td>
+                  <td className="p-3">
+                    <DrawingThumb label="Key map" image={keyMapBySuite[i.id]} onOpen={setLightbox} />
+                  </td>
+                  <td className="p-3">
                     <div className="flex flex-wrap gap-3 text-xs font-semibold">
                       <Link href={`/admin/units/${i.id}/plans`} className="text-ocean underline">
                         Plans
@@ -212,7 +274,7 @@ export default function AdminUnitsListPage() {
             })}
             {items.length === 0 && !loading && (
               <tr>
-                <td className="p-4 text-ocean/70" colSpan={8}>
+                <td className="p-4 text-ocean/70" colSpan={10}>
                   No units yet —{' '}
                   <Link href="/admin/units/new" className="font-semibold text-ocean underline">
                     create the first one
@@ -224,6 +286,9 @@ export default function AdminUnitsListPage() {
           </tbody>
         </table>
       </div>
+      {lightbox && (
+        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
+      )}
     </main>
   );
 }
