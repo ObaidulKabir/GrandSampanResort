@@ -120,9 +120,14 @@ export default function SuitesPage() {
 
   const sorted = useMemo(
     () =>
-      [...suites].sort((a, b) =>
-        String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: 'base' })
-      ),
+      [...suites].sort((a, b) => {
+        const priceCmp = Number(a.totalPrice || 0) - Number(b.totalPrice || 0);
+        if (priceCmp !== 0) return priceCmp;
+        return String(a.id).localeCompare(String(b.id), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+      }),
     [suites]
   );
 
