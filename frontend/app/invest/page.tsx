@@ -104,32 +104,41 @@ export default function InvestPage() {
     const q = filters.q.trim().toLowerCase();
     const priceMin = filters.priceMin === '' ? null : Number(filters.priceMin);
     const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax);
-    return plans.filter((p) => {
-      const suite = suites[p.suiteId] || {};
-      const total = planTotal(p);
-      if (filters.view && String(suite.view || '').toLowerCase() !== filters.view.toLowerCase()) return false;
-      if (filters.category && String(suite.type || '').toLowerCase() !== filters.category.toLowerCase()) return false;
-      if (filters.floor !== '' && Number(suite.floor) !== Number(filters.floor)) return false;
-      if (filters.days !== '' && Number(p.daysPerMonth) !== Number(filters.days)) return false;
-      if (priceMin != null && Number.isFinite(priceMin) && total < priceMin) return false;
-      if (priceMax != null && Number.isFinite(priceMax) && total > priceMax) return false;
-      if (q) {
-        const hay = [
-          p.id,
-          p.name,
-          p.suiteId,
-          suite.type,
-          suite.view,
-          suite.floor,
-          p.daysPerMonth,
-          p.planType
-        ]
-          .map((x) => String(x ?? '').toLowerCase())
-          .join(' ');
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
+    return plans
+      .filter((p) => {
+        const suite = suites[p.suiteId] || {};
+        const total = planTotal(p);
+        if (filters.view && String(suite.view || '').toLowerCase() !== filters.view.toLowerCase()) return false;
+        if (filters.category && String(suite.type || '').toLowerCase() !== filters.category.toLowerCase()) return false;
+        if (filters.floor !== '' && Number(suite.floor) !== Number(filters.floor)) return false;
+        if (filters.days !== '' && Number(p.daysPerMonth) !== Number(filters.days)) return false;
+        if (priceMin != null && Number.isFinite(priceMin) && total < priceMin) return false;
+        if (priceMax != null && Number.isFinite(priceMax) && total > priceMax) return false;
+        if (q) {
+          const hay = [
+            p.id,
+            p.name,
+            p.suiteId,
+            suite.type,
+            suite.view,
+            suite.floor,
+            p.daysPerMonth,
+            p.planType
+          ]
+            .map((x) => String(x ?? '').toLowerCase())
+            .join(' ');
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        const priceCmp = planTotal(a) - planTotal(b);
+        if (priceCmp !== 0) return priceCmp;
+        return String(a.id).localeCompare(String(b.id), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+      });
   }, [plans, suites, filters]);
 
   const activeFilterCount = useMemo(

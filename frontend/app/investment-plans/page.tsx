@@ -26,7 +26,18 @@ export default function InvestmentPlansPage() {
         const items = Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? [];
         const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
         setSuites(Object.fromEntries(suitesArr.map((s: any) => [s.id, s])));
-        setPlans(items.filter((p: any) => (p.planStatus ?? 'Unsold').toLowerCase() === 'unsold'));
+        setPlans(
+          items
+            .filter((p: any) => (p.planStatus ?? 'Unsold').toLowerCase() === 'unsold')
+            .sort((a: any, b: any) => {
+              const priceCmp = Number(a.price || 0) - Number(b.price || 0);
+              if (priceCmp !== 0) return priceCmp;
+              return String(a.id).localeCompare(String(b.id), undefined, {
+                numeric: true,
+                sensitivity: 'base'
+              });
+            })
+        );
         if (returnsJson) setAssumptions(normalizeReturnAssumptions(returnsJson));
       } catch {
         setError('Failed to load investment plans');

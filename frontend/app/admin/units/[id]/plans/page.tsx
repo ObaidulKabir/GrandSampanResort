@@ -94,7 +94,17 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
     setError('');
     try {
       const [plansJson, suiteJson] = await Promise.all([api(`/suites/${suiteId}/plans`), api(`/suites/${suiteId}`)]);
-      setItems(plansJson?.plans ?? []);
+      const list = (plansJson?.plans ?? []) as Plan[];
+      setItems(
+        [...list].sort((a, b) => {
+          const priceCmp = Number(a.price || 0) - Number(b.price || 0);
+          if (priceCmp !== 0) return priceCmp;
+          return String(a.id).localeCompare(String(b.id), undefined, {
+            numeric: true,
+            sensitivity: 'base'
+          });
+        })
+      );
       setSuite(suiteJson?.suite ?? suiteJson ?? null);
     } catch {
       setError('Failed to load plans');
