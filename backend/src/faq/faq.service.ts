@@ -1,9 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { prisma } from '../../prisma/client';
 import { FaqEntry } from '../domain/models';
 
 function genId() {
   return 'FAQ-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function plainTextLength(html: string) {
+  return String(html || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim().length;
+}
+
+function assertFaqContent(question: string, answer: string) {
+  if (question.trim().length < 5) {
+    throw new BadRequestException('question_too_short');
+  }
+  if (plainTextLength(answer) < 5) {
+    throw new BadRequestException('answer_too_short');
+  }
 }
 
 const DEFAULT_FAQS: Omit<FaqEntry, 'id' | 'createdAt' | 'updatedAt'>[] = [
@@ -125,6 +142,7 @@ export class FaqService {
 
   async create(data: { question: string; answer: string }): Promise<FaqEntry> {
     await this.ensureSeeded();
+    assertFaqContent(data.question, data.answer);
     const items = await this.list();
     const order = items.length ? Math.max(...items.map((i) => i.order)) + 1 : 0;
     const now = new Date();
@@ -148,20 +166,26 @@ export class FaqService {
     if (this.db) {
       const current = await this.db.faqEntry.findUnique({ where: { id } });
       if (!current) throw new NotFoundException('faq_not_found');
+      const nextQuestion = data.question !== undefined ? data.question.trim() : current.question;
+      const nextAnswer = data.answer !== undefined ? data.answer.trim() : current.answer;
+      assertFaqContent(nextQuestion, nextAnswer);
       return this.db.faqEntry.update({
         where: { id },
         data: {
-          ...(data.question !== undefined ? { question: data.question.trim() } : {}),
-          ...(data.answer !== undefined ? { answer: data.answer.trim() } : {})
+          ...(data.question !== undefined ? { question: nextQuestion } : {}),
+          ...(data.answer !== undefined ? { answer: nextAnswer } : {})
         }
       });
     }
     const idx = this.memory.findIndex((i) => i.id === id);
     if (idx < 0) throw new NotFoundException('faq_not_found');
+    const nextQuestion = data.question !== undefined ? data.question.trim() : this.memory[idx].question;
+    const nextAnswer = data.answer !== undefined ? data.answer.trim() : this.memory[idx].answer;
+    assertFaqContent(nextQuestion, nextAnswer);
     this.memory[idx] = {
       ...this.memory[idx],
-      ...(data.question !== undefined ? { question: data.question.trim() } : {}),
-      ...(data.answer !== undefined ? { answer: data.answer.trim() } : {}),
+      ...(data.question !== undefined ? { question: nextQuestion } : {}),
+      ...(data.answer !== undefined ? { answer: nextAnswer } : {}),
       updatedAt: new Date()
     };
     return this.memory[idx];

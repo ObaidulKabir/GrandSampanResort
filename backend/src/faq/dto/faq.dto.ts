@@ -7,8 +7,8 @@ export class CreateFaqDto {
   question!: string;
 
   @IsString()
-  @MinLength(5)
-  @MaxLength(4000)
+  @MinLength(1)
+  @MaxLength(20000)
   answer!: string;
 }
 
@@ -21,7 +21,7 @@ export class UpdateFaqDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(5)
-  @MaxLength(4000)
+  @MinLength(1)
+  @MaxLength(20000)
   answer?: string;
 }

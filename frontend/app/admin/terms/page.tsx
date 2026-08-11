@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
+import RichTextEditor from '@/components/RichTextEditor';
+import RichTextContent from '@/components/RichTextContent';
+import { plainTextFromHtml } from '@/lib/richText';
 
 type TermsItem = { id: string; title: string; body: string; order: number };
 
@@ -57,7 +60,7 @@ export default function AdminTermsPage() {
       setError('Title must be at least 2 characters.');
       return;
     }
-    if (body.length < 5) {
+    if (plainTextFromHtml(body).length < 5) {
       setError('Paragraph body must be at least 5 characters.');
       return;
     }
@@ -127,7 +130,9 @@ export default function AdminTermsPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Site content</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">Terms &amp; Conditions</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Add, edit, reorder, or remove paragraphs shown on the public Terms page. Use a new line for each bullet.
+            Add, edit, reorder, or remove paragraphs shown on the public Terms page. Use ↑ / ↓ (or
+            Arrow Up / Arrow Down on a focused card) to change display order. Rich text supports
+            bold, bullets, numbered lists, and links.
           </p>
         </div>
         <Link href="/terms">
@@ -152,16 +157,16 @@ export default function AdminTermsPage() {
             maxLength={200}
           />
         </label>
-        <label className="block text-sm font-medium text-ocean">
-          Body
-          <textarea
+        <div>
+          <div className="text-sm font-medium text-ocean">Body</div>
+          <RichTextEditor
+            key={editingId || 'new-terms'}
             value={form.body}
-            onChange={(e) => setForm({ ...form, body: e.target.value })}
-            className="field mt-1 min-h-[160px]"
-            placeholder={'• First point\n• Second point\nOr a regular paragraph.'}
-            maxLength={8000}
+            onChange={(body) => setForm({ ...form, body })}
+            placeholder="Write the paragraph body. Use bullets for lists."
+            minHeightClass="min-h-[180px]"
           />
-        </label>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={saving}>
             {saving ? 'Saving...' : editingId ? 'Update paragraph' : 'Add paragraph'}
@@ -184,23 +189,54 @@ export default function AdminTermsPage() {
         )}
         <div className="mt-4 space-y-4">
           {items.map((item, idx) => (
-            <div key={item.id} className="border border-ocean/10 bg-white p-5">
-              <h3 className="font-display text-xl text-ocean">{item.title}</h3>
-              <div className="mt-2 whitespace-pre-line text-ocean/80">{item.body}</div>
+            <div
+              key={item.id}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  if (idx > 0) void move(item.id, 'up');
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  if (idx < items.length - 1) void move(item.id, 'down');
+                }
+              }}
+              className="border border-ocean/10 bg-white p-5 outline-none focus-visible:border-ocean focus-visible:shadow-[0_0_0_2px_rgba(14,58,90,0.12)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-ocean/50">
+                    Display order {idx + 1}
+                  </div>
+                  <h3 className="font-display mt-1 text-xl text-ocean">{item.title}</h3>
+                </div>
+                <div className="flex shrink-0 flex-col gap-1" aria-label="Reorder paragraph">
+                  <button
+                    type="button"
+                    title="Move up (↑)"
+                    aria-label="Move up"
+                    disabled={idx === 0}
+                    onClick={() => move(item.id, 'up')}
+                    className="flex h-9 w-9 items-center justify-center border border-ocean/20 bg-pearl text-lg font-bold text-ocean hover:bg-ocean/5 disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    title="Move down (↓)"
+                    aria-label="Move down"
+                    disabled={idx === items.length - 1}
+                    onClick={() => move(item.id, 'down')}
+                    className="flex h-9 w-9 items-center justify-center border border-ocean/20 bg-pearl text-lg font-bold text-ocean hover:bg-ocean/5 disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+              <RichTextContent html={item.body} className="mt-2 text-ocean/80" />
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => startEdit(item)}>
                   Edit
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => move(item.id, 'up')} disabled={idx === 0}>
-                  Move up
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => move(item.id, 'down')}
-                  disabled={idx === items.length - 1}
-                >
-                  Move down
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => remove(item.id)}>
                   Delete

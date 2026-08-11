@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import RichTextContent from '@/components/RichTextContent';
 
 type FaqItem = { id: string; question: string; answer: string };
 
@@ -33,7 +34,7 @@ export default function FAQPage() {
         {items.map((item) => (
           <div key={item.id} className="border border-gold/30 bg-white p-5">
             <div className="font-display text-xl text-ocean">{item.question}</div>
-            <div className="mt-2 text-ocean/80">{item.answer}</div>
+            <RichTextContent html={item.answer} className="mt-2 text-ocean/80" />
           </div>
         ))}
       </div>

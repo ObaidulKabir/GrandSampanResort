@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import RichTextContent from '@/components/RichTextContent';
 
 type TermsItem = { id: string; title: string; body: string };
 
@@ -34,7 +35,7 @@ export default function TermsPage() {
         {items.map((item) => (
           <section key={item.id}>
             <h2 className="font-display text-2xl text-ocean">{item.title}</h2>
-            <div className="mt-2 whitespace-pre-line text-ocean/80">{item.body}</div>
+            <RichTextContent html={item.body} className="mt-2 text-ocean/80" />
           </section>
         ))}
       </div>

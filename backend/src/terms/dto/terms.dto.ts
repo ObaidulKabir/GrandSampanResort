@@ -7,8 +7,8 @@ export class CreateTermsDto {
   title!: string;
 
   @IsString()
-  @MinLength(5)
-  @MaxLength(8000)
+  @MinLength(1)
+  @MaxLength(40000)
   body!: string;
 }
 
@@ -21,8 +21,8 @@ export class UpdateTermsDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(5)
-  @MaxLength(8000)
+  @MinLength(1)
+  @MaxLength(40000)
   body?: string;
 }
 

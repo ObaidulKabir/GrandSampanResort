@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
+import RichTextEditor from '@/components/RichTextEditor';
+import RichTextContent from '@/components/RichTextContent';
+import { plainTextFromHtml } from '@/lib/richText';
 
 type FaqItem = { id: string; question: string; answer: string; order: number };
 
@@ -56,7 +59,7 @@ export default function AdminFaqPage() {
       setError('Question must be at least 5 characters.');
       return;
     }
-    if (answer.length < 5) {
+    if (plainTextFromHtml(answer).length < 5) {
       setError('Answer must be at least 5 characters.');
       return;
     }
@@ -112,7 +115,8 @@ export default function AdminFaqPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Site content</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">FAQ</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Add, edit, or remove question-and-answer cards shown on the public FAQ page.
+            Add, edit, or remove question-and-answer cards shown on the public FAQ page. Use the
+            rich text toolbar for bold, lists, and links in answers.
           </p>
         </div>
         <Link href="/faq">
@@ -135,16 +139,16 @@ export default function AdminFaqPage() {
             maxLength={300}
           />
         </label>
-        <label className="block text-sm font-medium text-ocean">
-          Answer
-          <textarea
+        <div>
+          <div className="text-sm font-medium text-ocean">Answer</div>
+          <RichTextEditor
+            key={editingId || 'new-faq'}
             value={form.answer}
-            onChange={(e) => setForm({ ...form, answer: e.target.value })}
-            className="field mt-1 min-h-[120px]"
+            onChange={(answer) => setForm({ ...form, answer })}
             placeholder="Write a clear answer for buyers and investors."
-            maxLength={4000}
+            minHeightClass="min-h-[140px]"
           />
-        </label>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button type="submit" disabled={saving}>
             {saving ? 'Saving...' : editingId ? 'Update card' : 'Add card'}
@@ -169,7 +173,7 @@ export default function AdminFaqPage() {
           {items.map((item) => (
             <div key={item.id} className="border border-ocean/10 bg-white p-5">
               <div className="font-display text-xl text-ocean">{item.question}</div>
-              <div className="mt-2 text-ocean/80">{item.answer}</div>
+              <RichTextContent html={item.answer} className="mt-2 text-ocean/80" />
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => startEdit(item)}>
                   Edit

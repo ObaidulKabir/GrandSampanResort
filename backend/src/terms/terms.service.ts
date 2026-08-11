@@ -1,9 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { prisma } from '../../prisma/client';
 import { TermsParagraph } from '../domain/models';
 
 function genId() {
   return 'TRM-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+function plainTextLength(html: string) {
+  return String(html || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim().length;
+}
+
+function assertTermsContent(title: string, body: string) {
+  if (title.trim().length < 2) {
+    throw new BadRequestException('title_too_short');
+  }
+  if (plainTextLength(body) < 5) {
+    throw new BadRequestException('body_too_short');
+  }
 }
 
 const DEFAULT_TERMS: Omit<TermsParagraph, 'id' | 'createdAt' | 'updatedAt'>[] = [
@@ -117,6 +134,7 @@ export class TermsService {
 
   async create(data: { title: string; body: string }): Promise<TermsParagraph> {
     await this.ensureSeeded();
+    assertTermsContent(data.title, data.body);
     const items = await this.list();
     const order = items.length ? Math.max(...items.map((i) => i.order)) + 1 : 0;
     const now = new Date();
@@ -138,20 +156,26 @@ export class TermsService {
     if (this.db) {
       const current = await this.db.termsParagraph.findUnique({ where: { id } });
       if (!current) throw new NotFoundException('terms_not_found');
+      const nextTitle = data.title !== undefined ? data.title.trim() : current.title;
+      const nextBody = data.body !== undefined ? data.body.trim() : current.body;
+      assertTermsContent(nextTitle, nextBody);
       return this.db.termsParagraph.update({
         where: { id },
         data: {
-          ...(data.title !== undefined ? { title: data.title.trim() } : {}),
-          ...(data.body !== undefined ? { body: data.body.trim() } : {})
+          ...(data.title !== undefined ? { title: nextTitle } : {}),
+          ...(data.body !== undefined ? { body: nextBody } : {})
         }
       });
     }
     const idx = this.memory.findIndex((i) => i.id === id);
     if (idx < 0) throw new NotFoundException('terms_not_found');
+    const nextTitle = data.title !== undefined ? data.title.trim() : this.memory[idx].title;
+    const nextBody = data.body !== undefined ? data.body.trim() : this.memory[idx].body;
+    assertTermsContent(nextTitle, nextBody);
     this.memory[idx] = {
       ...this.memory[idx],
-      ...(data.title !== undefined ? { title: data.title.trim() } : {}),
-      ...(data.body !== undefined ? { body: data.body.trim() } : {}),
+      ...(data.title !== undefined ? { title: nextTitle } : {}),
+      ...(data.body !== undefined ? { body: nextBody } : {}),
       updatedAt: new Date()
     };
     return this.memory[idx];
@@ -177,20 +201,26 @@ export class TermsService {
     const swapWith = direction === 'up' ? idx - 1 : idx + 1;
     if (swapWith < 0 || swapWith >= items.length) return items;
 
-    const a = items[idx];
-    const b = items[swapWith];
-    const aOrder = a.order;
-    const bOrder = b.order;
+    const next = items.slice();
+    const tmp = next[idx];
+    next[idx] = next[swapWith];
+    next[swapWith] = tmp;
+    const now = new Date();
 
+    // Always reindex 0..n so swaps work even when order values were duplicated.
     if (this.db) {
-      await this.db.termsParagraph.update({ where: { id: a.id }, data: { order: bOrder } });
-      await this.db.termsParagraph.update({ where: { id: b.id }, data: { order: aOrder } });
+      await this.db.$transaction(
+        next.map((item, order) =>
+          this.db!.termsParagraph.update({ where: { id: item.id }, data: { order } })
+        )
+      );
       return this.list();
     }
+    const byId = new Map(next.map((item, order) => [item.id, order]));
     this.memory = this.memory.map((item) => {
-      if (item.id === a.id) return { ...item, order: bOrder, updatedAt: new Date() };
-      if (item.id === b.id) return { ...item, order: aOrder, updatedAt: new Date() };
-      return item;
+      const order = byId.get(item.id);
+      if (order === undefined) return item;
+      return { ...item, order, updatedAt: now };
     });
     return this.list();
   }
