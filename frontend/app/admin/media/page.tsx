@@ -66,6 +66,13 @@ export default function AdminMediaPage() {
           maxImages={2}
           emptyHint="No project images uploaded yet — the About page is showing placeholder graphics until you add up to two photos."
         />
+        <MediaManager
+          category="design_layout"
+          title="Design & Layout"
+          help="Master plans, block layouts, and drawings shown on the public Design & Layout page. Upload JPG/PNG/WEBP/GIF images or PDF files. Use caption for the title buyers see."
+          allowPdf
+          emptyHint="No layout files uploaded yet — the public page shows a default master plan until you add files here."
+        />
       </div>
     </main>
   );

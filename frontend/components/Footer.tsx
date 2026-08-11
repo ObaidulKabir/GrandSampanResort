@@ -15,6 +15,7 @@ export default function Footer() {
             <li><a href="tel:+8801300999750">+880 1300-999750</a></li>
             <li><a href="mailto:admin@grandsampanresort.com">admin@grandsampanresort.com</a></li>
             <li><Link href="/about">About</Link></li>
+            <li><Link href="/design-layout">Design &amp; Layout</Link></li>
             <li><Link href="/invest">Invest</Link></li>
             <li><Link href="/faq">FAQ</Link></li>
             <li><Link href="/terms">Terms</Link></li>

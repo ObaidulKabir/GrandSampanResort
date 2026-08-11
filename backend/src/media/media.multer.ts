@@ -10,7 +10,13 @@ function ensureUploadDir() {
   if (!existsSync(MEDIA_UPLOAD_DIR)) mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });
 }
 
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_MIME = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf'
+];
 
 export const mediaMulterOptions = {
   storage: diskStorage({
@@ -26,10 +32,11 @@ export const mediaMulterOptions = {
   }),
   fileFilter: (_req: any, file: Express.Multer.File, cb: (error: Error | null, accept: boolean) => void) => {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
-      cb(new BadRequestException('Only JPG, PNG, WEBP, or GIF images are allowed'), false);
+      cb(new BadRequestException('Only JPG, PNG, WEBP, GIF, or PDF files are allowed'), false);
       return;
     }
     cb(null, true);
   },
-  limits: { fileSize: 8 * 1024 * 1024 }
+  // Layout PDFs can be larger than photo uploads.
+  limits: { fileSize: 20 * 1024 * 1024 }
 };

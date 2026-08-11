@@ -14,6 +14,10 @@ type MediaItem = {
   order: number;
 };
 
+function isPdfUrl(url: string) {
+  return /\.pdf($|\?)/i.test(url || '');
+}
+
 export default function MediaManager({
   category,
   title,
@@ -24,7 +28,8 @@ export default function MediaManager({
   singleImage,
   maxImages,
   emptyHint,
-  embedded
+  embedded,
+  allowPdf
 }: {
   category: string;
   title: string;
@@ -40,6 +45,8 @@ export default function MediaManager({
   emptyHint?: string;
   /** Render without the outer card chrome (for nesting inside another section). */
   embedded?: boolean;
+  /** Allow PDF uploads in addition to images. */
+  allowPdf?: boolean;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +84,7 @@ export default function MediaManager({
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
     if (!file) {
-      setError('Choose an image file first');
+      setError(allowPdf ? 'Choose an image or PDF file first' : 'Choose an image file first');
       return;
     }
     setError('');
@@ -136,8 +143,17 @@ export default function MediaManager({
 
       <form onSubmit={onUpload} className="mt-5 flex flex-wrap items-end gap-3 border-t border-ocean/10 pt-5">
         <label className="text-sm font-medium text-ocean">
-          Image file
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="field mt-1" />
+          {allowPdf ? 'Image or PDF' : 'Image file'}
+          <input
+            ref={fileRef}
+            type="file"
+            accept={
+              allowPdf
+                ? 'image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf'
+                : 'image/jpeg,image/png,image/webp,image/gif'
+            }
+            className="field mt-1"
+          />
         </label>
         {labelOptions && !fixedLabel && (
           <label className="text-sm font-medium text-ocean">
@@ -175,14 +191,18 @@ export default function MediaManager({
             ? 'Uploading...'
             : atLimit
               ? singleImage || maxImages === 1
-                ? 'Replace image'
+                ? allowPdf
+                  ? 'Replace file'
+                  : 'Replace image'
                 : 'Upload (replaces oldest)'
-              : 'Upload image'}
+              : allowPdf
+                ? 'Upload file'
+                : 'Upload image'}
         </button>
       </form>
       {typeof maxImages === 'number' && !singleImage && (
         <p className="mt-2 text-xs text-ocean/60">
-          {items.length}/{maxImages} images used for this section.
+          {items.length}/{maxImages} files used for this section.
         </p>
       )}
       {error && <div className="mt-3 border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div>}
@@ -191,14 +211,28 @@ export default function MediaManager({
         {items.map((item, idx) => (
           <div key={item.id} className="group relative border border-ocean/10">
             <div className="relative h-28 w-full overflow-hidden bg-pearl">
-              <Image
-                src={resolveMediaUrl(item.url)}
-                alt={item.alt || item.label || ''}
-                fill
-                sizes="200px"
-                unoptimized
-                className="object-cover"
-              />
+              {isPdfUrl(item.url) ? (
+                <a
+                  href={resolveMediaUrl(item.url)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-center text-ocean"
+                >
+                  <span className="text-xs font-bold uppercase tracking-wide text-gold">PDF</span>
+                  <span className="line-clamp-2 text-xs font-semibold">
+                    {item.alt || item.label || 'Open layout PDF'}
+                  </span>
+                </a>
+              ) : (
+                <Image
+                  src={resolveMediaUrl(item.url)}
+                  alt={item.alt || item.label || ''}
+                  fill
+                  sizes="200px"
+                  unoptimized
+                  className="object-cover"
+                />
+              )}
             </div>
             {item.label && (
               <span className="absolute left-1 top-1 border border-gold/60 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-ocean">
