@@ -94,6 +94,10 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run test
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000
   docker:
     runs-on: ubuntu-latest
     steps:

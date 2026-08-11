@@ -1,11 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import Button from '@/components/Button';
-import RichTextEditor from '@/components/RichTextEditor';
 import RichTextContent from '@/components/RichTextContent';
 import { plainTextFromHtml } from '@/lib/richText';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+  ssr: false,
+  loading: () => <div className="field mt-1 min-h-[140px] animate-pulse bg-pearl/60" />
+});
 
 type FaqItem = { id: string; question: string; answer: string; order: number };
 
