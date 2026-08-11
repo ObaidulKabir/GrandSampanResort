@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { formatMoney } from '@/lib/format';
+import { formatDateTime, formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 
 type SaleRow = {
@@ -244,6 +244,7 @@ export default function AdminSalesPage() {
               <thead>
                 <tr className="border-b border-ocean/10 text-left text-ocean/70">
                   <th className="p-3 font-medium">Booking</th>
+                  <th className="p-3 font-medium">Booked at</th>
                   <th className="p-3 font-medium">Plan</th>
                   <th className="p-3 font-medium">Unit</th>
                   <th className="p-3 font-medium">Buyer</th>
@@ -269,6 +270,11 @@ export default function AdminSalesPage() {
                           <span className="mt-1 inline-block border border-ocean/20 bg-pearl px-2 py-0.5 text-[10px] text-ocean/80">
                             Stay
                           </span>
+                        )}
+                      </td>
+                      <td className="p-3 whitespace-nowrap text-ocean">
+                        {formatDateTime(
+                          s.booking.createdAt || s.booking.depositSubmittedAt || null
                         )}
                       </td>
                       <td className="p-3">
@@ -355,7 +361,7 @@ export default function AdminSalesPage() {
                 })}
                 {filteredSales.length === 0 && !loading && (
                   <tr>
-                    <td className="p-4 text-ocean/70" colSpan={10}>
+                    <td className="p-4 text-ocean/70" colSpan={11}>
                       No bookings match these filters
                     </td>
                   </tr>

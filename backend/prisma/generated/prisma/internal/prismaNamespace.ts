@@ -1315,7 +1315,8 @@ export const BookingScalarFieldEnum = {
   kycVerified: 'kycVerified',
   kycVerifiedAt: 'kycVerifiedAt',
   cancellationReason: 'cancellationReason',
-  cancelledAt: 'cancelledAt'
+  cancelledAt: 'cancelledAt',
+  createdAt: 'createdAt'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]

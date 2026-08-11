@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { formatDate, formatMoney } from '@/lib/format';
+import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 import Button from '@/components/Button';
 
@@ -416,6 +416,12 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                         {suite.type} · Floor {suite.floor} · {suite.view}
                       </div>
                     )}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-ocean/10 pb-2">
+                  <dt className="text-ocean/60">Booked at</dt>
+                  <dd className="text-ocean">
+                    {formatDateTime(booking.createdAt || booking.depositSubmittedAt || null)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4 border-b border-ocean/10 pb-2">

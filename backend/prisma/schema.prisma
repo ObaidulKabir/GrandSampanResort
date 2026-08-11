@@ -60,6 +60,8 @@ model Booking {
   /// Admin cancellation reason (required when status becomes cancelled).
   cancellationReason String?
   cancelledAt        DateTime?
+  /// When the booking was placed (submission time).
+  createdAt   DateTime @default(now())
   schedule    PaymentScheduleItem[]
   /// Investment purchases link to a share plan; guest stays leave this null.
   plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)

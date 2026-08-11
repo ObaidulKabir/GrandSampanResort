@@ -124,6 +124,13 @@ export class BookingService {
       buyerNid: kyc?.nid || "",
       buyerAddress: kyc?.address || "",
       cancellationReason: booking.cancellationReason || undefined,
+      startDate: booking.start || null,
+      bookedAt: booking.createdAt || booking.depositSubmittedAt || null,
+      schedule: (Array.isArray(sched) ? sched : []).map((s: any) => ({
+        type: s.type,
+        dueDate: s.dueDate,
+        amount: Number(s.amount) || 0,
+      })),
     };
   }
 
@@ -183,22 +190,35 @@ export class BookingService {
     if (this.prisma) {
       const bookings = await this.prisma.booking.findMany({
         where: { investorId },
-        orderBy: { start: "desc" },
+        orderBy: { createdAt: "desc" },
       });
       return this.enrich(bookings);
     }
     const bookings = await this.repo.listByInvestor(investorId);
-    return this.enrich(bookings);
+    return this.enrich(
+      [...bookings].sort(
+        (a, b) =>
+          new Date(b.createdAt || b.depositSubmittedAt || b.start).getTime() -
+          new Date(a.createdAt || a.depositSubmittedAt || a.start).getTime(),
+      ),
+    );
   }
 
   async listAll() {
     if (this.prisma) {
       const bookings = await this.prisma.booking.findMany({
-        orderBy: { start: "desc" },
+        orderBy: { createdAt: "desc" },
       });
       return this.enrich(bookings);
     }
-    return this.enrich(await this.repo.listAll());
+    const bookings = await this.repo.listAll();
+    return this.enrich(
+      [...bookings].sort(
+        (a, b) =>
+          new Date(b.createdAt || b.depositSubmittedAt || b.start).getTime() -
+          new Date(a.createdAt || a.depositSubmittedAt || a.start).getTime(),
+      ),
+    );
   }
 
   private async enrich(bookings: any[]) {
@@ -451,6 +471,7 @@ export class BookingService {
           depositProofUrl: normalizedDeposit.depositProofUrl,
           depositNote: normalizedDeposit.depositNote,
           depositSubmittedAt: submittedAt,
+          createdAt: submittedAt,
           kycVerified: false,
           schedule,
           currency: 'BDT',
@@ -479,6 +500,7 @@ export class BookingService {
                 depositProofUrl: b.depositProofUrl || null,
                 depositNote: b.depositNote || null,
                 depositSubmittedAt: new Date(submittedAt),
+                createdAt: new Date(submittedAt),
                 kycVerified: false,
               },
             }),
@@ -549,6 +571,7 @@ export class BookingService {
           currency: 'BDT',
         },
       ];
+      const createdAt = new Date().toISOString();
       const b: Booking = {
         id: 'B-' + Math.random().toString(36).slice(2, 8),
         suiteId,
@@ -558,6 +581,7 @@ export class BookingService {
         end,
         status: 'pending',
         amountTotal: total,
+        createdAt,
         schedule,
         currency: 'BDT',
       };
@@ -573,6 +597,7 @@ export class BookingService {
               end: new Date(b.end),
               status: b.status,
               amountTotal: b.amountTotal || null,
+              createdAt: new Date(createdAt),
             },
           }),
           this.prisma.paymentScheduleItem.createMany({

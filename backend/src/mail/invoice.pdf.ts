@@ -1,4 +1,5 @@
 import PDFDocument = require('pdfkit');
+import { formatDateDdMmYyyy } from './date-format';
 
 export type InvoiceData = {
   invoiceNo: string;
@@ -50,7 +51,7 @@ export function buildDepositInvoicePdf(data: InvoiceData): Promise<Buffer> {
     doc.moveDown(1);
 
     doc.fillColor('#000').fontSize(12).text(`Invoice: ${data.invoiceNo}`);
-    doc.fontSize(10).text(`Issued: ${data.issuedAt.toISOString().slice(0, 10)}`);
+    doc.fontSize(10).text(`Issued: ${formatDateDdMmYyyy(data.issuedAt)}`);
     doc.text(`Booking: ${data.bookingId}`);
     doc.moveDown(1);
 

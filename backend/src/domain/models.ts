@@ -59,6 +59,8 @@ export type Booking = {
   kycVerifiedAt?: string;
   cancellationReason?: string;
   cancelledAt?: string;
+  /** When the booking was placed (ISO datetime). */
+  createdAt?: string;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
 };

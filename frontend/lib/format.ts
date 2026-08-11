@@ -1,11 +1,11 @@
-/** Bangladesh-style display helpers: dd/mm/yy dates and ##,##,###.## amounts. */
+/** Bangladesh-style display helpers: dd/mm/yyyy dates and ##,##,###.## amounts. */
 
 function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
 
 /**
- * Format a date as dd/mm/yy.
+ * Format a date as dd/mm/yyyy.
  * Date-only ISO strings (YYYY-MM-DD) are parsed as calendar dates to avoid
  * timezone shifts that can move the day.
  */
@@ -26,7 +26,18 @@ export function formatDate(input?: string | Date | null): string {
     month = d.getMonth() + 1;
     year = d.getFullYear();
   }
-  return `${pad2(day)}/${pad2(month)}/${String(year).slice(-2)}`;
+  return `${pad2(day)}/${pad2(month)}/${year}`;
+}
+
+/**
+ * Format a date-time as dd/mm/yyyy HH:mm (local timezone).
+ * Prefer this for booking submission timestamps.
+ */
+export function formatDateTime(input?: string | Date | null): string {
+  if (input == null || input === '') return '—';
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${formatDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 /** Integer part with Bangladesh / Indian grouping: 12,34,567 */
