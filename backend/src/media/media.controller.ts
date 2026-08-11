@@ -19,7 +19,7 @@ import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { MediaService } from './media.service';
 import { mediaMulterOptions, UPLOADS_ROOT } from './media.multer';
-import { MoveMediaDto, UploadMediaDto } from './dto/media.dto';
+import { MoveMediaDto, UploadMediaDto, UpdateMediaDto } from './dto/media.dto';
 
 @Controller('media')
 export class MediaController {
@@ -65,6 +65,18 @@ export class MediaController {
   async paymentProofUpload(@UploadedFile() file: Express.Multer.File) {
     if (!file) return { ok: false, error: 'no_file' };
     return { ok: true, url: `/uploads/media/${file.filename}` };
+  }
+
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async update(@Param('id') id: string, @Body(new ValidationPipe({ whitelist: true })) body: UpdateMediaDto) {
+    const media = await this.service.update(id, {
+      label: body.label !== undefined ? String(body.label).trim() || null : undefined,
+      alt: body.alt !== undefined ? String(body.alt).trim() || null : undefined
+    });
+    if (!media) return { ok: false, error: 'not_found' };
+    return { ok: true, media };
   }
 
   @Patch(':id/move')

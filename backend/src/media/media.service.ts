@@ -56,6 +56,30 @@ export class MediaService {
     return record;
   }
 
+  async update(
+    id: string,
+    data: { label?: string | null; alt?: string | null }
+  ): Promise<MediaAsset | null> {
+    const patch: { label?: string | null; alt?: string | null } = {};
+    if (data.label !== undefined) patch.label = data.label;
+    if (data.alt !== undefined) patch.alt = data.alt;
+    if (!Object.keys(patch).length) {
+      if (this.db) return this.db.mediaAsset.findUnique({ where: { id } });
+      return this.memory.find((m) => m.id === id) || null;
+    }
+    if (this.db) {
+      try {
+        return await this.db.mediaAsset.update({ where: { id }, data: patch });
+      } catch {
+        return null;
+      }
+    }
+    const idx = this.memory.findIndex((m) => m.id === id);
+    if (idx === -1) return null;
+    this.memory[idx] = { ...this.memory[idx], ...patch };
+    return this.memory[idx];
+  }
+
   async remove(id: string): Promise<MediaAsset | null> {
     if (this.db) {
       const item = await this.db.mediaAsset.findUnique({ where: { id } });

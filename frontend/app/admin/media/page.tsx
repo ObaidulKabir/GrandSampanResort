@@ -69,8 +69,9 @@ export default function AdminMediaPage() {
         <MediaManager
           category="design_layout"
           title="Design & Layout"
-          help="Master plans, block layouts, and drawings shown on the public Design & Layout page. Upload JPG/PNG/WEBP/GIF images or PDF files. Use caption for the title buyers see."
+          help="Master plans, block layouts, and drawings shown on the public Design & Layout page. Upload JPG/PNG/WEBP/GIF images or PDF files. Set a title for each file — buyers see it as the heading."
           allowPdf
+          titleEditable
           emptyHint="No layout files uploaded yet — the public page shows a default master plan until you add files here."
         />
       </div>

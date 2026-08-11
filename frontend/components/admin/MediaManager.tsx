@@ -29,7 +29,8 @@ export default function MediaManager({
   maxImages,
   emptyHint,
   embedded,
-  allowPdf
+  allowPdf,
+  titleEditable
 }: {
   category: string;
   title: string;
@@ -47,13 +48,18 @@ export default function MediaManager({
   embedded?: boolean;
   /** Allow PDF uploads in addition to images. */
   allowPdf?: boolean;
+  /** Show a Title field on upload and allow editing titles on existing items (stored as label). */
+  titleEditable?: boolean;
 }) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [altText, setAltText] = useState('');
+  const [itemTitle, setItemTitle] = useState('');
   const [label, setLabel] = useState(fixedLabel || labelOptions?.[0] || '');
+  const [draftTitles, setDraftTitles] = useState<Record<string, string>>({});
+  const [savingTitleId, setSavingTitleId] = useState('');
   const fileRef = useRef<HTMLInputElement | null>(null);
   const activeLabel = fixedLabel || label;
 
@@ -64,11 +70,17 @@ export default function MediaManager({
       if (suiteId) params.set('suiteId', suiteId);
       const json = await api(`/media?${params.toString()}`);
       const list: MediaItem[] = Array.isArray(json?.media) ? json.media : [];
-      setItems(
-        fixedLabel
-          ? list.filter((m) => (m.label || '').toLowerCase().trim() === fixedLabel.toLowerCase().trim())
-          : list
-      );
+      const filtered = fixedLabel
+        ? list.filter((m) => (m.label || '').toLowerCase().trim() === fixedLabel.toLowerCase().trim())
+        : list;
+      setItems(filtered);
+      if (titleEditable) {
+        const drafts: Record<string, string> = {};
+        filtered.forEach((m) => {
+          drafts[m.id] = m.label || m.alt || '';
+        });
+        setDraftTitles(drafts);
+      }
     } catch {
       setItems([]);
     }
@@ -96,11 +108,20 @@ export default function MediaManager({
       form.append('file', file);
       form.append('category', category);
       if (suiteId) form.append('suiteId', suiteId);
-      if (altText.trim()) form.append('alt', altText.trim());
-      if (fixedLabel || (labelOptions && activeLabel)) form.append('label', fixedLabel || activeLabel);
+      if (titleEditable) {
+        const titleValue = itemTitle.trim();
+        if (titleValue) {
+          form.append('label', titleValue);
+          form.append('alt', titleValue);
+        }
+      } else {
+        if (altText.trim()) form.append('alt', altText.trim());
+        if (fixedLabel || (labelOptions && activeLabel)) form.append('label', fixedLabel || activeLabel);
+      }
       const json = await apiUpload('/media/upload', form);
       if (json?.ok) {
         setAltText('');
+        setItemTitle('');
         if (fileRef.current) fileRef.current.value = '';
         await Promise.all(previous.map((p) => api(`/media/${p.id}`, { method: 'DELETE' })));
         await load();
@@ -118,7 +139,14 @@ export default function MediaManager({
   async function onDelete(id: string) {
     try {
       const json = await api(`/media/${id}`, { method: 'DELETE' });
-      if (json?.ok) setItems((prev) => prev.filter((i) => i.id !== id));
+      if (json?.ok) {
+        setItems((prev) => prev.filter((i) => i.id !== id));
+        setDraftTitles((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
     } catch {
       setError('Failed to delete image');
     }
@@ -130,10 +158,37 @@ export default function MediaManager({
         method: 'PATCH',
         body: JSON.stringify({ direction })
       });
-      if (json?.ok && Array.isArray(json.media)) setItems(json.media);
+      if (json?.ok && Array.isArray(json.media)) {
+        const list: MediaItem[] = json.media;
+        const filtered = fixedLabel
+          ? list.filter((m) => (m.label || '').toLowerCase().trim() === fixedLabel.toLowerCase().trim())
+          : list;
+        setItems(filtered);
+      }
     } catch {
       setError('Failed to reorder');
     }
+  }
+
+  async function saveTitle(id: string) {
+    const nextTitle = (draftTitles[id] || '').trim();
+    setSavingTitleId(id);
+    setError('');
+    try {
+      const json = await api(`/media/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ label: nextTitle, alt: nextTitle })
+      });
+      if (json?.ok && json.media) {
+        setItems((prev) => prev.map((m) => (m.id === id ? { ...m, label: json.media.label, alt: json.media.alt } : m)));
+        setDraftTitles((prev) => ({ ...prev, [id]: json.media.label || json.media.alt || '' }));
+      } else {
+        setError(json?.error || 'Failed to save title');
+      }
+    } catch {
+      setError('Failed to save title');
+    }
+    setSavingTitleId('');
   }
 
   return (
@@ -155,7 +210,7 @@ export default function MediaManager({
             className="field mt-1"
           />
         </label>
-        {labelOptions && !fixedLabel && (
+        {labelOptions && !fixedLabel && !titleEditable && (
           <label className="text-sm font-medium text-ocean">
             Suite type
             <select value={label} onChange={(e) => setLabel(e.target.value)} className="field mt-1">
@@ -167,21 +222,33 @@ export default function MediaManager({
             </select>
           </label>
         )}
-        {fixedLabel && (
+        {fixedLabel && !titleEditable && (
           <div className="text-sm font-medium text-ocean">
             Suite type
             <div className="field mt-1 flex items-center bg-pearl/60 text-ocean/80">{fixedLabel}</div>
           </div>
         )}
-        <label className="text-sm font-medium text-ocean">
-          Caption (optional)
-          <input
-            value={altText}
-            onChange={(e) => setAltText(e.target.value)}
-            className="field mt-1"
-            placeholder="Sunset view from the rooftop"
-          />
-        </label>
+        {titleEditable ? (
+          <label className="text-sm font-medium text-ocean">
+            Title
+            <input
+              value={itemTitle}
+              onChange={(e) => setItemTitle(e.target.value)}
+              className="field mt-1 min-w-[220px]"
+              placeholder="Master layout plan"
+            />
+          </label>
+        ) : (
+          <label className="text-sm font-medium text-ocean">
+            Caption (optional)
+            <input
+              value={altText}
+              onChange={(e) => setAltText(e.target.value)}
+              className="field mt-1"
+              placeholder="Sunset view from the rooftop"
+            />
+          </label>
+        )}
         <button
           type="submit"
           disabled={uploading}
@@ -207,7 +274,7 @@ export default function MediaManager({
       )}
       {error && <div className="mt-3 border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</div>}
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+      <div className={`mt-6 grid gap-4 ${titleEditable ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'}`}>
         {items.map((item, idx) => (
           <div key={item.id} className="group relative border border-ocean/10">
             <div className="relative h-28 w-full overflow-hidden bg-pearl">
@@ -220,7 +287,7 @@ export default function MediaManager({
                 >
                   <span className="text-xs font-bold uppercase tracking-wide text-gold">PDF</span>
                   <span className="line-clamp-2 text-xs font-semibold">
-                    {item.alt || item.label || 'Open layout PDF'}
+                    {item.label || item.alt || 'Open layout PDF'}
                   </span>
                 </a>
               ) : (
@@ -234,10 +301,31 @@ export default function MediaManager({
                 />
               )}
             </div>
-            {item.label && (
+            {!titleEditable && item.label && (
               <span className="absolute left-1 top-1 border border-gold/60 bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-ocean">
                 {item.label}
               </span>
+            )}
+            {titleEditable && (
+              <div className="space-y-2 border-t border-ocean/10 bg-white p-2">
+                <label className="block text-xs font-medium text-ocean">
+                  Title
+                  <input
+                    value={draftTitles[item.id] ?? ''}
+                    onChange={(e) => setDraftTitles((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    className="field mt-1 text-sm"
+                    placeholder="Title shown on Design & Layout"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => saveTitle(item.id)}
+                  disabled={savingTitleId === item.id}
+                  className="text-xs font-semibold text-ocean underline disabled:opacity-50"
+                >
+                  {savingTitleId === item.id ? 'Saving…' : 'Save title'}
+                </button>
+              </div>
             )}
             <div className="flex items-center justify-between gap-1 bg-white p-1.5">
               {!singleImage && (

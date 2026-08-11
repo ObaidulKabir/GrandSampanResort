@@ -31,3 +31,12 @@ export class MoveMediaDto {
   @IsIn(['up', 'down'])
   direction!: 'up' | 'down';
 }
+
+export class UpdateMediaDto {
+  @IsOptional()
+  @IsString()
+  label?: string;
+  @IsOptional()
+  @IsString()
+  alt?: string;
+}
