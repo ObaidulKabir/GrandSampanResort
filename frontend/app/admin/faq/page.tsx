@@ -108,6 +108,20 @@ export default function AdminFaqPage() {
     }
   }
 
+  async function move(id: string, direction: 'up' | 'down') {
+    setError('');
+    try {
+      const res = await api(`/faq/${id}/move`, {
+        method: 'PATCH',
+        body: JSON.stringify({ direction })
+      });
+      if (res?.ok && Array.isArray(res.items)) setItems(res.items);
+      else setError('Failed to reorder');
+    } catch {
+      setError('Failed to reorder');
+    }
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -115,8 +129,9 @@ export default function AdminFaqPage() {
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Site content</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">FAQ</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Add, edit, or remove question-and-answer cards shown on the public FAQ page. Use the
-            rich text toolbar for bold, lists, and links in answers.
+            Add, edit, reorder, or remove question-and-answer cards shown on the public FAQ page.
+            Use ↑ / ↓ (or Arrow Up / Arrow Down on a focused card) to change display order. Rich
+            text supports bold, lists, and links in answers.
           </p>
         </div>
         <Link href="/faq">
@@ -170,9 +185,51 @@ export default function AdminFaqPage() {
           </p>
         )}
         <div className="mt-4 space-y-4">
-          {items.map((item) => (
-            <div key={item.id} className="border border-ocean/10 bg-white p-5">
-              <div className="font-display text-xl text-ocean">{item.question}</div>
+          {items.map((item, idx) => (
+            <div
+              key={item.id}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  if (idx > 0) void move(item.id, 'up');
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  if (idx < items.length - 1) void move(item.id, 'down');
+                }
+              }}
+              className="border border-ocean/10 bg-white p-5 outline-none focus-visible:border-ocean focus-visible:shadow-[0_0_0_2px_rgba(14,58,90,0.12)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-ocean/50">
+                    Display order {idx + 1}
+                  </div>
+                  <div className="font-display mt-1 text-xl text-ocean">{item.question}</div>
+                </div>
+                <div className="flex shrink-0 flex-col gap-1" aria-label="Reorder FAQ card">
+                  <button
+                    type="button"
+                    title="Move up (↑)"
+                    aria-label="Move up"
+                    disabled={idx === 0}
+                    onClick={() => move(item.id, 'up')}
+                    className="flex h-9 w-9 items-center justify-center border border-ocean/20 bg-pearl text-lg font-bold text-ocean hover:bg-ocean/5 disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    title="Move down (↓)"
+                    aria-label="Move down"
+                    disabled={idx === items.length - 1}
+                    onClick={() => move(item.id, 'down')}
+                    className="flex h-9 w-9 items-center justify-center border border-ocean/20 bg-pearl text-lg font-bold text-ocean hover:bg-ocean/5 disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
               <RichTextContent html={item.answer} className="mt-2 text-ocean/80" />
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => startEdit(item)}>

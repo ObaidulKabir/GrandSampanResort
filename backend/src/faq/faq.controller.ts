@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, ValidationPipe } from '@nestjs/common';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CreateFaqDto, UpdateFaqDto } from './dto/faq.dto';
+import { CreateFaqDto, MoveFaqDto, UpdateFaqDto } from './dto/faq.dto';
 import { FaqService } from './faq.service';
 
 @Controller('faq')
@@ -31,6 +31,17 @@ export class FaqController {
   ) {
     const item = await this.service.update(id, body);
     return { ok: true, item };
+  }
+
+  @Patch(':id/move')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async move(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true })) body: MoveFaqDto
+  ) {
+    const items = await this.service.move(id, body.direction);
+    return { ok: true, items };
   }
 
   @Delete(':id')

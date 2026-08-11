@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateFaqDto {
   @IsString()
@@ -24,4 +24,9 @@ export class UpdateFaqDto {
   @MinLength(1)
   @MaxLength(20000)
   answer?: string;
+}
+
+export class MoveFaqDto {
+  @IsIn(['up', 'down'])
+  direction!: 'up' | 'down';
 }

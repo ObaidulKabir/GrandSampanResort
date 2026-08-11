@@ -203,4 +203,35 @@ export class FaqService {
     this.memory = this.memory.filter((i) => i.id !== id);
     if (this.memory.length === before) throw new NotFoundException('faq_not_found');
   }
+
+  async move(id: string, direction: 'up' | 'down'): Promise<FaqEntry[]> {
+    const items = await this.list();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx < 0) throw new NotFoundException('faq_not_found');
+    const swapWith = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapWith < 0 || swapWith >= items.length) return items;
+
+    const next = items.slice();
+    const tmp = next[idx];
+    next[idx] = next[swapWith];
+    next[swapWith] = tmp;
+    const now = new Date();
+
+    // Always reindex 0..n so swaps work even when order values were duplicated.
+    if (this.db) {
+      await this.db.$transaction(
+        next.map((item, order) =>
+          this.db!.faqEntry.update({ where: { id: item.id }, data: { order } })
+        )
+      );
+      return this.list();
+    }
+    const byId = new Map(next.map((item, order) => [item.id, order]));
+    this.memory = this.memory.map((item) => {
+      const order = byId.get(item.id);
+      if (order === undefined) return item;
+      return { ...item, order, updatedAt: now };
+    });
+    return this.list();
+  }
 }
