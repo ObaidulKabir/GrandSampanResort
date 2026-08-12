@@ -142,13 +142,13 @@ export default function AdminSalesPage() {
 
   function canConfirmBooking(booking: any) {
     if (!booking?.planId) return false;
-    const status = String(booking.status || '');
+    const status = String(booking.status || '').toLowerCase();
     return status === 'awaiting_payment' || status === 'awaiting_kyc';
   }
 
   function canCancelBooking(booking: any) {
     if (!booking?.planId) return false;
-    const status = String(booking.status || '');
+    const status = String(booking.status || '').toLowerCase();
     return status === 'awaiting_payment' || status === 'awaiting_kyc' || status === 'confirmed';
   }
 
@@ -382,12 +382,22 @@ export default function AdminSalesPage() {
           {actionMsg && (
             <div className="mt-4 border border-ocean/15 bg-ocean/5 p-3 text-sm text-ocean">{actionMsg}</div>
           )}
+          <p className="mt-3 text-xs text-ocean/60">
+            Use the pinned <span className="font-semibold text-ocean">Actions</span> column (Confirm /
+            Cancel / Details) next to each booking ID.
+          </p>
 
           <div className="mt-4 overflow-auto border border-ocean/10 bg-white">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
                 <tr className="border-b border-ocean/10 text-left text-ocean/70">
-                  <th className="p-3 font-medium">Booking</th>
+                  <th className="sticky left-0 z-20 bg-white p-3 font-medium shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
+                    Booking
+                  </th>
+                  <th className="sticky left-[7.5rem] z-20 min-w-[11rem] bg-white p-3 font-medium shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
+                    Actions
+                  </th>
+                  <th className="p-3 font-medium">Status</th>
                   <th className="p-3 font-medium">Booked at</th>
                   <th className="p-3 font-medium">Plan</th>
                   <th className="p-3 font-medium">Unit</th>
@@ -396,8 +406,6 @@ export default function AdminSalesPage() {
                   <th className="p-3 font-medium">NID</th>
                   <th className="p-3 font-medium">Deposit</th>
                   <th className="p-3 font-medium">Amount</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -411,13 +419,66 @@ export default function AdminSalesPage() {
                   const showCancel = canCancelBooking(s.booking);
                   return (
                     <tr key={s.booking.id} className="border-t border-ocean/10">
-                      <td className="p-3">
+                      <td className="sticky left-0 z-10 bg-white p-3 shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
                         <div className="font-mono text-xs text-ocean">{s.booking.id}</div>
                         {!s.booking.planId && (
                           <span className="mt-1 inline-block border border-ocean/20 bg-pearl px-2 py-0.5 text-[10px] text-ocean/80">
                             Stay
                           </span>
                         )}
+                      </td>
+                      <td className="sticky left-[7.5rem] z-10 min-w-[11rem] bg-white p-3 shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {showConfirm && (
+                            <button
+                              type="button"
+                              disabled={!!actingId}
+                              onClick={() => confirmBooking(s)}
+                              className="border border-ocean bg-ocean px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                            >
+                              {busy ? '…' : 'Confirm'}
+                            </button>
+                          )}
+                          {showCancel && (
+                            <button
+                              type="button"
+                              disabled={!!actingId}
+                              onClick={() => cancelBooking(s)}
+                              className="border border-red-700 px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-50"
+                            >
+                              {busy ? '…' : 'Cancel'}
+                            </button>
+                          )}
+                          <Link
+                            href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
+                            className="border border-ocean/25 px-2 py-1 text-xs font-semibold text-ocean"
+                          >
+                            Details
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`inline-block border px-2 py-0.5 text-xs capitalize ${
+                            s.booking.status === 'awaiting_payment' ||
+                            s.booking.status === 'awaiting_kyc'
+                              ? 'border-gold/50 bg-gold/10 text-ocean'
+                              : s.booking.status === 'confirmed'
+                                ? 'border-ocean/30 bg-ocean/5 text-ocean'
+                                : s.booking.status === 'cancelled'
+                                  ? 'border-red-200 bg-red-50 text-red-700'
+                                  : 'border-ocean/20 bg-pearl text-ocean/80'
+                          }`}
+                        >
+                          {String(s.booking.status || '—').replace(/_/g, ' ')}
+                          {s.booking.status !== 'confirmed' &&
+                          s.booking.status !== 'cancelled' &&
+                          s.booking.planId
+                            ? s.booking.kycVerified
+                              ? ' · KYC ok'
+                              : ' · KYC pending'
+                            : ''}
+                        </span>
                       </td>
                       <td className="p-3 whitespace-nowrap text-ocean">
                         {formatDateTime(
@@ -474,57 +535,6 @@ export default function AdminSalesPage() {
                         )}
                       </td>
                       <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
-                      <td className="p-3">
-                        <span
-                          className={`inline-block border px-2 py-0.5 text-xs capitalize ${
-                            s.booking.status === 'awaiting_payment' ||
-                            s.booking.status === 'awaiting_kyc'
-                              ? 'border-gold/50 bg-gold/10 text-ocean'
-                              : s.booking.status === 'confirmed'
-                                ? 'border-ocean/30 bg-ocean/5 text-ocean'
-                                : s.booking.status === 'cancelled'
-                                  ? 'border-red-200 bg-red-50 text-red-700'
-                                  : 'border-ocean/20 bg-pearl text-ocean/80'
-                          }`}
-                        >
-                          {String(s.booking.status || '—').replace(/_/g, ' ')}
-                          {s.booking.status !== 'confirmed' && s.booking.planId
-                            ? s.booking.kycVerified
-                              ? ' · KYC ok'
-                              : ' · KYC pending'
-                            : ''}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex flex-col items-start gap-1.5">
-                          {showConfirm && (
-                            <button
-                              type="button"
-                              disabled={!!actingId}
-                              onClick={() => confirmBooking(s)}
-                              className="text-sm font-semibold text-ocean underline disabled:opacity-50"
-                            >
-                              {busy ? 'Working…' : 'Confirm'}
-                            </button>
-                          )}
-                          {showCancel && (
-                            <button
-                              type="button"
-                              disabled={!!actingId}
-                              onClick={() => cancelBooking(s)}
-                              className="text-sm font-semibold text-red-700 underline disabled:opacity-50"
-                            >
-                              {busy ? 'Working…' : 'Cancel'}
-                            </button>
-                          )}
-                          <Link
-                            href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
-                            className="text-sm font-semibold text-ocean/70 underline"
-                          >
-                            Details
-                          </Link>
-                        </div>
-                      </td>
                     </tr>
                   );
                 })}
