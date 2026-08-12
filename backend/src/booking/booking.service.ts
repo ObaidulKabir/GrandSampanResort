@@ -484,8 +484,11 @@ export class BookingService {
         `book failed suite=${suiteId} plan=${normalizedPlanId || '-'} investor=${investorId || '-'}`,
         err?.stack || err,
       );
-      const detail = String(err?.message || err || 'unknown').slice(0, 300);
-      return { ok: false as const, error: 'booking_failed', detail };
+      const detail = String(err?.message || err || '');
+      if (detail.includes('booking_no_overlap_per_suite')) {
+        return { ok: false as const, error: 'conflict' };
+      }
+      return { ok: false as const, error: 'booking_failed' };
     } finally {
       this.locks.delete(lockKey);
     }
