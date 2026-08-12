@@ -17,7 +17,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-frontend.rule=Host(`www.grandsampanresort.com`)"
-      - "traefik.http.routers.grand-sampan-frontend.entrypoints=web"
+      - "traefik.http.routers.grand-sampan-frontend.entrypoints=websecure"
       - "traefik.http.routers.grand-sampan-frontend.priority=1"
       - "traefik.http.routers.grand-sampan-frontend.tls=true"
       - "traefik.http.routers.grand-sampan-frontend.tls.certresolver=le"
@@ -57,7 +57,7 @@ services:
       # Serve both JSON APIs and static /uploads from the backend. Without
       # /uploads here, Traefik sends image requests to Next.js (404).
       - "traefik.http.routers.grand-sampan-backend.rule=Host(`www.grandsampanresort.com`) && (PathPrefix(`/api`) || PathPrefix(`/uploads`))"
-      - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
+      - "traefik.http.routers.grand-sampan-backend.entrypoints=websecure"
       - "traefik.http.routers.grand-sampan-backend.priority=100"
       - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000"
       - "traefik.http.routers.grand-sampan-backend.tls=true"
