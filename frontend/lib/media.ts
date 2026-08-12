@@ -23,7 +23,14 @@ function apiOrigin() {
 }
 
 export function resolveMediaUrl(url: string) {
+  if (!url) return url;
   if (/^https?:\/\//.test(url)) return url;
+  // In the browser, keep /uploads relative so Traefik (prod) or Next rewrites
+  // (local) can route them. Absolute API hosts break when the page origin
+  // differs from NEXT_PUBLIC_API_URL (e.g. localhost:3010 vs :4000/:4010).
+  if (typeof window !== 'undefined' && url.startsWith('/uploads/')) {
+    return url;
+  }
   return `${apiOrigin()}${url}`;
 }
 

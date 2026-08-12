@@ -131,7 +131,8 @@ export default function DesignLayoutPage() {
                   <img
                     src={item.src}
                     alt={item.alt}
-                    className="h-full w-full object-contain p-2 transition group-hover:scale-[1.01]"
+                    className="absolute inset-0 box-border h-full w-full object-contain p-2 transition group-hover:scale-[1.01]"
+                    loading="lazy"
                   />
                 </div>
                 <span className="mt-2 inline-block text-sm font-semibold text-ocean underline decoration-gold underline-offset-4">

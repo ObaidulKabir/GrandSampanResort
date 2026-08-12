@@ -1,6 +1,23 @@
 /** @type {import('next').NextConfig} */
+function uploadsProxyTarget() {
+  const raw =
+    process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return raw.replace(/\/+$/, '').replace(/\/api$/i, '');
+}
+
 const nextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    // Proxy /uploads to the API origin so relative media URLs work in local
+    // Next (page on :3000/:3010, files on :4000/:4010) and keep one URL shape.
+    const target = uploadsProxyTarget();
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${target}/uploads/:path*`
+      }
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -11,6 +28,12 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '4000',
+        pathname: '/uploads/**'
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4010',
         pathname: '/uploads/**'
       },
       {
