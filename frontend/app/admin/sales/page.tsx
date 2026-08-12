@@ -27,6 +27,8 @@ export default function AdminSalesPage() {
   const [pipelineQuery, setPipelineQuery] = useState('');
   const [investorQuery, setInvestorQuery] = useState('');
   const [kycFilter, setKycFilter] = useState<'all' | 'verified' | 'pending'>('all');
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState('');
 
   async function load() {
     setLoading(true);
@@ -138,6 +140,143 @@ export default function AdminSalesPage() {
     await load();
   }
 
+  function canConfirmBooking(booking: any) {
+    if (!booking?.planId) return false;
+    const status = String(booking.status || '');
+    return status === 'awaiting_payment' || status === 'awaiting_kyc';
+  }
+
+  function canCancelBooking(booking: any) {
+    if (!booking?.planId) return false;
+    const status = String(booking.status || '');
+    return status === 'awaiting_payment' || status === 'awaiting_kyc' || status === 'confirmed';
+  }
+
+  async function confirmBooking(sale: SaleRow) {
+    const bookingId = sale.booking?.id;
+    if (!bookingId || !canConfirmBooking(sale.booking)) return;
+    if (
+      !window.confirm(
+        'Confirm this booking? This marks deposit received and KYC verified, then completes the sale (plan → Booked).'
+      )
+    ) {
+      return;
+    }
+    setActingId(bookingId);
+    setActionMsg('');
+    try {
+      let completed = false;
+      if (!sale.booking.depositConfirmedAt) {
+        const dep = await api(`/booking/${encodeURIComponent(bookingId)}/confirm-deposit`, {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+        if (!dep?.ok) {
+          setActionMsg(
+            dep?.error === 'not_pending_review' || dep?.error === 'not_awaiting_payment'
+              ? `Could not confirm ${bookingId}: not pending review`
+              : `Could not confirm deposit for ${bookingId}`
+          );
+          return;
+        }
+        completed = !!dep.completed;
+      }
+      if (!completed && !sale.booking.kycVerified) {
+        const kyc = await api(`/booking/${encodeURIComponent(bookingId)}/verify-kyc`, {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+        if (!kyc?.ok) {
+          setActionMsg(
+            kyc?.error === 'kyc_missing'
+              ? `Could not confirm ${bookingId}: KYC snapshot missing`
+              : `Could not verify KYC for ${bookingId}`
+          );
+          await load();
+          return;
+        }
+        completed = !!kyc.completed;
+      }
+      if (!completed && sale.booking.depositConfirmedAt && sale.booking.kycVerified) {
+        // Both flags already set but status still pending — confirm deposit again to finalize.
+        const dep = await api(`/booking/${encodeURIComponent(bookingId)}/confirm-deposit`, {
+          method: 'POST',
+          body: JSON.stringify({})
+        });
+        completed = !!dep?.completed;
+      }
+      setActionMsg(
+        completed
+          ? `Booking ${bookingId} confirmed. Plan booked and client notified.`
+          : `Booking ${bookingId} updated. Open the booking if anything is still pending.`
+      );
+      await load();
+    } catch {
+      setActionMsg(`Could not confirm booking ${bookingId}`);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function cancelBooking(sale: SaleRow) {
+    const bookingId = sale.booking?.id;
+    if (!bookingId || !canCancelBooking(sale.booking)) return;
+    const reason = window.prompt(
+      'Cancellation reason (required — emailed to the client):',
+      sale.booking.status === 'confirmed'
+        ? 'Booking cancelled by admin'
+        : 'Payment not received / KYC not valid'
+    );
+    if (reason == null) return;
+    if (!reason.trim()) {
+      setActionMsg('A cancellation reason is required.');
+      return;
+    }
+    if (
+      !window.confirm(
+        'Cancel this booking and set the share plan back to Unsold? The client will be emailed.'
+      )
+    ) {
+      return;
+    }
+    setActingId(bookingId);
+    setActionMsg('');
+    try {
+      const res = await api(`/booking/${encodeURIComponent(bookingId)}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ reason: reason.trim() })
+      });
+      if (!res?.ok) {
+        setActionMsg(
+          res?.error === 'reason_required'
+            ? 'A cancellation reason is required'
+            : res?.error === 'already_cancelled'
+              ? `Booking ${bookingId} is already cancelled`
+              : res?.error === 'not_cancellable'
+                ? `Booking ${bookingId} cannot be cancelled in its current status`
+                : `Could not cancel booking ${bookingId}`
+        );
+      } else {
+        const parts = [
+          res.planReleased
+            ? `Booking ${bookingId} cancelled. Plan released to Unsold.`
+            : `Booking ${bookingId} cancelled.`
+        ];
+        if (res.clientNotified && res.notifiedEmail) {
+          parts.push(`Email sent to ${res.notifiedEmail}.`);
+        } else {
+          parts.push('Client email could not be sent — check SMTP or buyer email.');
+        }
+        setActionMsg(parts.join(' '));
+        await load();
+      }
+    } catch {
+      setActionMsg(`Could not cancel booking ${bookingId}`);
+    } finally {
+      setActingId(null);
+    }
+  }
+
   const tabs: { id: Tab; label: string }[] = [
     { id: 'pipeline', label: 'Bookings' },
     { id: 'inventory', label: 'Inventory' },
@@ -240,6 +379,10 @@ export default function AdminSalesPage() {
             </label>
           </div>
 
+          {actionMsg && (
+            <div className="mt-4 border border-ocean/15 bg-ocean/5 p-3 text-sm text-ocean">{actionMsg}</div>
+          )}
+
           <div className="mt-4 overflow-auto border border-ocean/10 bg-white">
             <table className="w-full text-sm">
               <thead>
@@ -254,7 +397,7 @@ export default function AdminSalesPage() {
                   <th className="p-3 font-medium">Deposit</th>
                   <th className="p-3 font-medium">Amount</th>
                   <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium"> </th>
+                  <th className="p-3 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -263,6 +406,9 @@ export default function AdminSalesPage() {
                     s.client?.name || s.investor?.name || s.booking.investorId || '—';
                   const contact = s.client?.contact || s.investor?.email || '—';
                   const email = s.client?.email || s.investor?.email || '';
+                  const busy = actingId === s.booking.id;
+                  const showConfirm = canConfirmBooking(s.booking);
+                  const showCancel = canCancelBooking(s.booking);
                   return (
                     <tr key={s.booking.id} className="border-t border-ocean/10">
                       <td className="p-3">
@@ -350,12 +496,34 @@ export default function AdminSalesPage() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <Link
-                          href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
-                          className="text-sm font-semibold text-ocean underline"
-                        >
-                          View
-                        </Link>
+                        <div className="flex flex-col items-start gap-1.5">
+                          {showConfirm && (
+                            <button
+                              type="button"
+                              disabled={!!actingId}
+                              onClick={() => confirmBooking(s)}
+                              className="text-sm font-semibold text-ocean underline disabled:opacity-50"
+                            >
+                              {busy ? 'Working…' : 'Confirm'}
+                            </button>
+                          )}
+                          {showCancel && (
+                            <button
+                              type="button"
+                              disabled={!!actingId}
+                              onClick={() => cancelBooking(s)}
+                              className="text-sm font-semibold text-red-700 underline disabled:opacity-50"
+                            >
+                              {busy ? 'Working…' : 'Cancel'}
+                            </button>
+                          )}
+                          <Link
+                            href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
+                            className="text-sm font-semibold text-ocean/70 underline"
+                          >
+                            Details
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -414,8 +582,8 @@ export default function AdminSalesPage() {
           <div>
             <h2 className="font-display text-2xl text-ocean">Reserved plans</h2>
             <p className="mt-1 text-sm text-ocean/65">
-              Held while a booking awaits payment or KYC. Open the booking from Pipeline to discard and
-              return the plan to Unsold.
+              Held while a booking awaits payment or KYC. Use Confirm or Cancel on the Bookings tab to
+              complete the sale or release the plan back to Unsold.
             </p>
             <PlanTable plans={inventoryByStatus.reserved} empty="No reserved plans." />
           </div>
