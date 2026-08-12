@@ -117,15 +117,16 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
     setActing(false);
   }
 
-  async function cancelBooking() {
-    const reason = cancelReason.trim();
+  async function cancelBooking(presetReason?: string) {
+    const reason = (presetReason ?? cancelReason).trim();
     if (!reason) {
-      setActionMsg('Enter a cancellation reason before cancelling.');
+      setActionMsg('Enter a cancellation reason before discarding.');
+      setShowCancelForm(true);
       return;
     }
     if (
       !window.confirm(
-        'Cancel this booking and set the share plan back to Unsold? This cannot be undone.'
+        'Discard this reservation and set the share plan back to Unsold? This cannot be undone.'
       )
     ) {
       return;
@@ -140,27 +141,27 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
       if (!res?.ok) {
         setActionMsg(
           res?.error === 'reason_required'
-            ? 'Cancellation reason is required'
+            ? 'A discard reason is required'
             : res?.error === 'already_cancelled'
               ? 'This booking is already cancelled'
               : res?.error === 'not_cancellable'
-                ? 'This booking cannot be cancelled in its current status'
+                ? 'This booking cannot be discarded in its current status'
                 : res?.error === 'not_investment_booking'
-                  ? 'Only investment bookings with a plan can be cancelled here'
-                  : 'Could not cancel booking'
+                  ? 'Only investment bookings with a plan can be discarded here'
+                  : 'Could not discard reservation'
         );
       } else {
         setActionMsg(
           res.planReleased
-            ? 'Booking cancelled. Plan released to Unsold.'
-            : 'Booking cancelled.'
+            ? 'Reservation discarded. Plan is Unsold again and available to sell.'
+            : 'Reservation discarded.'
         );
         setShowCancelForm(false);
         setCancelReason('');
         await load();
       }
     } catch {
-      setActionMsg('Could not cancel booking');
+      setActionMsg('Could not discard reservation');
     }
     setActing(false);
   }
@@ -179,6 +180,7 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
       booking?.status === 'confirmed');
   const depositConfirmed = !!booking?.depositConfirmedAt;
   const kycVerified = !!booking?.kycVerified;
+  const planStatusLabel = String(plan?.planStatus || '—');
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
@@ -228,9 +230,17 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
             <section className="border border-gold/40 bg-gold/10 p-5">
               <h2 className="font-display text-2xl text-ocean">Completion checklist</h2>
               <p className="mt-1 text-sm text-ocean/70">
-                Booking completes only after both deposit receipt and KYC are approved.
+                Booking completes only after both deposit receipt and KYC are approved. If payment was
+                not received or KYC is invalid, discard the reservation to return the plan to Unsold.
               </p>
               <ul className="mt-4 space-y-2 text-sm text-ocean">
+                <li>
+                  Plan status:{' '}
+                  <span className="font-semibold">{planStatusLabel}</span>
+                  {booking.status === 'cancelled' && planStatusLabel.toLowerCase() === 'unsold'
+                    ? ' (released)'
+                    : ''}
+                </li>
                 <li>
                   {depositConfirmed ? '✓' : '○'} Deposit payment confirmed
                   {depositConfirmed && booking.depositConfirmedAt
@@ -254,6 +264,24 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                       {acting ? 'Working…' : 'Verify KYC'}
                     </Button>
                   )}
+                  {!depositConfirmed && (
+                    <Button
+                      variant="outline"
+                      onClick={() => cancelBooking('Payment not received / could not be verified')}
+                      disabled={acting}
+                    >
+                      Discard — payment not received
+                    </Button>
+                  )}
+                  {!kycVerified && (
+                    <Button
+                      variant="outline"
+                      onClick={() => cancelBooking('KYC information not valid')}
+                      disabled={acting}
+                    >
+                      Discard — KYC not valid
+                    </Button>
+                  )}
                 </div>
               )}
             </section>
@@ -261,33 +289,36 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
 
           {canCancel && (
             <section className="border border-red-200 bg-red-50/40 p-5">
-              <h2 className="font-display text-2xl text-ocean">Cancel booking</h2>
+              <h2 className="font-display text-2xl text-ocean">
+                {pendingReview ? 'Discard reservation' : 'Cancel booking'}
+              </h2>
               <p className="mt-1 text-sm text-ocean/70">
-                Cancel for operational reasons and release the share plan back to Unsold. A reason is required and
-                emailed to the buyer.
+                {pendingReview
+                  ? 'Use this when payment was not received or KYC is not valid. The share plan returns to Unsold and can be sold again. A reason is required and emailed to the buyer.'
+                  : 'Cancel for operational reasons and release the share plan back to Unsold. A reason is required and emailed to the buyer.'}
               </p>
               {!showCancelForm ? (
                 <div className="mt-4">
                   <Button variant="outline" onClick={() => setShowCancelForm(true)} disabled={acting}>
-                    Cancel booking &amp; release plan
+                    {pendingReview ? 'Discard reservation & release plan' : 'Cancel booking & release plan'}
                   </Button>
                 </div>
               ) : (
                 <div className="mt-4 space-y-3">
                   <label className="block text-sm font-medium text-ocean">
-                    Cancellation reason
+                    Reason
                     <textarea
                       className="field mt-1 min-h-[96px]"
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
-                      placeholder="e.g. Buyer withdrew / payment not received / duplicate booking"
+                      placeholder="e.g. Payment not received / KYC documents not valid / buyer withdrew"
                       maxLength={1000}
                       required
                     />
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    <Button onClick={cancelBooking} disabled={acting || !cancelReason.trim()}>
-                      {acting ? 'Cancelling…' : 'Confirm cancellation'}
+                    <Button onClick={() => cancelBooking()} disabled={acting || !cancelReason.trim()}>
+                      {acting ? 'Discarding…' : pendingReview ? 'Confirm discard' : 'Confirm cancellation'}
                     </Button>
                     <Button
                       variant="ghost"
@@ -395,6 +426,9 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                     <div>{plan?.name || booking.planId || '—'}</div>
                     {booking.planId && (
                       <div className="font-mono text-xs text-ocean/55">{booking.planId}</div>
+                    )}
+                    {plan?.planStatus && (
+                      <div className="mt-0.5 text-xs text-ocean/55">Status: {plan.planStatus}</div>
                     )}
                   </dd>
                 </div>

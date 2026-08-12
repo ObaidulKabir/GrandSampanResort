@@ -110,12 +110,13 @@ export default function AdminSalesPage() {
 
   const inventoryByStatus = useMemo(() => {
     const unsold = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'unsold');
+    const reserved = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'reserved');
     const booked = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'booked');
     const other = plans.filter((p) => {
       const st = (p.planStatus || '').toLowerCase();
-      return st !== 'unsold' && st !== 'booked';
+      return st !== 'unsold' && st !== 'booked' && st !== 'reserved';
     });
-    return { unsold, booked, other };
+    return { unsold, reserved, booked, other };
   }, [plans]);
 
   const filteredUsers = useMemo(() => {
@@ -374,16 +375,21 @@ export default function AdminSalesPage() {
 
       {tab === 'inventory' && (
         <section className="mt-6 space-y-8">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="border border-gold/40 bg-gold/10 p-5">
               <div className="text-xs uppercase tracking-wide text-ocean/60">Ready to sell</div>
               <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.unsold.length}</div>
               <p className="mt-2 text-sm text-ocean/70">Unsold share plans</p>
             </div>
+            <div className="border border-gold/30 bg-white p-5">
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Reserved</div>
+              <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.reserved.length}</div>
+              <p className="mt-2 text-sm text-ocean/70">Pending payment / KYC</p>
+            </div>
             <div className="border border-ocean/10 bg-white p-5">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Sold / held</div>
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Booked</div>
               <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.booked.length}</div>
-              <p className="mt-2 text-sm text-ocean/70">Booked plans</p>
+              <p className="mt-2 text-sm text-ocean/70">Completed sales</p>
             </div>
             <div className="border border-ocean/10 bg-white p-5">
               <div className="text-xs uppercase tracking-wide text-ocean/60">Actions</div>
@@ -404,6 +410,14 @@ export default function AdminSalesPage() {
           <div>
             <h2 className="font-display text-2xl text-ocean">Unsold plans</h2>
             <PlanTable plans={inventoryByStatus.unsold} empty="No unsold plans — create plans on a unit." />
+          </div>
+          <div>
+            <h2 className="font-display text-2xl text-ocean">Reserved plans</h2>
+            <p className="mt-1 text-sm text-ocean/65">
+              Held while a booking awaits payment or KYC. Open the booking from Pipeline to discard and
+              return the plan to Unsold.
+            </p>
+            <PlanTable plans={inventoryByStatus.reserved} empty="No reserved plans." />
           </div>
           <div>
             <h2 className="font-display text-2xl text-ocean">Booked plans</h2>

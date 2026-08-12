@@ -936,7 +936,8 @@ export class BookingService {
 
   private shouldReleasePlan(planStatus?: string | null) {
     const st = String(planStatus || "").toLowerCase();
-    return st === "reserved" || st === "booked";
+    // Free inventory on discard unless the plan was permanently moved off the sales catalog.
+    return st !== "resale" && st !== "transferred";
   }
 
   /**
@@ -975,7 +976,8 @@ export class BookingService {
       const plan = await this.prisma.sharePlan.findUnique({
         where: { id: booking.planId },
       });
-      if (plan && this.shouldReleasePlan(plan.planStatus)) {
+      const releasePlan = !!(plan && this.shouldReleasePlan(plan.planStatus));
+      if (releasePlan) {
         ops.push(
           this.prisma.sharePlan.update({
             where: { id: booking.planId },
@@ -1003,7 +1005,8 @@ export class BookingService {
       return {
         ok: true as const,
         status: "cancelled" as const,
-        planReleased: !!(plan && this.shouldReleasePlan(plan.planStatus)),
+        planReleased: releasePlan,
+        planStatus: releasePlan ? ("Unsold" as const) : plan?.planStatus || null,
       };
     }
 
@@ -1035,7 +1038,12 @@ export class BookingService {
       },
       "reject",
     );
-    return { ok: true as const, status: "cancelled" as const, planReleased };
+    return {
+      ok: true as const,
+      status: "cancelled" as const,
+      planReleased,
+      planStatus: planReleased ? ("Unsold" as const) : ((plan as any)?.planStatus ?? null),
+    };
   }
 
   /** @deprecated Prefer cancelBooking — kept for older admin clients. */

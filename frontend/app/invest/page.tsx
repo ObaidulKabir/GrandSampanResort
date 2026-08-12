@@ -155,9 +155,6 @@ export default function InvestPage() {
         return true;
       })
       .sort((a, b) => {
-        // Keep available plans first when sold are visible.
-        const availCmp = Number(isUnsoldPlan(b)) - Number(isUnsoldPlan(a));
-        if (availCmp !== 0) return availCmp;
         const priceCmp =
           priceSort === 'asc' ? planTotal(a) - planTotal(b) : planTotal(b) - planTotal(a);
         if (priceCmp !== 0) return priceCmp;
