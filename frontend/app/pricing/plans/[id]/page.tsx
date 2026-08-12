@@ -11,6 +11,13 @@ import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
 import SuitePlans from '@/components/SuitePlans';
+import {
+  captureReferralFromSearch,
+  clearStoredReferralCode,
+  getStoredReferralCode,
+  normalizeReferralCode,
+  setStoredReferralCode
+} from '@/lib/referral';
 
 type Plan = {
   id: string;
@@ -142,7 +149,39 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [depositNote, setDepositNote] = useState('');
   const [depositProofUrl, setDepositProofUrl] = useState('');
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralHint, setReferralHint] = useState('');
   const suppressDraftPersist = useRef(false);
+
+  useEffect(() => {
+    captureReferralFromSearch(typeof window !== 'undefined' ? window.location.search : '');
+    setReferralCode(getStoredReferralCode() || '');
+  }, []);
+
+  useEffect(() => {
+    const code = normalizeReferralCode(referralCode);
+    if (!code) {
+      setReferralHint('');
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const res = await api(`/referral/validate?code=${encodeURIComponent(code)}&buyerId=${encodeURIComponent(user?.id || '')}`);
+      if (cancelled) return;
+      if (res?.ok) {
+        setReferralHint(`Referrer: ${res.referrer?.name || res.code}`);
+        setStoredReferralCode(code);
+      } else if (res?.error === 'self_referral') {
+        setReferralHint('You cannot use your own referral code');
+      } else {
+        setReferralHint('Code not recognized');
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [referralCode, user?.id]);
 
   // Restore in-progress booking form after login redirects / refreshes.
   useLayoutEffect(() => {
@@ -472,7 +511,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           depositMethod,
           depositReference: depositReference.trim(),
           depositProofUrl: depositProofUrl.trim() || undefined,
-          depositNote: depositNote.trim() || undefined
+          depositNote: depositNote.trim() || undefined,
+          referralCode: normalizeReferralCode(referralCode) || undefined
         })
       });
       if (!res?.ok || !res.booking?.id) {
@@ -502,6 +542,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       const scheduleRes = await api(`/booking/${res.booking.id}/schedule`);
       const deposit = (scheduleRes?.schedule || []).find((i: any) => i.type === 'deposit');
       setStatus('');
+      clearStoredReferralCode();
       setConfirmation({
         bookingId: res.booking.id,
         depositAmount: deposit?.amount || depositPreview,
@@ -995,6 +1036,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               Pay the 10% booking amount by cheque, cash/pay order, or online transfer. Booking
               completes after admin confirms payment receipt and verifies KYC.
             </p>
+            <label className="mt-4 block text-sm text-ocean">
+              Referral code <span className="font-normal text-ocean/55">(optional)</span>
+              <input
+                className="field mt-1 uppercase tracking-wide"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="Enter referrer code if you have one"
+                autoComplete="off"
+              />
+              {referralHint && <span className="mt-1 block text-xs text-ocean/65">{referralHint}</span>}
+            </label>
             <div className="mt-3 grid grid-cols-1 gap-2" role="radiogroup" aria-label="Deposit payment method">
               {(
                 [

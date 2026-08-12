@@ -68,6 +68,11 @@ export type Client = Prisma.ClientModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model ReferralReward
+ * 
+ */
+export type ReferralReward = Prisma.ReferralRewardModel
+/**
  * Model MediaAsset
  * 
  */

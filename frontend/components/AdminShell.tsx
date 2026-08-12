@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/appStore';
 const links = [
   { href: '/admin', label: 'Home', exact: true },
   { href: '/admin/sales', label: 'Sales Desk' },
+  { href: '/admin/referrals', label: 'Referrals' },
   { href: '/admin/units', label: 'Units' },
   { href: '/admin/units/new', label: 'New Unit' },
   { href: '/admin/media', label: 'Media' },

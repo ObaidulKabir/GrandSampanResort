@@ -54,7 +54,9 @@ export type BookingMinAggregateOutputType = {
   kycVerifiedAt: Date | null
   cancellationReason: string | null
   cancelledAt: Date | null
-  createdAt: Date
+  createdAt: Date | null
+  referralCode: string | null
+  referredByUserId: string | null
 }
 
 export type BookingMaxAggregateOutputType = {
@@ -77,7 +79,9 @@ export type BookingMaxAggregateOutputType = {
   kycVerifiedAt: Date | null
   cancellationReason: string | null
   cancelledAt: Date | null
-  createdAt: Date
+  createdAt: Date | null
+  referralCode: string | null
+  referredByUserId: string | null
 }
 
 export type BookingCountAggregateOutputType = {
@@ -101,6 +105,8 @@ export type BookingCountAggregateOutputType = {
   cancellationReason: number
   cancelledAt: number
   createdAt: number
+  referralCode: number
+  referredByUserId: number
   _all: number
 }
 
@@ -134,6 +140,8 @@ export type BookingMinAggregateInputType = {
   cancellationReason?: true
   cancelledAt?: true
   createdAt?: true
+  referralCode?: true
+  referredByUserId?: true
 }
 
 export type BookingMaxAggregateInputType = {
@@ -157,6 +165,8 @@ export type BookingMaxAggregateInputType = {
   cancellationReason?: true
   cancelledAt?: true
   createdAt?: true
+  referralCode?: true
+  referredByUserId?: true
 }
 
 export type BookingCountAggregateInputType = {
@@ -180,6 +190,8 @@ export type BookingCountAggregateInputType = {
   cancellationReason?: true
   cancelledAt?: true
   createdAt?: true
+  referralCode?: true
+  referredByUserId?: true
   _all?: true
 }
 
@@ -290,6 +302,8 @@ export type BookingGroupByOutputType = {
   cancellationReason: string | null
   cancelledAt: Date | null
   createdAt: Date
+  referralCode: string | null
+  referredByUserId: string | null
   _count: BookingCountAggregateOutputType | null
   _avg: BookingAvgAggregateOutputType | null
   _sum: BookingSumAggregateOutputType | null
@@ -336,9 +350,12 @@ export type BookingWhereInput = {
   cancellationReason?: Prisma.StringNullableFilter<"Booking"> | string | null
   cancelledAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
+  referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
+  referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
+  referralReward?: Prisma.XOR<Prisma.ReferralRewardNullableScalarRelationFilter, Prisma.ReferralRewardWhereInput> | null
 }
 
 export type BookingOrderByWithRelationInput = {
@@ -360,11 +377,14 @@ export type BookingOrderByWithRelationInput = {
   kycVerified?: Prisma.SortOrder
   kycVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   cancellationReason?: Prisma.SortOrderInput | Prisma.SortOrder
-  cancelledAt?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  referredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   schedule?: Prisma.PaymentScheduleItemOrderByRelationAggregateInput
   plan?: Prisma.SharePlanOrderByWithRelationInput
   client?: Prisma.ClientOrderByWithRelationInput
+  referralReward?: Prisma.ReferralRewardOrderByWithRelationInput
 }
 
 export type BookingWhereUniqueInput = Prisma.AtLeast<{
@@ -391,9 +411,12 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   cancellationReason?: Prisma.StringNullableFilter<"Booking"> | string | null
   cancelledAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
+  referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
+  referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
+  referralReward?: Prisma.XOR<Prisma.ReferralRewardNullableScalarRelationFilter, Prisma.ReferralRewardWhereInput> | null
 }, "id">
 
 export type BookingOrderByWithAggregationInput = {
@@ -415,8 +438,10 @@ export type BookingOrderByWithAggregationInput = {
   kycVerified?: Prisma.SortOrder
   kycVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   cancellationReason?: Prisma.SortOrderInput | Prisma.SortOrder
-  cancelledAt?: Prisma.SortOrder
-  createdAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  referredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
   _avg?: Prisma.BookingAvgOrderByAggregateInput
   _max?: Prisma.BookingMaxOrderByAggregateInput
@@ -448,6 +473,8 @@ export type BookingScalarWhereWithAggregatesInput = {
   cancellationReason?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   cancelledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Booking"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
+  referralCode?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  referredByUserId?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
 }
 
 export type BookingCreateInput = {
@@ -469,9 +496,12 @@ export type BookingCreateInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
+  referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
 }
 
 export type BookingUncheckedCreateInput = {
@@ -495,7 +525,10 @@ export type BookingUncheckedCreateInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
+  referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
 
 export type BookingUpdateInput = {
@@ -517,9 +550,12 @@ export type BookingUpdateInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
+  referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateInput = {
@@ -543,7 +579,10 @@ export type BookingUncheckedUpdateInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
+  referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingCreateManyInput = {
@@ -567,6 +606,8 @@ export type BookingCreateManyInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
 }
 
 export type BookingUpdateManyMutationInput = {
@@ -588,6 +629,8 @@ export type BookingUpdateManyMutationInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BookingUncheckedUpdateManyInput = {
@@ -611,6 +654,8 @@ export type BookingUncheckedUpdateManyInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BookingListRelationFilter = {
@@ -644,6 +689,8 @@ export type BookingCountOrderByAggregateInput = {
   cancellationReason?: Prisma.SortOrder
   cancelledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredByUserId?: Prisma.SortOrder
 }
 
 export type BookingAvgOrderByAggregateInput = {
@@ -671,6 +718,8 @@ export type BookingMaxOrderByAggregateInput = {
   cancellationReason?: Prisma.SortOrder
   cancelledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredByUserId?: Prisma.SortOrder
 }
 
 export type BookingMinOrderByAggregateInput = {
@@ -694,6 +743,8 @@ export type BookingMinOrderByAggregateInput = {
   cancellationReason?: Prisma.SortOrder
   cancelledAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  referralCode?: Prisma.SortOrder
+  referredByUserId?: Prisma.SortOrder
 }
 
 export type BookingSumOrderByAggregateInput = {
@@ -823,6 +874,20 @@ export type BookingUncheckedUpdateManyWithoutClientNestedInput = {
   deleteMany?: Prisma.BookingScalarWhereInput | Prisma.BookingScalarWhereInput[]
 }
 
+export type BookingCreateNestedOneWithoutReferralRewardInput = {
+  create?: Prisma.XOR<Prisma.BookingCreateWithoutReferralRewardInput, Prisma.BookingUncheckedCreateWithoutReferralRewardInput>
+  connectOrCreate?: Prisma.BookingCreateOrConnectWithoutReferralRewardInput
+  connect?: Prisma.BookingWhereUniqueInput
+}
+
+export type BookingUpdateOneRequiredWithoutReferralRewardNestedInput = {
+  create?: Prisma.XOR<Prisma.BookingCreateWithoutReferralRewardInput, Prisma.BookingUncheckedCreateWithoutReferralRewardInput>
+  connectOrCreate?: Prisma.BookingCreateOrConnectWithoutReferralRewardInput
+  upsert?: Prisma.BookingUpsertWithoutReferralRewardInput
+  connect?: Prisma.BookingWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.BookingUpdateToOneWithWhereWithoutReferralRewardInput, Prisma.BookingUpdateWithoutReferralRewardInput>, Prisma.BookingUncheckedUpdateWithoutReferralRewardInput>
+}
+
 export type BookingCreateWithoutPlanInput = {
   id: string
   suiteId: string
@@ -842,8 +907,11 @@ export type BookingCreateWithoutPlanInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
+  referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
 }
 
 export type BookingUncheckedCreateWithoutPlanInput = {
@@ -866,7 +934,10 @@ export type BookingUncheckedCreateWithoutPlanInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
+  referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
 
 export type BookingCreateOrConnectWithoutPlanInput = {
@@ -919,6 +990,8 @@ export type BookingScalarWhereInput = {
   cancellationReason?: Prisma.StringNullableFilter<"Booking"> | string | null
   cancelledAt?: Prisma.DateTimeNullableFilter<"Booking"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
+  referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
+  referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
 }
 
 export type BookingCreateWithoutScheduleInput = {
@@ -940,8 +1013,11 @@ export type BookingCreateWithoutScheduleInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
+  referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
 }
 
 export type BookingUncheckedCreateWithoutScheduleInput = {
@@ -965,6 +1041,9 @@ export type BookingUncheckedCreateWithoutScheduleInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
+  referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
 
 export type BookingCreateOrConnectWithoutScheduleInput = {
@@ -1002,8 +1081,11 @@ export type BookingUpdateWithoutScheduleInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
+  referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateWithoutScheduleInput = {
@@ -1027,6 +1109,9 @@ export type BookingUncheckedUpdateWithoutScheduleInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingCreateWithoutClientInput = {
@@ -1048,8 +1133,11 @@ export type BookingCreateWithoutClientInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
+  referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
 }
 
 export type BookingUncheckedCreateWithoutClientInput = {
@@ -1072,7 +1160,10 @@ export type BookingUncheckedCreateWithoutClientInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
+  referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
 
 export type BookingCreateOrConnectWithoutClientInput = {
@@ -1101,6 +1192,126 @@ export type BookingUpdateManyWithWhereWithoutClientInput = {
   data: Prisma.XOR<Prisma.BookingUpdateManyMutationInput, Prisma.BookingUncheckedUpdateManyWithoutClientInput>
 }
 
+export type BookingCreateWithoutReferralRewardInput = {
+  id: string
+  suiteId: string
+  investorId?: string | null
+  start: Date | string
+  end: Date | string
+  status: string
+  amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
+  cancellationReason?: string | null
+  cancelledAt?: Date | string | null
+  createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
+  schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
+  plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
+  client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
+}
+
+export type BookingUncheckedCreateWithoutReferralRewardInput = {
+  id: string
+  suiteId: string
+  planId?: string | null
+  investorId?: string | null
+  clientId?: string | null
+  start: Date | string
+  end: Date | string
+  status: string
+  amountTotal?: number | null
+  depositMethod?: string | null
+  depositReference?: string | null
+  depositProofUrl?: string | null
+  depositNote?: string | null
+  depositSubmittedAt?: Date | string | null
+  depositConfirmedAt?: Date | string | null
+  kycVerified?: boolean
+  kycVerifiedAt?: Date | string | null
+  cancellationReason?: string | null
+  cancelledAt?: Date | string | null
+  createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
+  schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
+}
+
+export type BookingCreateOrConnectWithoutReferralRewardInput = {
+  where: Prisma.BookingWhereUniqueInput
+  create: Prisma.XOR<Prisma.BookingCreateWithoutReferralRewardInput, Prisma.BookingUncheckedCreateWithoutReferralRewardInput>
+}
+
+export type BookingUpsertWithoutReferralRewardInput = {
+  update: Prisma.XOR<Prisma.BookingUpdateWithoutReferralRewardInput, Prisma.BookingUncheckedUpdateWithoutReferralRewardInput>
+  create: Prisma.XOR<Prisma.BookingCreateWithoutReferralRewardInput, Prisma.BookingUncheckedCreateWithoutReferralRewardInput>
+  where?: Prisma.BookingWhereInput
+}
+
+export type BookingUpdateToOneWithWhereWithoutReferralRewardInput = {
+  where?: Prisma.BookingWhereInput
+  data: Prisma.XOR<Prisma.BookingUpdateWithoutReferralRewardInput, Prisma.BookingUncheckedUpdateWithoutReferralRewardInput>
+}
+
+export type BookingUpdateWithoutReferralRewardInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  suiteId?: Prisma.StringFieldUpdateOperationsInput | string
+  investorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  start?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
+  plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
+  client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
+}
+
+export type BookingUncheckedUpdateWithoutReferralRewardInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  suiteId?: Prisma.StringFieldUpdateOperationsInput | string
+  planId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  investorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  clientId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  start?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  end?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  amountTotal?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  depositMethod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositProofUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  depositSubmittedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  depositConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  kycVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  kycVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
+}
+
 export type BookingCreateManyPlanInput = {
   id: string
   suiteId: string
@@ -1121,6 +1332,8 @@ export type BookingCreateManyPlanInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
 }
 
 export type BookingUpdateWithoutPlanInput = {
@@ -1142,8 +1355,11 @@ export type BookingUpdateWithoutPlanInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
+  referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateWithoutPlanInput = {
@@ -1166,7 +1382,10 @@ export type BookingUncheckedUpdateWithoutPlanInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
+  referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateManyWithoutPlanInput = {
@@ -1189,6 +1408,8 @@ export type BookingUncheckedUpdateManyWithoutPlanInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type BookingCreateManyClientInput = {
@@ -1211,6 +1432,8 @@ export type BookingCreateManyClientInput = {
   cancellationReason?: string | null
   cancelledAt?: Date | string | null
   createdAt?: Date | string
+  referralCode?: string | null
+  referredByUserId?: string | null
 }
 
 export type BookingUpdateWithoutClientInput = {
@@ -1232,8 +1455,11 @@ export type BookingUpdateWithoutClientInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
+  referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateWithoutClientInput = {
@@ -1256,7 +1482,10 @@ export type BookingUncheckedUpdateWithoutClientInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
+  referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
 
 export type BookingUncheckedUpdateManyWithoutClientInput = {
@@ -1279,6 +1508,8 @@ export type BookingUncheckedUpdateManyWithoutClientInput = {
   cancellationReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1333,9 +1564,12 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   cancellationReason?: boolean
   cancelledAt?: boolean
   createdAt?: boolean
+  referralCode?: boolean
+  referredByUserId?: boolean
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
+  referralReward?: boolean | Prisma.Booking$referralRewardArgs<ExtArgs>
   _count?: boolean | Prisma.BookingCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
 
@@ -1360,6 +1594,8 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   cancellationReason?: boolean
   cancelledAt?: boolean
   createdAt?: boolean
+  referralCode?: boolean
+  referredByUserId?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1385,6 +1621,8 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   cancellationReason?: boolean
   cancelledAt?: boolean
   createdAt?: boolean
+  referralCode?: boolean
+  referredByUserId?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1410,13 +1648,16 @@ export type BookingSelectScalar = {
   cancellationReason?: boolean
   cancelledAt?: boolean
   createdAt?: boolean
+  referralCode?: boolean
+  referredByUserId?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt" | "depositConfirmedAt" | "kycVerified" | "kycVerifiedAt" | "cancellationReason" | "cancelledAt" | "createdAt", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt" | "depositConfirmedAt" | "kycVerified" | "kycVerifiedAt" | "cancellationReason" | "cancelledAt" | "createdAt" | "referralCode" | "referredByUserId", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
+  referralReward?: boolean | Prisma.Booking$referralRewardArgs<ExtArgs>
   _count?: boolean | Prisma.BookingCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BookingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1437,6 +1678,7 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      */
     plan: Prisma.$SharePlanPayload<ExtArgs> | null
     client: Prisma.$ClientPayload<ExtArgs> | null
+    referralReward: Prisma.$ReferralRewardPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1473,8 +1715,18 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      */
     cancellationReason: string | null
     cancelledAt: Date | null
+    /**
+     * When the booking was placed (submission time).
+     */
     createdAt: Date
-  createdAt: Date
+    /**
+     * Referral code captured at purchase (optional).
+     */
+    referralCode: string | null
+    /**
+     * Referrer user id resolved from referralCode at purchase.
+     */
+    referredByUserId: string | null
   }, ExtArgs["result"]["booking"]>
   composites: {}
 }
@@ -1872,6 +2124,7 @@ export interface Prisma__BookingClient<T, Null = never, ExtArgs extends runtime.
   schedule<T extends Prisma.Booking$scheduleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Booking$scheduleArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentScheduleItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   plan<T extends Prisma.Booking$planArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Booking$planArgs<ExtArgs>>): Prisma.Prisma__SharePlanClient<runtime.Types.Result.GetResult<Prisma.$SharePlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   client<T extends Prisma.Booking$clientArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Booking$clientArgs<ExtArgs>>): Prisma.Prisma__ClientClient<runtime.Types.Result.GetResult<Prisma.$ClientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  referralReward<T extends Prisma.Booking$referralRewardArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Booking$referralRewardArgs<ExtArgs>>): Prisma.Prisma__ReferralRewardClient<runtime.Types.Result.GetResult<Prisma.$ReferralRewardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1921,6 +2174,8 @@ export interface BookingFieldRefs {
   readonly cancellationReason: Prisma.FieldRef<"Booking", 'String'>
   readonly cancelledAt: Prisma.FieldRef<"Booking", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Booking", 'DateTime'>
+  readonly referralCode: Prisma.FieldRef<"Booking", 'String'>
+  readonly referredByUserId: Prisma.FieldRef<"Booking", 'String'>
 }
     
 
@@ -2376,6 +2631,25 @@ export type Booking$clientArgs<ExtArgs extends runtime.Types.Extensions.Internal
    */
   include?: Prisma.ClientInclude<ExtArgs> | null
   where?: Prisma.ClientWhereInput
+}
+
+/**
+ * Booking.referralReward
+ */
+export type Booking$referralRewardArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ReferralReward
+   */
+  select?: Prisma.ReferralRewardSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ReferralReward
+   */
+  omit?: Prisma.ReferralRewardOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ReferralRewardInclude<ExtArgs> | null
+  where?: Prisma.ReferralRewardWhereInput
 }
 
 /**

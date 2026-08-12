@@ -61,6 +61,10 @@ export type Booking = {
   cancelledAt?: string;
   /** When the booking was placed (ISO datetime). */
   createdAt?: string;
+  /** Referral code captured at purchase (optional). */
+  referralCode?: string;
+  /** Referrer user id resolved from referralCode at purchase. */
+  referredByUserId?: string;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
 };

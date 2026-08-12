@@ -17,6 +17,7 @@ import { FaqModule } from './faq/faq.module';
 import { TermsModule } from './terms/terms.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { MailModule } from './mail/mail.module';
+import { ReferralModule } from './referral/referral.module';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { MailModule } from './mail/mail.module';
     FaqModule,
     TermsModule,
     PromotionsModule,
-    MailModule
+    MailModule,
+    ReferralModule
   ],
   controllers: [AppController],
   providers: [AppService]

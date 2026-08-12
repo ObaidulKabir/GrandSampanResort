@@ -62,10 +62,15 @@ model Booking {
   cancelledAt        DateTime?
   /// When the booking was placed (submission time).
   createdAt   DateTime @default(now())
+  /// Referral code captured at purchase (optional).
+  referralCode     String?
+  /// Referrer user id resolved from referralCode at purchase.
+  referredByUserId String?
   schedule    PaymentScheduleItem[]
   /// Investment purchases link to a share plan; guest stays leave this null.
   plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   client      Client?    @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  referralReward ReferralReward?
 }
 
 model PaymentScheduleItem {
@@ -109,7 +114,38 @@ model User {
   passwordResetToken  String?
   passwordResetExpires DateTime?
   role         String   @default("investor")
+  /// Unique shareable referral code for this account.
+  referralCode String?  @unique
+  /// User who referred this account at registration (optional).
+  referredById String?
   createdAt    DateTime @default(now())
+  referralRewards ReferralReward[] @relation("ReferrerRewards")
+}
+
+model ReferralReward {
+  id              String    @id
+  referrerId      String
+  bookingId       String    @unique
+  buyerId         String?
+  saleAmount      Int
+  ratePct         Float
+  totalIncentive  Int
+  /// 40% unlocked when booking is confirmed.
+  tranche1Amount  Int
+  tranche1Status  String    @default("pending")
+  tranche1EarnedAt DateTime?
+  /// 60% unlocked when downpayment schedule item is paid.
+  tranche2Amount  Int
+  tranche2Status  String    @default("pending")
+  tranche2EarnedAt DateTime?
+  /// overall: pending | partial | earned | paid | void
+  status          String    @default("pending")
+  paidAt          DateTime?
+  voidReason      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  referrer        User      @relation("ReferrerRewards", fields: [referrerId], references: [id], onDelete: Restrict)
+  booking         Booking   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 }
 
 model MediaAsset {

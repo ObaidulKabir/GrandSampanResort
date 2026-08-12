@@ -57,6 +57,7 @@ export const ModelName = {
   PaymentScheduleItem: 'PaymentScheduleItem',
   Client: 'Client',
   User: 'User',
+  ReferralReward: 'ReferralReward',
   MediaAsset: 'MediaAsset',
   FaqEntry: 'FaqEntry',
   TermsParagraph: 'TermsParagraph',
@@ -129,7 +130,9 @@ export const BookingScalarFieldEnum = {
   kycVerifiedAt: 'kycVerifiedAt',
   cancellationReason: 'cancellationReason',
   cancelledAt: 'cancelledAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  referralCode: 'referralCode',
+  referredByUserId: 'referredByUserId'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
@@ -179,10 +182,36 @@ export const UserScalarFieldEnum = {
   passwordResetToken: 'passwordResetToken',
   passwordResetExpires: 'passwordResetExpires',
   role: 'role',
+  referralCode: 'referralCode',
+  referredById: 'referredById',
   createdAt: 'createdAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const ReferralRewardScalarFieldEnum = {
+  id: 'id',
+  referrerId: 'referrerId',
+  bookingId: 'bookingId',
+  buyerId: 'buyerId',
+  saleAmount: 'saleAmount',
+  ratePct: 'ratePct',
+  totalIncentive: 'totalIncentive',
+  tranche1Amount: 'tranche1Amount',
+  tranche1Status: 'tranche1Status',
+  tranche1EarnedAt: 'tranche1EarnedAt',
+  tranche2Amount: 'tranche2Amount',
+  tranche2Status: 'tranche2Status',
+  tranche2EarnedAt: 'tranche2EarnedAt',
+  status: 'status',
+  paidAt: 'paidAt',
+  voidReason: 'voidReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReferralRewardScalarFieldEnum = (typeof ReferralRewardScalarFieldEnum)[keyof typeof ReferralRewardScalarFieldEnum]
 
 
 export const MediaAssetScalarFieldEnum = {

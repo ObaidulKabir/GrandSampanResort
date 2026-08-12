@@ -1,24 +1,41 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Button from '@/components/Button';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store/appStore';
+import {
+  captureReferralFromSearch,
+  getStoredReferralCode,
+  normalizeReferralCode,
+  setStoredReferralCode
+} from '@/lib/referral';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const setAuth = useAppStore((s) => s.setAuth);
   const router = useRouter();
 
+  useEffect(() => {
+    captureReferralFromSearch(typeof window !== 'undefined' ? window.location.search : '');
+    setReferralCode(getStoredReferralCode() || '');
+  }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('Creating account...');
-    const res = await api('/auth/register', { method: 'POST', body: JSON.stringify({ name, email, password }) });
+    const code = normalizeReferralCode(referralCode);
+    if (code) setStoredReferralCode(code);
+    const res = await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password, referralCode: code || undefined })
+    });
     if (!res?.ok) {
       setStatus('Account exists');
       return;
@@ -81,6 +98,16 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+          />
+        </label>
+        <label className="block text-sm text-ocean">
+          Referral code <span className="font-normal text-ocean/55">(optional)</span>
+          <input
+            className="field mt-1 uppercase tracking-wide"
+            value={referralCode}
+            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+            placeholder="From your referrer’s link"
+            autoComplete="off"
           />
         </label>
         <Button className="w-full" type="submit">
