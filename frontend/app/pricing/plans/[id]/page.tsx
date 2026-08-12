@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, apiUpload } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
@@ -59,8 +59,33 @@ const emptyKyc = (): KycForm => ({
   nomineePicUrl: ''
 });
 
+const KYC_FIELD_LABELS: Record<keyof KycForm, string> = {
+  name: 'Full name',
+  fatherName: 'Father / husband name',
+  nid: 'NID number',
+  dob: 'Date of birth',
+  address: 'Present address',
+  permanentAddress: 'Permanent address',
+  contact: 'Contact number',
+  email: 'Email',
+  picUrl: 'Buyer photograph',
+  nomineeName: 'Nominee name',
+  nomineeNid: 'Nominee NID',
+  nomineePicUrl: 'Nominee photograph'
+};
+
+function missingKycFields(kyc: KycForm): (keyof KycForm)[] {
+  return (Object.keys(kyc) as (keyof KycForm)[]).filter(
+    (key) => String(kyc[key] || '').trim().length === 0
+  );
+}
+
 function isKycComplete(kyc: KycForm) {
-  return (Object.keys(kyc) as (keyof KycForm)[]).every((key) => String(kyc[key] || '').trim().length > 0);
+  return missingKycFields(kyc).length === 0;
+}
+
+function draftStorageKey(planId: string) {
+  return `gsr_booking_draft:${planId}`;
 }
 
 type DepositMethod = 'cheque' | 'cash_payorder' | 'online_transfer';
@@ -114,6 +139,77 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [depositNote, setDepositNote] = useState('');
   const [depositProofUrl, setDepositProofUrl] = useState('');
   const [uploadingProof, setUploadingProof] = useState(false);
+  const suppressDraftPersist = useRef(false);
+
+  // Restore in-progress booking form after login redirects / refreshes.
+  useLayoutEffect(() => {
+    suppressDraftPersist.current = true;
+    try {
+      const raw = sessionStorage.getItem(draftStorageKey(planId));
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft?.kyc && typeof draft.kyc === 'object') {
+          setKyc({ ...emptyKyc(), ...draft.kyc });
+        } else {
+          setKyc(emptyKyc());
+        }
+        if (
+          draft?.depositMethod === 'cheque' ||
+          draft?.depositMethod === 'cash_payorder' ||
+          draft?.depositMethod === 'online_transfer'
+        ) {
+          setDepositMethod(draft.depositMethod);
+        } else {
+          setDepositMethod('cheque');
+        }
+        setDepositReference(typeof draft?.depositReference === 'string' ? draft.depositReference : '');
+        setDepositNote(typeof draft?.depositNote === 'string' ? draft.depositNote : '');
+        setDepositProofUrl(typeof draft?.depositProofUrl === 'string' ? draft.depositProofUrl : '');
+        if (typeof draft?.startDate === 'string' && draft.startDate) setStartDate(draft.startDate);
+        if (draft?.cadence === 'monthly' || draft?.cadence === 'quarterly') setCadence(draft.cadence);
+      } else {
+        setKyc(emptyKyc());
+        setDepositReference('');
+        setDepositNote('');
+        setDepositProofUrl('');
+        setDepositMethod('cheque');
+      }
+    } catch {
+      setKyc(emptyKyc());
+    }
+  }, [planId]);
+
+  useEffect(() => {
+    if (suppressDraftPersist.current) {
+      suppressDraftPersist.current = false;
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        draftStorageKey(planId),
+        JSON.stringify({
+          kyc,
+          depositMethod,
+          depositReference,
+          depositNote,
+          depositProofUrl,
+          startDate,
+          cadence
+        })
+      );
+    } catch {
+      /* quota / private mode */
+    }
+  }, [
+    planId,
+    kyc,
+    depositMethod,
+    depositReference,
+    depositNote,
+    depositProofUrl,
+    startDate,
+    cadence
+  ]);
 
   useEffect(() => {
     if (!user) return;
@@ -239,7 +335,12 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       form.append('file', file);
       const res = await apiUpload('/media/kyc-upload', form);
       if (!res?.ok || !res.url) {
-        setStatus('Photo upload failed. Use JPG, PNG, WEBP, or GIF under 8MB.');
+        const authFailed = res?.status === 401 || res?.status === 403;
+        setStatus(
+          authFailed
+            ? 'Photo upload failed — please sign in again, then re-upload.'
+            : 'Photo upload failed. Use JPG, PNG, WEBP, or GIF under 20MB.'
+        );
         return;
       }
       updateKyc(kind === 'pic' ? 'picUrl' : 'nomineePicUrl', res.url);
@@ -289,11 +390,22 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       return;
     }
     if (!isKycComplete(kyc)) {
-      setStatus('Complete all KYC fields and upload both photographs before confirming');
+      const missing = missingKycFields(kyc).map((key) => KYC_FIELD_LABELS[key]);
+      setStatus(
+        missing.length
+          ? `Still needed: ${missing.join(', ')}`
+          : 'Complete all KYC fields and upload both photographs before confirming'
+      );
+      if (typeof window !== 'undefined') {
+        document.getElementById('booking-kyc')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       return;
     }
     if (!depositReference.trim()) {
       setStatus('Enter a payment reference (cheque no., pay order no., or transfer ref)');
+      if (typeof window !== 'undefined') {
+        document.getElementById('booking-deposit')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       return;
     }
     const sold = (plan.planStatus || '').toLowerCase() !== 'unsold';
@@ -369,6 +481,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         depositMethod,
         depositReference: depositReference.trim()
       });
+      try {
+        sessionStorage.removeItem(draftStorageKey(planId));
+      } catch {
+        /* ignore */
+      }
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
       setStatus('Purchase failed');
@@ -378,6 +495,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
   const discounted = typeof plan?.discountedPrice === 'number';
   const effectivePrice = discounted ? (plan!.discountedPrice as number) : plan?.price || 0;
+  const kycMissing = useMemo(() => missingKycFields(kyc), [kyc]);
+  const kycComplete = kycMissing.length === 0;
+  const onlyPhotosMissing =
+    kycMissing.length > 0 && kycMissing.every((k) => k === 'picUrl' || k === 'nomineePicUrl');
 
   const depositPreview = useMemo(() => Math.round(effectivePrice * 0.1), [effectivePrice]);
   const downPreview = useMemo(() => Math.round(effectivePrice * 0.2), [effectivePrice]);
@@ -676,10 +797,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
-          <div className="mt-6 border-t border-ocean/10 pt-5">
+          <div id="booking-kyc" className="mt-6 border-t border-ocean/10 pt-5">
             <p className="text-sm font-semibold text-ocean">KYC details</p>
             <p className="mt-1 text-xs text-ocean/65">
-              Provide identity details for the person this plan is being booked for. Required before paying the deposit.
+              Provide identity details for the person this plan is being booked for. All fields and both
+              photographs are required before you can submit.
             </p>
             <div className="mt-3 grid gap-3">
               <label className="block text-sm text-ocean">
@@ -754,7 +876,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 />
               </label>
               <label className="block text-sm text-ocean">
-                Photograph
+                Photograph <span className="text-ocean/50">(required)</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
@@ -763,13 +885,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   onChange={(e) => uploadKycPhoto('pic', e.target.files?.[0] || null)}
                 />
                 {uploadingPic === 'pic' && <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>}
-                {kyc.picUrl && (
+                {kyc.picUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={resolveMediaUrl(kyc.picUrl)}
                     alt="Buyer photograph"
                     className="mt-2 h-20 w-20 object-cover border border-ocean/15"
                   />
+                ) : (
+                  <span className="mt-1 block text-xs text-gold">Upload a photo to continue</span>
                 )}
               </label>
               <label className="block text-sm text-ocean">
@@ -789,7 +913,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 />
               </label>
               <label className="block text-sm text-ocean">
-                Nominee photograph
+                Nominee photograph <span className="text-ocean/50">(required)</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
@@ -800,19 +924,21 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 {uploadingPic === 'nominee' && (
                   <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>
                 )}
-                {kyc.nomineePicUrl && (
+                {kyc.nomineePicUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={resolveMediaUrl(kyc.nomineePicUrl)}
                     alt="Nominee photograph"
                     className="mt-2 h-20 w-20 object-cover border border-ocean/15"
                   />
+                ) : (
+                  <span className="mt-1 block text-xs text-gold">Upload a nominee photo to continue</span>
                 )}
               </label>
             </div>
           </div>
 
-          <div className="mt-6 border-t border-ocean/10 pt-5">
+          <div id="booking-deposit" className="mt-6 border-t border-ocean/10 pt-5">
             <p className="text-sm font-semibold text-ocean">Deposit payment</p>
             <p className="mt-1 text-xs text-ocean/65">
               Pay the 10% booking amount by cheque, cash/pay order, or online transfer. Booking
@@ -945,7 +1071,16 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </Link>
             </div>
           )}
+          {status && (
+            <div className="mt-4 rounded-md border border-ocean/15 bg-ocean/5 p-3 text-sm text-ocean">{status}</div>
+          )}
+          {!kycComplete && (
+            <p className="mt-4 text-xs text-ocean/65">
+              Missing KYC: {kycMissing.map((key) => KYC_FIELD_LABELS[key]).join(', ')}
+            </p>
+          )}
           <Button
+            type="button"
             className="mt-6 w-full bg-gold text-ocean hover:bg-gold/90"
             onClick={confirmInvestment}
             disabled={
@@ -954,9 +1089,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               !available ||
               !!uploadingPic ||
               uploadingProof ||
-              (!!token && !emailVerified) ||
-              !isKycComplete(kyc) ||
-              !depositReference.trim()
+              (!!token && !emailVerified)
             }
           >
             {buying
@@ -965,8 +1098,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 ? 'No longer available'
                 : token && !emailVerified
                   ? 'Verify email to continue'
-                  : !isKycComplete(kyc)
-                    ? 'Complete KYC to continue'
+                  : !kycComplete
+                    ? onlyPhotosMissing
+                      ? 'Upload photographs to continue'
+                      : 'Complete KYC to continue'
                     : !depositReference.trim()
                       ? 'Enter payment reference'
                       : 'Submit booking'}

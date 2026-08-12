@@ -49,5 +49,17 @@ export async function apiUpload(path: string, formData: FormData, extraHeaders?:
     headers: { ...authHeaders(), ...(extraHeaders || {}) },
     cache: 'no-store'
   });
-  return res.json();
+  const text = await res.text();
+  let body: any = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    return { ok: false, error: 'bad_response', status: res.status };
+  }
+  if (!res.ok) {
+    return body && typeof body === 'object'
+      ? { ...body, ok: false, status: res.status }
+      : { ok: false, error: 'upload_failed', status: res.status };
+  }
+  return body ?? { ok: false, error: 'empty_response' };
 }
