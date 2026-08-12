@@ -94,4 +94,8 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   depositNote?: string;
+  /** Optional referrer code (from ?ref= or manual entry). */
+  @IsOptional()
+  @IsString()
+  referralCode?: string;
 }

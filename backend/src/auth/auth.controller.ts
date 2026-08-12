@@ -9,8 +9,8 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: any) {
-    const { name, email, password } = body || {};
-    const res = await this.service.register(name, email, password);
+    const { name, email, password, referralCode } = body || {};
+    const res = await this.service.register(name, email, password, referralCode);
     if (!res) return { ok: false, error: 'exists' };
     return { ok: true, user: res };
   }

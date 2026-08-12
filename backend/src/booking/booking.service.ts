@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Optional } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import {
   Booking,
@@ -12,6 +12,7 @@ import { TimesharesService } from "../timeshares/timeshares.service";
 import { SuitesService } from "../suites/suites.service";
 import { PromotionsService } from "../promotions/promotions.service";
 import { MailService, BookingMailContext } from "../mail/mail.service";
+import { ReferralService } from "../referral/referral.service";
 import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -81,6 +82,8 @@ export class BookingService {
   private mail = new MailService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
+
+  constructor(@Optional() private readonly referral: ReferralService = new ReferralService()) {}
 
   private depositAmountOf(booking: {
     amountTotal?: number | null;
@@ -261,23 +264,30 @@ export class BookingService {
     const investorIds = Array.from(
       new Set(bookings.map((b) => b.investorId).filter(Boolean)),
     );
+    const referrerIds = Array.from(
+      new Set(bookings.map((b) => b.referredByUserId).filter(Boolean)),
+    );
     const suites = await Promise.all(suiteIds.map((id) => this.suites.get(id)));
     const plans = await Promise.all(
       planIds.map((id) => (id ? this.timeshares.get(id as string) : null)),
     );
     let clients: any[] = [];
     let investors: any[] = [];
+    let referrers: any[] = [];
     if (this.prisma) {
       if (clientIds.length) {
         clients = await this.prisma.client.findMany({
           where: { id: { in: clientIds as string[] } },
         });
       }
-      if (investorIds.length) {
-        investors = await this.prisma.user.findMany({
-          where: { id: { in: investorIds as string[] } },
-          select: { id: true, name: true, email: true },
+      const userIds = Array.from(new Set([...investorIds, ...referrerIds]));
+      if (userIds.length) {
+        const users = await this.prisma.user.findMany({
+          where: { id: { in: userIds as string[] } },
+          select: { id: true, name: true, email: true, referralCode: true },
         });
+        investors = users.filter((u) => investorIds.includes(u.id));
+        referrers = users.filter((u) => referrerIds.includes(u.id));
       }
     }
     const suiteById = Object.fromEntries(
@@ -292,6 +302,9 @@ export class BookingService {
     const investorById = Object.fromEntries(
       (investors || []).filter(Boolean).map((u: any) => [u.id, u]),
     );
+    const referrerById = Object.fromEntries(
+      (referrers || []).filter(Boolean).map((u: any) => [u.id, u]),
+    );
     return bookings.map((b) => ({
       booking: b,
       suite: suiteById[b.suiteId] || null,
@@ -300,6 +313,13 @@ export class BookingService {
       investor: b.investorId
         ? investorById[b.investorId] || {
             id: b.investorId,
+            name: null,
+            email: null,
+          }
+        : null,
+      referrer: b.referredByUserId
+        ? referrerById[b.referredByUserId] || {
+            id: b.referredByUserId,
             name: null,
             email: null,
           }
@@ -330,7 +350,7 @@ export class BookingService {
       const nextDue = dueItems[0] || null;
       const handoverDate = new Date(booking.end).toISOString();
       const { client, ...bookingRow } = booking as any;
-      const [suite, plan, investor] = await Promise.all([
+      const [suite, plan, investor, referrer] = await Promise.all([
         this.suites.get(booking.suiteId),
         booking.planId ? this.timeshares.get(booking.planId) : null,
         booking.investorId
@@ -339,7 +359,16 @@ export class BookingService {
               select: { id: true, name: true, email: true },
             })
           : null,
+        booking.referredByUserId
+          ? this.prisma.user.findUnique({
+              where: { id: booking.referredByUserId },
+              select: { id: true, name: true, email: true, referralCode: true },
+            })
+          : null,
       ]);
+      const reward = await this.prisma.referralReward.findUnique({
+        where: { bookingId: id },
+      });
       return {
         booking: bookingRow,
         client: client || null,
@@ -348,6 +377,8 @@ export class BookingService {
         investor: investor || (booking.investorId
           ? { id: booking.investorId, name: null, email: null }
           : null),
+        referrer: referrer || null,
+        referralReward: reward || null,
         paidTotal,
         outstanding,
         nextDue,
@@ -425,6 +456,7 @@ export class BookingService {
     cadence: 'monthly' | 'quarterly' = 'monthly',
     kyc?: BookingKyc | null,
     deposit?: BookingDepositPayment | null,
+    referralCodeRaw?: string | null,
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
     const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
@@ -483,6 +515,10 @@ export class BookingService {
           BookingService.INSTALLMENT_MONTHS,
           payCadence,
         );
+        const referral = await this.referral.resolveForBooking(
+          referralCodeRaw,
+          investorId || null,
+        );
         const clientId = 'C-' + Math.random().toString(36).slice(2, 10);
         const submittedAt = new Date().toISOString();
         const b: Booking = {
@@ -504,6 +540,8 @@ export class BookingService {
           kycVerified: false,
           schedule,
           currency: 'BDT',
+          referralCode: referral.referralCode || undefined,
+          referredByUserId: referral.referredByUserId || undefined,
         };
         if (this.prisma) {
           await this.prisma.$transaction([
@@ -531,6 +569,8 @@ export class BookingService {
                 depositSubmittedAt: new Date(submittedAt),
                 createdAt: new Date(submittedAt),
                 kycVerified: false,
+                referralCode: b.referralCode || null,
+                referredByUserId: b.referredByUserId || null,
               },
             }),
             this.prisma.paymentScheduleItem.createMany({
@@ -724,17 +764,27 @@ export class BookingService {
 
   async markPaid(bookingId: string, itemId: string, gatewayRef?: string) {
     if (this.prisma) {
+      const item = await this.prisma.paymentScheduleItem.findUnique({
+        where: { id: itemId },
+      });
       await this.prisma.paymentScheduleItem.update({
         where: { id: itemId },
         data: { status: "paid", gatewayRef },
       });
+      if (item?.type === "downpayment") {
+        await this.referral.onDownpaymentPaid(bookingId);
+      }
       return true;
     }
     const b = await this.repo.findById(bookingId);
     if (!b || !b.schedule) return false;
     const idx = b.schedule.findIndex((s) => s.id === itemId);
     if (idx === -1) return false;
-    b.schedule[idx] = { ...b.schedule[idx], status: "paid", gatewayRef };
+    const item = b.schedule[idx];
+    b.schedule[idx] = { ...item, status: "paid", gatewayRef };
+    if (item.type === "downpayment") {
+      await this.referral.onDownpaymentPaid(bookingId);
+    }
     return true;
   }
 
@@ -742,10 +792,29 @@ export class BookingService {
     return status === "awaiting_payment" || status === "awaiting_kyc";
   }
 
+  private async earnReferralOnConfirm(booking: {
+    id: string;
+    planId?: string | null;
+    investorId?: string | null;
+    amountTotal?: number | null;
+    referredByUserId?: string | null;
+    referralCode?: string | null;
+  }) {
+    try {
+      await this.referral.onBookingConfirmed(booking);
+    } catch (err: any) {
+      this.logger.warn(`Referral earn failed: ${err?.message || err}`);
+    }
+  }
+
   /** Complete booking only when deposit is confirmed AND KYC is verified. */
   private async finalizeIfReady(booking: {
     id: string;
     planId?: string | null;
+    investorId?: string | null;
+    amountTotal?: number | null;
+    referredByUserId?: string | null;
+    referralCode?: string | null;
     kycVerified?: boolean | null;
     depositConfirmedAt?: Date | string | null;
   }) {
@@ -775,6 +844,7 @@ export class BookingService {
         await this.timeshares.update(booking.planId, { planStatus: "Booked" } as any);
       }
     }
+    await this.earnReferralOnConfirm(booking);
     return { completed: true as const, status: "confirmed" as const };
   }
 
@@ -840,6 +910,9 @@ export class BookingService {
         depositConfirmed: true,
         kycVerified: !!booking.kycVerified,
       };
+      if (out.completed) {
+        await this.earnReferralOnConfirm(booking);
+      }
       await this.notifyAfterAdminAction(
         { ...booking, depositConfirmedAt: confirmedAt, status: nextStatus },
         out,
@@ -921,6 +994,9 @@ export class BookingService {
         depositConfirmed: depositOk,
         kycVerified: true,
       };
+      if (out.completed) {
+        await this.earnReferralOnConfirm(booking);
+      }
       await this.notifyAfterAdminAction(
         { ...booking, kycVerified: true, kycVerifiedAt: verifiedAt, status: nextStatus },
         out,
@@ -1016,6 +1092,8 @@ export class BookingService {
       }
       await this.prisma.$transaction(ops);
 
+      await this.referral.voidForBooking(bookingId, cleaned);
+
       const updated = {
         ...booking,
         status: "cancelled",
@@ -1054,6 +1132,7 @@ export class BookingService {
     booking.status = "cancelled";
     booking.cancellationReason = cleaned;
     booking.cancelledAt = cancelledAt.toISOString();
+    await this.referral.voidForBooking(bookingId, cleaned);
     let planReleased = false;
     const plan = await this.timeshares.get(booking.planId);
     if (plan && this.shouldReleasePlan((plan as any).planStatus)) {

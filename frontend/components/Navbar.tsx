@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/appStore';
+import { captureReferralFromSearch } from '@/lib/referral';
 
 const navLinks = [
   { href: '/invest', label: 'Invest' },
@@ -28,6 +29,10 @@ export default function Navbar() {
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    captureReferralFromSearch(typeof window !== 'undefined' ? window.location.search : '');
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;

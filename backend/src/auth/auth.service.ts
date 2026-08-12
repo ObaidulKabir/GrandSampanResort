@@ -145,16 +145,29 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async register(name: string, email: string, password: string) {
+  async register(name: string, email: string, password: string, referralCode?: string) {
     if (!name?.trim() || !email?.trim() || !password) return null;
     const normalized = email.toLowerCase().trim();
     const passwordHash = await bcrypt.hash(password, 10);
     const id = 'U-' + Math.random().toString(36).slice(2, 8);
     const { token, expires } = this.newVerifyToken();
+    const code = String(referralCode || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 16);
 
     if (this.db) {
       const exists = await this.db.user.findUnique({ where: { email: normalized } });
       if (exists) return null;
+      let referredById: string | null = null;
+      if (code) {
+        const referrer = await this.db.user.findFirst({
+          where: { referralCode: code },
+          select: { id: true }
+        });
+        if (referrer && referrer.id !== id) referredById = referrer.id;
+      }
       const user = await this.db.user.create({
         data: {
           id,
@@ -165,7 +178,8 @@ export class AuthService implements OnModuleInit {
           role: 'investor',
           emailVerified: false,
           emailVerifyToken: token,
-          emailVerifyExpires: expires
+          emailVerifyExpires: expires,
+          ...(referredById ? { referredById } : {})
         }
       });
       try {

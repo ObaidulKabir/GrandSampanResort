@@ -39,7 +39,8 @@ export class BookingController {
         depositReference: body.depositReference || '',
         depositProofUrl: body.depositProofUrl,
         depositNote: body.depositNote
-      }
+      },
+      body.referralCode
     );
   }
 

@@ -25,6 +25,8 @@ export default function InvestorPage() {
   const [schedules, setSchedules] = useState<Record<string, ScheduleItem[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [referral, setReferral] = useState<any>(null);
+  const [copyMsg, setCopyMsg] = useState('');
 
   useEffect(() => {
     hydrate();
@@ -34,6 +36,7 @@ export default function InvestorPage() {
     if (!token) {
       setMe(null);
       setHoldings([]);
+      setReferral(null);
       setError('');
       return;
     }
@@ -50,9 +53,13 @@ export default function InvestorPage() {
         setLoading(false);
         return;
       }
-      const hRes = await api(`/booking/investor/${investorId}`);
+      const [hRes, refRes] = await Promise.all([
+        api(`/booking/investor/${investorId}`),
+        api('/referral/me')
+      ]);
       const hs = hRes?.holdings || [];
       setHoldings(hs);
+      setReferral(refRes?.ok ? refRes : null);
       const sumPairs = await Promise.all(
         hs.map(async (h: Holding) => {
           const sRes = await api(`/booking/${h.booking.id}/summary`);
@@ -112,6 +119,18 @@ export default function InvestorPage() {
       setSummaries((prev) => ({ ...prev, [item.bookingId]: sRes?.summary }));
       setSchedules((prev) => ({ ...prev, [item.bookingId]: scRes?.schedule || [] }));
     } catch {}
+  }
+
+  async function copyReferralLink() {
+    const link = referral?.link;
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopyMsg('Link copied');
+      setTimeout(() => setCopyMsg(''), 2000);
+    } catch {
+      setCopyMsg(link);
+    }
   }
 
   if (hydrated && !token) {
@@ -175,6 +194,71 @@ export default function InvestorPage() {
           <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(outstanding)}</div>
         </div>
       </section>
+
+      {referral?.code && (
+        <section className="mt-10 border border-ocean/10 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl text-ocean">Referral earnings</h2>
+              <p className="mt-1 text-sm text-ocean/70">
+                Earn {referral.policy?.incentivePct ?? 2}% of each referred plan sale —{' '}
+                {referral.policy?.tranche1Pct ?? 40}% when the booking is confirmed,{' '}
+                {referral.policy?.tranche2Pct ?? 60}% when the downpayment is paid.
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xs uppercase tracking-wide text-ocean/55">Your code</div>
+              <div className="font-display text-2xl tracking-wide text-ocean">{referral.code}</div>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <code className="max-w-full truncate border border-ocean/10 bg-pearl px-3 py-2 text-sm text-ocean">
+              {referral.link}
+            </code>
+            <Button variant="outline" onClick={copyReferralLink}>
+              Copy link
+            </Button>
+            {copyMsg && <span className="text-sm text-ocean/65">{copyMsg}</span>}
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="bg-pearl p-3">
+              <div className="text-xs text-ocean/60">Total incentive</div>
+              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.totalIncentive || 0)}</div>
+            </div>
+            <div className="bg-pearl p-3">
+              <div className="text-xs text-ocean/60">Unlocked</div>
+              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.unlocked || 0)}</div>
+            </div>
+            <div className="bg-pearl p-3">
+              <div className="text-xs text-ocean/60">Waiting</div>
+              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.waiting || 0)}</div>
+            </div>
+            <div className="border border-gold/40 bg-gold/10 p-3">
+              <div className="text-xs text-ocean/60">Paid out</div>
+              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.paid || 0)}</div>
+            </div>
+          </div>
+          {(referral.rewards || []).length > 0 && (
+            <div className="mt-5 space-y-2">
+              {(referral.rewards as any[]).slice(0, 8).map((r) => (
+                <div
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-t border-ocean/10 pt-2 text-sm"
+                >
+                  <div>
+                    <span className="text-ocean">Sale {formatMoney(r.saleAmount)}</span>
+                    <span className="ml-2 capitalize text-ocean/60">{r.status}</span>
+                  </div>
+                  <div className="text-ocean/80">
+                    T1 {formatMoney(r.tranche1Amount)} ({r.tranche1Status}) · T2{' '}
+                    {formatMoney(r.tranche2Amount)} ({r.tranche2Status})
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {upcoming.length > 0 && (
         <section className="mt-10">

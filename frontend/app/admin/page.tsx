@@ -8,6 +8,11 @@ const tools = [
     desc: 'Pipeline, inventory snapshot, and investor KYC.'
   },
   {
+    label: 'Referrals',
+    href: '/admin/referrals',
+    desc: 'Broker/client incentive ledger and payouts.'
+  },
+  {
     label: 'Units',
     href: '/admin/units',
     desc: 'List rooms and manage share plans per unit.'

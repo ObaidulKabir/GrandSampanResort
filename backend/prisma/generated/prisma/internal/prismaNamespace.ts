@@ -390,6 +390,7 @@ export const ModelName = {
   PaymentScheduleItem: 'PaymentScheduleItem',
   Client: 'Client',
   User: 'User',
+  ReferralReward: 'ReferralReward',
   MediaAsset: 'MediaAsset',
   FaqEntry: 'FaqEntry',
   TermsParagraph: 'TermsParagraph',
@@ -410,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "suite" | "sharePlan" | "booking" | "paymentScheduleItem" | "client" | "user" | "mediaAsset" | "faqEntry" | "termsParagraph" | "appSetting" | "promotion"
+    modelProps: "suite" | "sharePlan" | "booking" | "paymentScheduleItem" | "client" | "user" | "referralReward" | "mediaAsset" | "faqEntry" | "termsParagraph" | "appSetting" | "promotion"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -855,6 +856,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    ReferralReward: {
+      payload: Prisma.$ReferralRewardPayload<ExtArgs>
+      fields: Prisma.ReferralRewardFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ReferralRewardFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ReferralRewardFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        findFirst: {
+          args: Prisma.ReferralRewardFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ReferralRewardFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        findMany: {
+          args: Prisma.ReferralRewardFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>[]
+        }
+        create: {
+          args: Prisma.ReferralRewardCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        createMany: {
+          args: Prisma.ReferralRewardCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ReferralRewardCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>[]
+        }
+        delete: {
+          args: Prisma.ReferralRewardDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        update: {
+          args: Prisma.ReferralRewardUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        deleteMany: {
+          args: Prisma.ReferralRewardDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ReferralRewardUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ReferralRewardUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>[]
+        }
+        upsert: {
+          args: Prisma.ReferralRewardUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ReferralRewardPayload>
+        }
+        aggregate: {
+          args: Prisma.ReferralRewardAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateReferralReward>
+        }
+        groupBy: {
+          args: Prisma.ReferralRewardGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReferralRewardGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ReferralRewardCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ReferralRewardCountAggregateOutputType> | number
         }
       }
     }
@@ -1316,7 +1391,9 @@ export const BookingScalarFieldEnum = {
   kycVerifiedAt: 'kycVerifiedAt',
   cancellationReason: 'cancellationReason',
   cancelledAt: 'cancelledAt',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  referralCode: 'referralCode',
+  referredByUserId: 'referredByUserId'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
@@ -1366,10 +1443,36 @@ export const UserScalarFieldEnum = {
   passwordResetToken: 'passwordResetToken',
   passwordResetExpires: 'passwordResetExpires',
   role: 'role',
+  referralCode: 'referralCode',
+  referredById: 'referredById',
   createdAt: 'createdAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const ReferralRewardScalarFieldEnum = {
+  id: 'id',
+  referrerId: 'referrerId',
+  bookingId: 'bookingId',
+  buyerId: 'buyerId',
+  saleAmount: 'saleAmount',
+  ratePct: 'ratePct',
+  totalIncentive: 'totalIncentive',
+  tranche1Amount: 'tranche1Amount',
+  tranche1Status: 'tranche1Status',
+  tranche1EarnedAt: 'tranche1EarnedAt',
+  tranche2Amount: 'tranche2Amount',
+  tranche2Status: 'tranche2Status',
+  tranche2EarnedAt: 'tranche2EarnedAt',
+  status: 'status',
+  paidAt: 'paidAt',
+  voidReason: 'voidReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReferralRewardScalarFieldEnum = (typeof ReferralRewardScalarFieldEnum)[keyof typeof ReferralRewardScalarFieldEnum]
 
 
 export const MediaAssetScalarFieldEnum = {
@@ -1659,6 +1762,7 @@ export type GlobalOmitConfig = {
   paymentScheduleItem?: Prisma.PaymentScheduleItemOmit
   client?: Prisma.ClientOmit
   user?: Prisma.UserOmit
+  referralReward?: Prisma.ReferralRewardOmit
   mediaAsset?: Prisma.MediaAssetOmit
   faqEntry?: Prisma.FaqEntryOmit
   termsParagraph?: Prisma.TermsParagraphOmit

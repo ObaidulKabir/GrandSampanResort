@@ -177,6 +177,8 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
   const suite = summary?.suite;
   const plan = summary?.plan;
   const investor = summary?.investor;
+  const referrer = summary?.referrer;
+  const referralReward = summary?.referralReward;
   const pendingReview =
     booking?.status === 'awaiting_payment' || booking?.status === 'awaiting_kyc';
   const canCancel =
@@ -477,6 +479,40 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                     )}
                   </dd>
                 </div>
+                <div className="flex justify-between gap-4 border-b border-ocean/10 pb-2">
+                  <dt className="text-ocean/60">Referrer</dt>
+                  <dd className="text-right text-ocean">
+                    {referrer || booking.referralCode ? (
+                      <>
+                        <div>{referrer?.name || booking.referralCode}</div>
+                        <div className="text-xs text-ocean/55">
+                          {[referrer?.referralCode || booking.referralCode, referrer?.email]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </dd>
+                </div>
+                {referralReward && (
+                  <div className="flex justify-between gap-4 border-b border-ocean/10 pb-2">
+                    <dt className="text-ocean/60">Referral reward</dt>
+                    <dd className="text-right text-ocean">
+                      <div>
+                        {formatMoney(referralReward.totalIncentive)} ·{' '}
+                        <span className="capitalize">{referralReward.status}</span>
+                      </div>
+                      <div className="text-xs text-ocean/55">
+                        T1 {referralReward.tranche1Status} · T2 {referralReward.tranche2Status}
+                      </div>
+                      <Link href="/admin/referrals" className="text-xs font-semibold text-ocean underline">
+                        Open ledger
+                      </Link>
+                    </dd>
+                  </div>
+                )}
                 {summary.nextDue && (
                   <div className="flex justify-between gap-4">
                     <dt className="text-ocean/60">Next due</dt>
