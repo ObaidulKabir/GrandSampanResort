@@ -151,11 +151,17 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
                   : 'Could not discard reservation'
         );
       } else {
-        setActionMsg(
+        const parts = [
           res.planReleased
             ? 'Reservation discarded. Plan is Unsold again and available to sell.'
             : 'Reservation discarded.'
-        );
+        ];
+        if (res.clientNotified && res.notifiedEmail) {
+          parts.push(`Cancellation email sent to ${res.notifiedEmail}.`);
+        } else {
+          parts.push('Could not send cancellation email to the client — check SMTP or buyer email.');
+        }
+        setActionMsg(parts.join(' '));
         setShowCancelForm(false);
         setCancelReason('');
         await load();
@@ -294,8 +300,8 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
               </h2>
               <p className="mt-1 text-sm text-ocean/70">
                 {pendingReview
-                  ? 'Use this when payment was not received or KYC is not valid. The share plan returns to Unsold and can be sold again. A reason is required and emailed to the buyer.'
-                  : 'Cancel for operational reasons and release the share plan back to Unsold. A reason is required and emailed to the buyer.'}
+                  ? 'Use this when payment was not received or KYC is not valid. The share plan returns to Unsold and can be sold again. The client is emailed the cancellation reason.'
+                  : 'Cancel for operational reasons and release the share plan back to Unsold. The client is emailed the cancellation reason.'}
               </p>
               {!showCancelForm ? (
                 <div className="mt-4">

@@ -98,8 +98,28 @@ export class BookingService {
     schedule?: { type: string; amount: number }[] | null,
   ): Promise<BookingMailContext | null> {
     const kyc = client || booking?.client || null;
-    const to = String(kyc?.email || "").trim();
-    if (!to) return null;
+    let to = String(kyc?.email || "").trim();
+    let buyerName = String(kyc?.name || "").trim() || "Investor";
+
+    // Fall back to the account-holder email if KYC email is missing.
+    if (!to.includes("@") && booking?.investorId && this.prisma) {
+      const investor = await this.prisma.user.findUnique({
+        where: { id: booking.investorId },
+        select: { email: true, name: true },
+      });
+      to = String(investor?.email || "").trim();
+      if (buyerName === "Investor" && investor?.name) {
+        buyerName = String(investor.name).trim() || buyerName;
+      }
+    }
+
+    if (!to.includes("@")) {
+      this.logger.warn(
+        `No email recipient for booking ${booking?.id || "unknown"} (client/investor email missing)`,
+      );
+      return null;
+    }
+
     const planRow = plan || (booking.planId ? await this.timeshares.get(booking.planId) : null);
     const sched =
       schedule ||
@@ -108,7 +128,7 @@ export class BookingService {
       [];
     return {
       to,
-      buyerName: kyc?.name || "Investor",
+      buyerName,
       bookingId: booking.id,
       planName: planRow?.name || booking.planId || "Share plan",
       planId: booking.planId || "",
@@ -157,8 +177,8 @@ export class BookingService {
     booking: any,
     result: { completed: boolean; depositConfirmed: boolean; kycVerified: boolean },
     kind: "deposit" | "kyc" | "reject",
-  ) {
-    await this.safeMail(kind, async () => {
+  ): Promise<{ emailed: boolean; to?: string }> {
+    try {
       const client = await this.loadClient(booking.clientId);
       const plan = booking.planId ? await this.timeshares.get(booking.planId) : null;
       const schedule = (await this.schedule(booking.id)) || [];
@@ -168,22 +188,31 @@ export class BookingService {
         plan,
         schedule as any,
       );
-      if (!ctx) return;
+      if (!ctx) {
+        this.logger.warn(`Skipped ${kind} email for booking ${booking.id}: no recipient`);
+        return { emailed: false };
+      }
       if (kind === "reject") {
-        await this.mail.notifyBookingRejected(ctx);
-        return;
+        const sent = await this.mail.notifyBookingRejected(ctx);
+        return { emailed: !!sent?.ok, to: ctx.to };
       }
       if (result.completed) {
-        await this.mail.notifyBookingCompleted(ctx);
-        return;
+        const sent = await this.mail.notifyBookingCompleted(ctx);
+        return { emailed: !!sent?.ok, to: ctx.to };
       }
       if (kind === "deposit" && result.depositConfirmed) {
-        await this.mail.notifyDepositConfirmed(ctx);
+        const sent = await this.mail.notifyDepositConfirmed(ctx);
+        return { emailed: !!sent?.ok, to: ctx.to };
       }
       if (kind === "kyc" && result.kycVerified) {
-        await this.mail.notifyKycVerified(ctx);
+        const sent = await this.mail.notifyKycVerified(ctx);
+        return { emailed: !!sent?.ok, to: ctx.to };
       }
-    });
+      return { emailed: false, to: ctx.to };
+    } catch (err: any) {
+      this.logger.warn(`Email ${kind} failed: ${err?.message || err}`);
+      return { emailed: false };
+    }
   }
 
   async listByInvestor(investorId: string) {
@@ -993,7 +1022,7 @@ export class BookingService {
         cancellationReason: cleaned,
         cancelledAt,
       };
-      await this.notifyAfterAdminAction(
+      const notify = await this.notifyAfterAdminAction(
         updated,
         {
           completed: false,
@@ -1007,6 +1036,8 @@ export class BookingService {
         status: "cancelled" as const,
         planReleased: releasePlan,
         planStatus: releasePlan ? ("Unsold" as const) : plan?.planStatus || null,
+        clientNotified: notify.emailed,
+        notifiedEmail: notify.to || null,
       };
     }
 
@@ -1029,7 +1060,7 @@ export class BookingService {
       await this.timeshares.update(booking.planId, { planStatus: "Unsold" } as any);
       planReleased = true;
     }
-    await this.notifyAfterAdminAction(
+    const notify = await this.notifyAfterAdminAction(
       booking,
       {
         completed: false,
@@ -1043,6 +1074,8 @@ export class BookingService {
       status: "cancelled" as const,
       planReleased,
       planStatus: planReleased ? ("Unsold" as const) : ((plan as any)?.planStatus ?? null),
+      clientNotified: notify.emailed,
+      notifiedEmail: notify.to || null,
     };
   }
 

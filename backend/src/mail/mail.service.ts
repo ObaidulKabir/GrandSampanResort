@@ -430,19 +430,20 @@ export class MailService {
     const text = [
       `Dear ${ctx.buyerName},`,
       ``,
-      `Booking ${ctx.bookingId} for ${ctx.planName} has been cancelled and the share plan is available again.`,
+      `We are writing to notify you that booking ${ctx.bookingId} for ${ctx.planName} has been cancelled.`,
+      `The share plan is available again.`,
       `Booked at: ${formatDateTimeDdMmYyyy(ctx.bookedAt)}`,
       `Contract start was: ${formatDateDdMmYyyy(ctx.startDate)}`,
       reason ? `Reason: ${reason}` : '',
       ``,
-      `Contact admin@grandsampanresort.com if you have questions.`,
+      `If you have questions, contact admin@grandsampanresort.com.`,
     ]
       .filter(Boolean)
       .join('\n');
     const html = this.wrapHtml(
       'Booking cancelled',
       `${this.greeting(ctx.buyerName)}
-       <p style="margin:0 0 12px;">This booking has been cancelled. The share plan is available again for purchase.</p>
+       <p style="margin:0 0 12px;">We are writing to notify you that this booking has been <strong>cancelled</strong>. The share plan is available again for purchase.</p>
        ${
          reason
            ? emailNotice(`<strong>Reason:</strong> ${escapeHtml(reason)}`, 'danger')
