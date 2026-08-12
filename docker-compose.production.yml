@@ -13,12 +13,14 @@ services:
       # and Traefik; the browser still uses NEXT_PUBLIC_API_URL.
       - API_URL=http://grand-sampan-backend:4000
     networks:
-      - traefik-network
+      - app-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.grand-sampan-frontend.rule=Host(`www.grandsampanresort.com`)"
       - "traefik.http.routers.grand-sampan-frontend.entrypoints=web"
       - "traefik.http.routers.grand-sampan-frontend.priority=1"
+      - "traefik.http.routers.grand-sampan-frontend.tls=true"
+      - "traefik.http.routers.grand-sampan-frontend.tls.certresolver=le"
       - "traefik.http.services.grand-sampan-frontend.loadbalancer.server.port=3000"
 
   backend:
@@ -44,11 +46,12 @@ services:
       - SMTP_PASS=${SMTP_PASS}
       - MAIL_FROM=${MAIL_FROM:-Grand Sampan Resort <admin@grandsampanresort.com>}
       - MAIL_BCC=${MAIL_BCC:-admin@grandsampanresort.com}
+
     volumes:
       # Persist uploaded media across container rebuilds/redeploys.
       - uploads_data:/app/uploads
     networks:
-      - traefik-network
+      - app-network
     labels:
       - "traefik.enable=true"
       # Serve both JSON APIs and static /uploads from the backend. Without
@@ -57,9 +60,10 @@ services:
       - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
       - "traefik.http.routers.grand-sampan-backend.priority=100"
       - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000"
-
+      - "traefik.http.routers.grand-sampan-backend.tls=true"
+      - "traefik.http.routers.grand-sampan-backend.tls.certresolver=le"
 networks:
-  traefik-network:
+  app-network:
     external: true
 
 volumes:
