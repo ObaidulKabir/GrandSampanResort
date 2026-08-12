@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, apiUpload } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
+import { prepareImageForUpload, uploadImageErrorMessage } from '@/lib/uploadImage';
 import { effectiveAdrBand, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -134,6 +135,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [returnAssumptions, setReturnAssumptions] = useState<ReturnAssumptions | null>(null);
   const [kyc, setKyc] = useState<KycForm>(() => emptyKyc());
   const [uploadingPic, setUploadingPic] = useState<'pic' | 'nominee' | null>(null);
+  const [picPreview, setPicPreview] = useState<{ pic?: string; nominee?: string }>({});
+  const [picError, setPicError] = useState<{ pic?: string; nominee?: string }>({});
   const [depositMethod, setDepositMethod] = useState<DepositMethod>('cheque');
   const [depositReference, setDepositReference] = useState('');
   const [depositNote, setDepositNote] = useState('');
@@ -223,6 +226,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    return () => {
+      if (picPreview.pic) URL.revokeObjectURL(picPreview.pic);
+      if (picPreview.nominee) URL.revokeObjectURL(picPreview.nominee);
+    };
+    // Only revoke on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Refresh emailVerified (and other profile flags) from the server after hydrate.
   useEffect(() => {
@@ -328,24 +340,38 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
       return;
     }
+
+    const previewUrl = URL.createObjectURL(file);
+    setPicPreview((prev) => {
+      if (prev[kind]) URL.revokeObjectURL(prev[kind]!);
+      return { ...prev, [kind]: previewUrl };
+    });
+    setPicError((prev) => ({ ...prev, [kind]: undefined }));
     setUploadingPic(kind);
     setStatus('');
+
     try {
+      const prepared = await prepareImageForUpload(file);
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', prepared);
       const res = await apiUpload('/media/kyc-upload', form);
       if (!res?.ok || !res.url) {
         const authFailed = res?.status === 401 || res?.status === 403;
-        setStatus(
-          authFailed
-            ? 'Photo upload failed — please sign in again, then re-upload.'
-            : 'Photo upload failed. Use JPG, PNG, WEBP, or GIF under 20MB.'
-        );
+        const message = authFailed
+          ? 'Photo upload failed — please sign in again, then re-upload.'
+          : typeof res?.message === 'string'
+            ? res.message
+            : 'Photo upload failed. Use JPG, PNG, WEBP, or GIF under 20MB.';
+        setPicError((prev) => ({ ...prev, [kind]: message }));
+        setStatus(message);
         return;
       }
       updateKyc(kind === 'pic' ? 'picUrl' : 'nomineePicUrl', res.url);
-    } catch {
-      setStatus('Photo upload failed');
+      setPicError((prev) => ({ ...prev, [kind]: undefined }));
+    } catch (err) {
+      const message = uploadImageErrorMessage(err);
+      setPicError((prev) => ({ ...prev, [kind]: message }));
+      setStatus(message);
     } finally {
       setUploadingPic(null);
     }
@@ -360,16 +386,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     setUploadingProof(true);
     setStatus('');
     try {
+      const prepared = await prepareImageForUpload(file);
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', prepared);
       const res = await apiUpload('/media/payment-proof', form);
       if (!res?.ok || !res.url) {
-        setStatus('Proof upload failed. Use JPG, PNG, WEBP, or GIF under 8MB.');
+        setStatus('Proof upload failed. Use JPG, PNG, WEBP, or GIF under 20MB.');
         return;
       }
       setDepositProofUrl(res.url);
-    } catch {
-      setStatus('Proof upload failed');
+    } catch (err) {
+      setStatus(uploadImageErrorMessage(err));
     } finally {
       setUploadingProof(false);
     }
@@ -879,21 +906,34 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 Photograph <span className="text-ocean/50">(required)</span>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
                   className="mt-1 block w-full text-xs text-ocean/80"
                   disabled={!!uploadingPic}
-                  onChange={(e) => uploadKycPhoto('pic', e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+                    void uploadKycPhoto('pic', selected);
+                    e.target.value = '';
+                  }}
                 />
-                {uploadingPic === 'pic' && <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>}
-                {kyc.picUrl ? (
+                {uploadingPic === 'pic' && (
+                  <span className="mt-1 block text-xs font-medium text-ocean/70">Uploading photo…</span>
+                )}
+                {picError.pic && <span className="mt-1 block text-xs text-red-700">{picError.pic}</span>}
+                {(kyc.picUrl || picPreview.pic) && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={resolveMediaUrl(kyc.picUrl)}
+                    src={kyc.picUrl ? resolveMediaUrl(kyc.picUrl) : picPreview.pic!}
                     alt="Buyer photograph"
                     className="mt-2 h-20 w-20 object-cover border border-ocean/15"
                   />
+                )}
+                {kyc.picUrl ? (
+                  <span className="mt-1 block text-xs text-ocean/60">Uploaded</span>
                 ) : (
-                  <span className="mt-1 block text-xs text-gold">Upload a photo to continue</span>
+                  !uploadingPic &&
+                  !picError.pic && (
+                    <span className="mt-1 block text-xs text-gold">Choose a photo — it uploads automatically</span>
+                  )
                 )}
               </label>
               <label className="block text-sm text-ocean">
@@ -916,23 +956,34 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 Nominee photograph <span className="text-ocean/50">(required)</span>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
                   className="mt-1 block w-full text-xs text-ocean/80"
                   disabled={!!uploadingPic}
-                  onChange={(e) => uploadKycPhoto('nominee', e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null;
+                    void uploadKycPhoto('nominee', selected);
+                    e.target.value = '';
+                  }}
                 />
                 {uploadingPic === 'nominee' && (
-                  <span className="mt-1 block text-xs text-ocean/60">Uploading…</span>
+                  <span className="mt-1 block text-xs font-medium text-ocean/70">Uploading photo…</span>
                 )}
-                {kyc.nomineePicUrl ? (
+                {picError.nominee && <span className="mt-1 block text-xs text-red-700">{picError.nominee}</span>}
+                {(kyc.nomineePicUrl || picPreview.nominee) && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={resolveMediaUrl(kyc.nomineePicUrl)}
+                    src={kyc.nomineePicUrl ? resolveMediaUrl(kyc.nomineePicUrl) : picPreview.nominee!}
                     alt="Nominee photograph"
                     className="mt-2 h-20 w-20 object-cover border border-ocean/15"
                   />
+                )}
+                {kyc.nomineePicUrl ? (
+                  <span className="mt-1 block text-xs text-ocean/60">Uploaded</span>
                 ) : (
-                  <span className="mt-1 block text-xs text-gold">Upload a nominee photo to continue</span>
+                  !uploadingPic &&
+                  !picError.nominee && (
+                    <span className="mt-1 block text-xs text-gold">Choose a photo — it uploads automatically</span>
+                  )
                 )}
               </label>
             </div>

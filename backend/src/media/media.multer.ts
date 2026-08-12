@@ -10,13 +10,33 @@ function ensureUploadDir() {
   if (!existsSync(MEDIA_UPLOAD_DIR)) mkdirSync(MEDIA_UPLOAD_DIR, { recursive: true });
 }
 
-const ALLOWED_MIME = [
+const ALLOWED_MIME = new Set([
   'image/jpeg',
+  'image/jpg',
   'image/png',
   'image/webp',
   'image/gif',
-  'application/pdf'
-];
+  'image/heic',
+  'image/heif',
+  'application/pdf',
+  // Some mobile browsers send photos as generic binary.
+  'application/octet-stream'
+]);
+
+const ALLOWED_EXT = new Set([
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.heic',
+  '.heif',
+  '.pdf'
+]);
+
+function fileExt(originalname: string) {
+  return (originalname.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+}
 
 export const mediaMulterOptions = {
   storage: diskStorage({
@@ -25,17 +45,26 @@ export const mediaMulterOptions = {
       cb(null, MEDIA_UPLOAD_DIR);
     },
     filename: (_req, file, cb) => {
-      const ext = (file.originalname.match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+      const ext = fileExt(file.originalname) || '.bin';
       const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
       cb(null, name);
     }
   }),
   fileFilter: (_req: any, file: Express.Multer.File, cb: (error: Error | null, accept: boolean) => void) => {
-    if (!ALLOWED_MIME.includes(file.mimetype)) {
-      cb(new BadRequestException('Only JPG, PNG, WEBP, GIF, or PDF files are allowed'), false);
+    const ext = fileExt(file.originalname);
+    const mime = String(file.mimetype || '').toLowerCase();
+    const mimeOk = !mime || ALLOWED_MIME.has(mime);
+    const extOk = ALLOWED_EXT.has(ext);
+    if (extOk && mimeOk) {
+      cb(null, true);
       return;
     }
-    cb(null, true);
+    // Trust known image extensions even when MIME is missing/wrong.
+    if (extOk) {
+      cb(null, true);
+      return;
+    }
+    cb(new BadRequestException('Only JPG, PNG, WEBP, GIF, HEIC, or PDF files are allowed'), false);
   },
   // Layout PDFs can be larger than photo uploads.
   limits: { fileSize: 20 * 1024 * 1024 }
