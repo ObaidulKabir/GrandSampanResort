@@ -531,7 +531,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                       ? 'This plan is not linked to the selected unit'
                       : res?.error === 'suite_not_found'
                         ? 'Unit not found'
-                        : 'Purchase failed';
+                        : res?.error === 'busy'
+                          ? 'Another booking is in progress — please try again'
+                          : res?.error === 'booking_failed'
+                            ? 'Could not complete booking. Please try again.'
+                            : 'Purchase failed';
         if (res?.error === 'email_not_verified') {
           router.push(`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
         }
@@ -571,25 +575,25 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const depositPreview = useMemo(() => Math.round(effectivePrice * 0.1), [effectivePrice]);
   const downPreview = useMemo(() => Math.round(effectivePrice * 0.2), [effectivePrice]);
   const remainderPreview = useMemo(
-    () => Math.round((effectivePrice - depositPreview - downPreview) * 100) / 100,
+    () => Math.max(0, Math.round(effectivePrice) - depositPreview - downPreview),
     [effectivePrice, depositPreview, downPreview]
   );
   const installmentCount = cadence === 'monthly' ? INSTALLMENT_MONTHS : Math.ceil(INSTALLMENT_MONTHS / 3);
   const installmentAmount = useMemo(() => {
     if (installmentCount <= 0) return 0;
-    return Math.floor((remainderPreview / installmentCount) * 100) / 100;
+    return Math.floor(remainderPreview / installmentCount);
   }, [remainderPreview, installmentCount]);
 
   const schedule = useMemo(() => {
     if (!plan) return [];
-    const total = effectivePrice;
-    const deposit = Math.round(total * (depositPct / 100) * 100) / 100;
-    const down = Math.round(total * (downPct / 100) * 100) / 100;
-    const remainder = Math.round((total - deposit - down) * 100) / 100;
+    const total = Math.round(effectivePrice);
+    const deposit = Math.round(total * (depositPct / 100));
+    const down = Math.round(total * (downPct / 100));
+    const remainder = Math.max(0, total - deposit - down);
     const durationMonths = INSTALLMENT_MONTHS;
     const stepMonths = cadence === 'monthly' ? 1 : 3;
     const installments = cadence === 'monthly' ? durationMonths : Math.ceil(durationMonths / 3);
-    const baseAmount = Math.floor((remainder / installments) * 100) / 100;
+    const baseAmount = Math.floor(remainder / installments);
     const start = new Date(startDate);
     const items: { id: string; type: string; dueDate: string; amount: number }[] = [];
     items.push({ id: 'S1', type: 'deposit', dueDate: start.toISOString(), amount: deposit });
@@ -600,7 +604,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     for (let i = 1; i <= installments; i++) {
       const due = new Date(start);
       due.setMonth(due.getMonth() + 3 + i * stepMonths);
-      const amt = i === installments ? Math.round((remainder - sum) * 100) / 100 : baseAmount;
+      const amt = i === installments ? remainder - sum : baseAmount;
       sum += amt;
       items.push({ id: 'S-' + i, type: 'installment', dueDate: due.toISOString(), amount: amt });
     }

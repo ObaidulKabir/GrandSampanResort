@@ -39,7 +39,29 @@ export async function api(path: string, init?: RequestInit) {
     },
     cache: 'no-store'
   });
-  return res.json();
+  let body: any = null;
+  try {
+    body = await res.json();
+  } catch {
+    return { ok: false, error: 'bad_response', statusCode: res.status };
+  }
+  if (!res.ok) {
+    const message = body?.message;
+    const error =
+      (typeof body?.error === 'string' && body.error !== 'Internal Server Error'
+        ? body.error
+        : null) ||
+      (typeof message === 'string' ? message : null) ||
+      (Array.isArray(message) ? message.join('; ') : null) ||
+      'request_failed';
+    return {
+      ...(body && typeof body === 'object' ? body : {}),
+      ok: false,
+      error,
+      statusCode: body?.statusCode || res.status
+    };
+  }
+  return body;
 }
 
 export async function apiUpload(path: string, formData: FormData, extraHeaders?: HeadersInit) {

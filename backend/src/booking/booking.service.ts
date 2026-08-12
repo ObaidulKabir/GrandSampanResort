@@ -468,6 +468,39 @@ export class BookingService {
     }
     this.locks.add(lockKey);
     try {
+      return await this.bookUnlocked(
+        suiteId,
+        normalizedPlanId,
+        start,
+        end,
+        investorId,
+        payCadence,
+        kyc,
+        deposit,
+        referralCodeRaw,
+      );
+    } catch (err: any) {
+      this.logger.error(
+        `book failed suite=${suiteId} plan=${normalizedPlanId || '-'} investor=${investorId || '-'}`,
+        err?.stack || err,
+      );
+      return { ok: false as const, error: 'booking_failed' };
+    } finally {
+      this.locks.delete(lockKey);
+    }
+  }
+
+  private async bookUnlocked(
+    suiteId: string,
+    normalizedPlanId: string | undefined,
+    start: string,
+    end: string,
+    investorId: string | undefined,
+    payCadence: 'monthly' | 'quarterly',
+    kyc?: BookingKyc | null,
+    deposit?: BookingDepositPayment | null,
+    referralCodeRaw?: string | null,
+  ) {
       const suite = await this.suites.get(suiteId);
       if (!suite) return { ok: false as const, error: 'suite_not_found' };
 
@@ -508,7 +541,9 @@ export class BookingService {
           plan,
           (suite as any)?.type ?? null,
         );
-        const total = discount ? discount.discountedPrice : plan.price;
+        const total = Math.round(
+          Number(discount ? discount.discountedPrice : plan.price) || 0,
+        );
         const schedule = this.generateSchedule(
           total,
           new Date(start),
@@ -684,14 +719,12 @@ export class BookingService {
         return { ok: true as const, booking: b };
       }
       return { ok: true as const, booking: await this.repo.create(b) };
-    } finally {
-      this.locks.delete(lockKey);
-    }
   }
 
   /**
    * Schedule: booking (10%) today → downpayment (20%) in 3 months →
    * remaining 70% as monthly (24) or quarterly (8) installments over 24 months.
+   * Amounts are whole taka (Int) so Prisma/Postgres inserts succeed.
    */
   private generateSchedule(
     total: number,
@@ -699,10 +732,11 @@ export class BookingService {
     durationMonths: number,
     cadence: 'monthly' | 'quarterly',
   ) {
+    const totalInt = Math.max(0, Math.round(Number(total) || 0));
     const months = Math.max(1, durationMonths || BookingService.INSTALLMENT_MONTHS);
-    const deposit = Math.round(total * BookingService.DEPOSIT_PCT * 100) / 100;
-    const down = Math.round(total * BookingService.DOWNPAYMENT_PCT * 100) / 100;
-    const remainder = Math.round((total - deposit - down) * 100) / 100;
+    const deposit = Math.round(totalInt * BookingService.DEPOSIT_PCT);
+    const down = Math.round(totalInt * BookingService.DOWNPAYMENT_PCT);
+    const remainder = Math.max(0, totalInt - deposit - down);
     const items: PaymentScheduleItem[] = [];
     items.push({
       id: 'PS-' + Math.random().toString(36).slice(2, 8),
@@ -727,15 +761,12 @@ export class BookingService {
     const stepMonths = cadence === 'monthly' ? 1 : 3;
     const installments =
       cadence === 'monthly' ? months : Math.ceil(months / 3);
-    const baseAmount = Math.floor((remainder / installments) * 100) / 100;
+    const baseAmount = Math.floor(remainder / installments);
     let sum = 0;
     for (let i = 1; i <= installments; i++) {
       const due = new Date(anchor);
       due.setMonth(due.getMonth() + 3 + i * stepMonths);
-      const amt =
-        i === installments
-          ? Math.round((remainder - sum) * 100) / 100
-          : baseAmount;
+      const amt = i === installments ? remainder - sum : baseAmount;
       sum += amt;
       items.push({
         id: 'PS-' + Math.random().toString(36).slice(2, 8),
