@@ -12,7 +12,7 @@ export default function AvailableCards() {
   const [suites, setSuites] = useState<Suite[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [suitePhotos, setSuitePhotos] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchMedia('suites').then((items) => {
@@ -38,22 +38,28 @@ export default function AvailableCards() {
         const list: Suite[] = Array.isArray(json) ? json : json?.suites ?? [];
         const pick = list.slice(0, 3);
         setSuites(pick);
+        if (!pick.length) return;
         const start = new Date();
         const end = new Date();
         end.setDate(end.getDate() + 30);
-        const avPairs = await Promise.all(
-          pick.map(async (s) => {
-            const aJson = await api(
-              `/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
-            );
-            return [s.id, !!aJson?.available] as const;
-          })
-        );
-        setAvailability(Object.fromEntries(avPairs));
+        try {
+          const avPairs = await Promise.all(
+            pick.map(async (s) => {
+              const aJson = await api(
+                `/booking/availability?suiteId=${encodeURIComponent(s.id)}&start=${start.toISOString()}&end=${end.toISOString()}`
+              );
+              return [s.id, !!aJson?.available] as const;
+            })
+          );
+          setAvailability(Object.fromEntries(avPairs));
+        } catch {
+          /* keep suite cards even if availability checks fail */
+        }
       } catch {
         setSuites([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     loadSuites();
   }, []);

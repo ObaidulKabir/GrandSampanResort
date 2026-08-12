@@ -8,7 +8,13 @@ function apiOrigin() {
   if (typeof window === 'undefined') {
     return normalizeOrigin(process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
   }
-  return normalizeOrigin(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
+  // Prefer same-origin /api in the browser (Traefik routes it to the backend).
+  // Only use NEXT_PUBLIC_API_URL when it points at a real non-localhost host.
+  const configured = String(process.env.NEXT_PUBLIC_API_URL || '').trim();
+  if (configured && !/localhost|127\.0\.0\.1/i.test(configured)) {
+    return normalizeOrigin(configured);
+  }
+  return '';
 }
 
 // The backend mounts every route behind a global `/api` prefix, while the
@@ -16,7 +22,8 @@ function apiOrigin() {
 // (see lib/media.ts). Append the prefix here rather than baking it into the
 // shared origin env vars so both consumers keep working.
 export function apiBaseUrl() {
-  return `${apiOrigin()}/api`;
+  const origin = apiOrigin();
+  return origin ? `${origin}/api` : '/api';
 }
 
 function authHeaders(): HeadersInit {
@@ -55,7 +62,7 @@ export async function api(path: string, init?: RequestInit) {
       (Array.isArray(message) ? message.join('; ') : null) ||
       'request_failed';
     return {
-      ...(body && typeof body === 'object' ? body : {}),
+      ...(body && typeof body === 'object' && !Array.isArray(body) ? body : {}),
       ok: false,
       error,
       statusCode: body?.statusCode || res.status
