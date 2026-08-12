@@ -32,6 +32,19 @@ function planTotal(p: any) {
   return typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
 }
 
+function planStatusKey(p: any) {
+  return String(p?.planStatus || 'Unsold').toLowerCase().trim();
+}
+
+function isUnsoldPlan(p: any) {
+  return planStatusKey(p) === 'unsold';
+}
+
+function isSoldPlan(p: any) {
+  const s = planStatusKey(p);
+  return s === 'booked' || s === 'sold';
+}
+
 export default function InvestPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [suites, setSuites] = useState<Record<string, any>>({});
@@ -39,6 +52,8 @@ export default function InvestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
+  const [showSold, setShowSold] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -53,7 +68,13 @@ export default function InvestPage() {
       const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
       const byId = Object.fromEntries((suitesArr as any[]).map((s: any) => [s.id, s]));
       setSuites(byId);
-      setPlans(items.filter((p: any) => (p.planStatus ?? '').toLowerCase() === 'unsold'));
+      // Keep available + sold/booked plans; drop other draft/internal statuses.
+      setPlans(
+        items.filter((p: any) => {
+          const status = planStatusKey(p);
+          return status === 'unsold' || status === 'booked' || status === 'sold' || status === 'reserved';
+        })
+      );
       if (returnsJson) setAssumptions(normalizeReturnAssumptions(returnsJson));
     } catch {
       setError('Failed to load plans');
@@ -106,6 +127,7 @@ export default function InvestPage() {
     const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax);
     return plans
       .filter((p) => {
+        if (!showSold && !isUnsoldPlan(p)) return false;
         const suite = suites[p.suiteId] || {};
         const total = planTotal(p);
         if (filters.view && String(suite.view || '').toLowerCase() !== filters.view.toLowerCase()) return false;
@@ -123,7 +145,8 @@ export default function InvestPage() {
             suite.view,
             suite.floor,
             p.daysPerMonth,
-            p.planType
+            p.planType,
+            p.planStatus
           ]
             .map((x) => String(x ?? '').toLowerCase())
             .join(' ');
@@ -132,14 +155,21 @@ export default function InvestPage() {
         return true;
       })
       .sort((a, b) => {
-        const priceCmp = planTotal(a) - planTotal(b);
+        // Keep available plans first when sold are visible.
+        const availCmp = Number(isUnsoldPlan(b)) - Number(isUnsoldPlan(a));
+        if (availCmp !== 0) return availCmp;
+        const priceCmp =
+          priceSort === 'asc' ? planTotal(a) - planTotal(b) : planTotal(b) - planTotal(a);
         if (priceCmp !== 0) return priceCmp;
         return String(a.id).localeCompare(String(b.id), undefined, {
           numeric: true,
           sensitivity: 'base'
         });
       });
-  }, [plans, suites, filters]);
+  }, [plans, suites, filters, priceSort, showSold]);
+
+  const availableCount = useMemo(() => plans.filter(isUnsoldPlan).length, [plans]);
+  const soldCount = useMemo(() => plans.filter((p) => !isUnsoldPlan(p)).length, [plans]);
 
   const activeFilterCount = useMemo(
     () => Object.values(filters).filter((v) => String(v).trim() !== '').length,
@@ -170,7 +200,8 @@ export default function InvestPage() {
         <div>
           <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Live unsold share plans. Search by view, floor, price, or category to find the right plan.
+            Browse share plans by view, floor, price, or category. Available plans are shown by
+            default — turn on sold plans to see what has already been taken.
           </p>
         </div>
         <Button variant="outline" onClick={load}>
@@ -185,15 +216,35 @@ export default function InvestPage() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-gold">Find a plan</p>
             <p className="mt-1 text-sm text-ocean/70">
-              Showing {filtered.length} of {plans.length} available plan{plans.length === 1 ? '' : 's'}
+              Showing {filtered.length} plan{filtered.length === 1 ? '' : 's'}
+              {` · ${availableCount} available`}
+              {showSold ? ` · ${soldCount} sold/reserved` : ''}
               {activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} on` : ''}
+              {' · '}
+              price {priceSort === 'asc' ? 'low → high' : 'high → low'}
             </p>
           </div>
-          {activeFilterCount > 0 && (
-            <Button type="button" variant="ghost" onClick={() => setFilters(emptyFilters)}>
-              Clear filters
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={showSold ? 'outline' : 'ghost'}
+              onClick={() => setShowSold((v) => !v)}
+            >
+              {showSold ? 'Hide sold plans' : 'Show sold plans'}
             </Button>
-          )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
+            >
+              {priceSort === 'asc' ? 'Price: High → Low' : 'Price: Low → High'}
+            </Button>
+            {activeFilterCount > 0 && (
+              <Button type="button" variant="ghost" onClick={() => setFilters(emptyFilters)}>
+                Clear filters
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -285,42 +336,101 @@ export default function InvestPage() {
           const isFull = (p.daysPerMonth ?? 0) >= 30;
           const discounted = typeof p.discountedPrice === 'number';
           const returns = annualReturnRange(p.daysPerMonth, assumptions, suite);
+          const available = isUnsoldPlan(p);
+          const sold = isSoldPlan(p);
+          const statusLabel = sold
+            ? 'Sold'
+            : planStatusKey(p) === 'reserved'
+              ? 'Reserved'
+              : 'Available';
           return (
             <article
               key={p.id}
-              className={`flex flex-col border bg-white p-6 ${
-                discounted ? 'border-gold/60' : isFull ? 'border-gold/50' : 'border-ocean/15'
+              className={`relative flex flex-col overflow-hidden border p-6 ${
+                available
+                  ? discounted || isFull
+                    ? 'border-gold/55 bg-white shadow-[0_1px_0_rgba(212,175,55,0.25)]'
+                    : 'border-ocean/20 bg-white'
+                  : sold
+                    ? 'border-ocean/15 bg-[linear-gradient(180deg,#eef2f4_0%,#e6ebef_100%)]'
+                    : 'border-gold/35 bg-[linear-gradient(180deg,#fbf8f1_0%,#f3eee3_100%)]'
               }`}
             >
+              {!available && (
+                <div
+                  className={`absolute right-0 top-0 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                    sold ? 'bg-ocean text-white' : 'bg-gold text-ocean'
+                  }`}
+                >
+                  {statusLabel}
+                </div>
+              )}
               <div className="flex items-start justify-between gap-3">
-                <h2 className="font-display text-2xl text-ocean">{p.name}</h2>
-                <span className="shrink-0 border border-ocean/15 bg-pearl px-2.5 py-1 text-xs font-semibold text-ocean">
-                  {p.daysPerMonth} days/mo
-                </span>
+                <h2
+                  className={`font-display text-2xl ${
+                    available ? 'text-ocean' : sold ? 'text-ocean/55' : 'text-ocean/75'
+                  }`}
+                >
+                  {p.name}
+                </h2>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span
+                    className={`border px-2.5 py-1 text-xs font-semibold ${
+                      available
+                        ? 'border-ocean/15 bg-pearl text-ocean'
+                        : 'border-ocean/10 bg-white/50 text-ocean/55'
+                    }`}
+                  >
+                    {p.daysPerMonth} days/mo
+                  </span>
+                  {available ? (
+                    <span className="border border-gold/60 bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ocean">
+                      Available
+                    </span>
+                  ) : (
+                    <span
+                      className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+                        sold
+                          ? 'border border-ocean/20 bg-ocean/10 text-ocean/60'
+                          : 'border border-gold/40 bg-gold/20 text-ocean/80'
+                      }`}
+                    >
+                      {statusLabel}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="mt-4 flex items-center gap-3">
+              <div className={`mt-4 flex items-center gap-3 ${!available ? 'opacity-60 grayscale' : ''}`}>
                 <div className="relative h-8 w-8">
                   <Image src={suiteTypeIcon(suite.type)} alt="" fill sizes="32px" />
                 </div>
-                <span className="text-sm text-ocean/80">
+                <span className={`text-sm ${available ? 'text-ocean/80' : 'text-ocean/55'}`}>
                   {suite.type ?? 'Suite'} · {humanView(suite.view)}
                 </span>
               </div>
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-ocean/70">
+              <dl
+                className={`mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${
+                  available ? 'text-ocean/70' : 'text-ocean/45'
+                }`}
+              >
                 <div>
-                  Suite <span className="text-ocean">{p.suiteId ?? '—'}</span>
+                  Suite <span className={available ? 'text-ocean' : 'text-ocean/60'}>{p.suiteId ?? '—'}</span>
                 </div>
                 <div>
-                  Floor <span className="text-ocean">{suite.floor ?? '—'}</span>
+                  Floor <span className={available ? 'text-ocean' : 'text-ocean/60'}>{suite.floor ?? '—'}</span>
                 </div>
                 <div>
-                  Size <span className="text-ocean">{suite.size ?? '—'} sq ft</span>
+                  Size{' '}
+                  <span className={available ? 'text-ocean' : 'text-ocean/60'}>
+                    {suite.size ?? '—'} sq ft
+                  </span>
                 </div>
                 <div>
-                  Lock-in <span className="text-ocean">{p.lockIn ?? 36} mo</span>
+                  Lock-in{' '}
+                  <span className={available ? 'text-ocean' : 'text-ocean/60'}>{p.lockIn ?? 36} mo</span>
                 </div>
               </dl>
-              {discounted && (
+              {discounted && available && (
                 <span className="mt-5 inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
                   {p.discountPct}% OFF · Ends {formatDate(p.promoEndsAt)}
                 </span>
@@ -331,25 +441,60 @@ export default function InvestPage() {
                 return (
                   <div className="mt-5 space-y-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">Total price</p>
-                      {discounted && (
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-wide ${
+                          available ? 'text-ocean/60' : 'text-ocean/40'
+                        }`}
+                      >
+                        Total price
+                      </p>
+                      {discounted && available && (
                         <p className="text-sm text-ocean/50 line-through">{formatMoney(p.price)}</p>
                       )}
-                      <p className="font-display text-2xl font-semibold text-ocean">{formatMoney(total)}</p>
-                    </div>
-                    <div className="border border-gold/50 bg-gold/10 px-3 py-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</p>
-                      <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
-                        {formatMoney(bookingAmount)}
-                      </p>
-                      <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                        Pay only 10% today to reserve this plan
+                      <p
+                        className={`font-display text-2xl font-semibold ${
+                          available ? 'text-ocean' : 'text-ocean/50 line-through decoration-ocean/30'
+                        }`}
+                      >
+                        {formatMoney(total)}
                       </p>
                     </div>
+                    {available ? (
+                      <div className="border border-gold/50 bg-gold/10 px-3 py-3">
+                        <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</p>
+                        <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
+                          {formatMoney(bookingAmount)}
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                          Pay only 10% today to reserve this plan
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        className={`border px-3 py-3 ${
+                          sold
+                            ? 'border-dashed border-ocean/25 bg-white/40'
+                            : 'border-dashed border-gold/40 bg-white/50'
+                        }`}
+                      >
+                        <p
+                          className={`text-xs font-bold uppercase tracking-wide ${
+                            sold ? 'text-ocean/55' : 'text-ocean/70'
+                          }`}
+                        >
+                          {sold ? 'No longer available' : 'Temporarily held'}
+                        </p>
+                        <p className={`mt-1 text-sm ${sold ? 'text-ocean/55' : 'text-ocean/70'}`}>
+                          {sold
+                            ? 'This share plan has already been purchased.'
+                            : 'This share plan is reserved while a booking is being completed.'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
-              {returns && (
+              {returns && available && (
                 <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">
                     Expected return / year
@@ -363,21 +508,39 @@ export default function InvestPage() {
                 </div>
               )}
               <div className="mt-6 flex flex-wrap gap-2">
-                <Link href={`/pricing/plans/${p.id}`}>
-                  <Button>Buy this plan</Button>
-                </Link>
-                <Link href={`/pricing/plans/${p.id}`}>
-                  <Button variant="outline">Details</Button>
-                </Link>
+                {available ? (
+                  <>
+                    <Link href={`/pricing/plans/${p.id}`}>
+                      <Button>Buy this plan</Button>
+                    </Link>
+                    <Link href={`/pricing/plans/${p.id}`}>
+                      <Button variant="outline">Details</Button>
+                    </Link>
+                  </>
+                ) : (
+                  <Button
+                    disabled
+                    variant="outline"
+                    className={
+                      sold
+                        ? 'cursor-not-allowed border-ocean/20 text-ocean/45'
+                        : 'cursor-not-allowed border-gold/40 text-ocean/60'
+                    }
+                  >
+                    {sold ? 'Sold out' : 'Reserved'}
+                  </Button>
+                )}
               </div>
             </article>
           );
         })}
         {filtered.length === 0 && !loading && (
           <div className="border border-ocean/10 p-6 text-ocean/70 sm:col-span-2 lg:col-span-3">
-            {plans.length === 0
-              ? 'No unsold plans available right now. Check back soon or contact sales.'
-              : 'No plans match these filters. Try widening the price range or clearing filters.'}
+            {availableCount === 0 && !showSold
+              ? 'No available plans right now. Turn on “Show sold plans” to browse sold inventory, or check back soon.'
+              : plans.length === 0
+                ? 'No plans available right now. Check back soon or contact sales.'
+                : 'No plans match these filters. Try widening the price range or clearing filters.'}
           </div>
         )}
       </div>
