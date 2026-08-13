@@ -8,6 +8,33 @@ import { fetchMedia, resolveMediaUrl } from '@/lib/media';
 
 type Suite = { id: string; floor: number; type: string; size: number; view: string };
 
+/** Homepage showcase: one card per tier, in this order. */
+const SHOWCASE_TYPES = ['Standard', 'Delux', 'Premium'] as const;
+
+function normalizeType(type: string) {
+  const t = String(type || '').toLowerCase().trim();
+  if (t === 'deluxe') return 'delux';
+  return t;
+}
+
+function pickShowcaseSuites(list: Suite[]): Suite[] {
+  const used = new Set<string>();
+  const picked: Suite[] = [];
+  for (const wanted of SHOWCASE_TYPES) {
+    const candidates = list.filter(
+      (s) => normalizeType(s.type) === normalizeType(wanted) && !used.has(s.id)
+    );
+    // Prefer a sea-view example when available for that tier.
+    const match =
+      candidates.find((s) => String(s.view).toLowerCase() === 'sea') || candidates[0];
+    if (match) {
+      used.add(match.id);
+      picked.push(match);
+    }
+  }
+  return picked;
+}
+
 export default function AvailableCards() {
   const [suites, setSuites] = useState<Suite[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
@@ -26,7 +53,8 @@ export default function AvailableCards() {
   }, []);
 
   function photoFor(type: string) {
-    const uploaded = suitePhotos[type.toLowerCase().trim()];
+    const key = normalizeType(type);
+    const uploaded = suitePhotos[key] || suitePhotos[type.toLowerCase().trim()];
     return uploaded ? { src: uploaded, unoptimized: true } : { src: suitePhoto(type), unoptimized: false };
   }
 
@@ -36,7 +64,7 @@ export default function AvailableCards() {
       try {
         const json = await api('/suites');
         const list: Suite[] = Array.isArray(json) ? json : json?.suites ?? [];
-        const pick = list.slice(0, 3);
+        const pick = pickShowcaseSuites(list);
         setSuites(pick);
         if (!pick.length) return;
         const start = new Date();
