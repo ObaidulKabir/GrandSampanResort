@@ -14,7 +14,8 @@ services:
       - API_URL=http://grand-sampan-backend:4000
     networks:
       - app-network 
-
+    ports:
+      - "3005:3000"
   backend:
     build:
       context: ./backend
@@ -36,9 +37,10 @@ services:
       - SMTP_SECURE=${SMTP_SECURE:-true}
       - SMTP_USER=${SMTP_USER:-admin@grandsampanresort.com}
       - SMTP_PASS=${SMTP_PASS}
-      - MAIL_FROM=${MAIL_FROM:-Grand Sampan Resort <admin@grandsampanresort.com>}
+      - MAIL_FROM=${MAIL_FROM:-admin@grandsampanresort.com}
       - MAIL_BCC=${MAIL_BCC:-admin@grandsampanresort.com}
-
+    ports:
+      - "4005:4000"
     volumes:
       # Persist uploaded media across container rebuilds/redeploys.
       - uploads_data:/app/uploads
