@@ -19,9 +19,12 @@ async function bootstrap() {
   ];
   app.enableCors({ origin: corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  // Mount static uploads BEFORE the global /api prefix so files stay at
-  // /uploads/... (not /api/uploads/...), matching URLs stored in MediaAsset.
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  // Serve uploads at /uploads (legacy) and /api/uploads (preferred in prod).
+  // On some reverse-proxy setups only /api is routed to this service; Cloudflare
+  // then loops /uploads through Next → Error 1000. /api/uploads stays reachable.
+  const uploadsDir = join(process.cwd(), 'uploads');
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
+  app.useStaticAssets(uploadsDir, { prefix: '/api/uploads' });
   app.setGlobalPrefix('api');
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
   await app.listen(port);

@@ -4,18 +4,20 @@ services:
       context: ./frontend
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        # Internal rewrite target for /uploads → backend (never the public CF URL).
+        - API_URL=http://grand-sampan-backend:4000
       target: production
     container_name: grand-sampan-frontend
     restart: unless-stopped
     environment:
       # Server-rendered pages call the backend over the internal Docker
-      # network instead of hairpinning back out through the public domain
-      # and Traefik; the browser still uses NEXT_PUBLIC_API_URL.
+      # network instead of hairpinning back out through the public domain.
       - API_URL=http://grand-sampan-backend:4000
     networks:
-      - app-network 
+      - app-network
     ports:
       - "3005:3000"
+
   backend:
     build:
       context: ./backend
@@ -45,7 +47,7 @@ services:
       # Persist uploaded media across container rebuilds/redeploys.
       - uploads_data:/app/uploads
     networks:
-      - app-network 
+      - app-network
 
   primary-db:
     image: postgres:17-alpine
@@ -74,7 +76,7 @@ services:
       - app-network
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    restart: unless-stopped 
+    restart: unless-stopped
     ports:
       - "8088:80"
 networks:
@@ -85,6 +87,5 @@ volumes:
   grand_sampan_db_prod_data:
   uploads_data:
   pgdata:
-     external: true 
+    external: true
   pgadmin_data:
-

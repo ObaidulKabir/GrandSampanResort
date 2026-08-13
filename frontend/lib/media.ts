@@ -22,16 +22,25 @@ function apiOrigin() {
   return normalizeOrigin(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
 }
 
+/** Prefer /api/uploads so media works when only /api is proxied to the backend. */
+export function publicUploadPath(url: string) {
+  if (!url) return url;
+  if (url.startsWith('/api/uploads/')) return url;
+  if (url.startsWith('/uploads/')) return `/api${url}`;
+  return url;
+}
+
 export function resolveMediaUrl(url: string) {
   if (!url) return url;
   if (/^https?:\/\//.test(url)) return url;
-  // In the browser, keep /uploads relative so Traefik (prod) or Next rewrites
-  // (local) can route them. Absolute API hosts break when the page origin
-  // differs from NEXT_PUBLIC_API_URL (e.g. localhost:3010 vs :4000/:4010).
-  if (typeof window !== 'undefined' && url.startsWith('/uploads/')) {
-    return url;
+  const path = publicUploadPath(url);
+  // In the browser, keep upload paths relative so Traefik (prod) or Next
+  // rewrites (local) can route them. Absolute API hosts break when the page
+  // origin differs from NEXT_PUBLIC_API_URL (e.g. localhost:3010 vs :4000).
+  if (typeof window !== 'undefined' && path.startsWith('/')) {
+    return path;
   }
-  return `${apiOrigin()}${url}`;
+  return `${apiOrigin()}${path}`;
 }
 
 export async function fetchMedia(category: string, suiteId?: string): Promise<MediaItem[]> {

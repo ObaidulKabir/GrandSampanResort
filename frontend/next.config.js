@@ -8,13 +8,18 @@ function uploadsProxyTarget() {
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
-    // Proxy /uploads to the API origin so relative media URLs work in local
-    // Next (page on :3000/:3010, files on :4000/:4010) and keep one URL shape.
+    // Proxy upload paths to the API origin. Prefer the internal Docker service
+    // name at build time (see Dockerfile API_URL) so a missed Traefik /uploads
+    // rule cannot loop back through the public Cloudflare hostname.
     const target = uploadsProxyTarget();
     return [
       {
         source: '/uploads/:path*',
         destination: `${target}/uploads/:path*`
+      },
+      {
+        source: '/api/uploads/:path*',
+        destination: `${target}/api/uploads/:path*`
       }
     ];
   },
