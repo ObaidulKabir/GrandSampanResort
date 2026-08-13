@@ -1,13 +1,25 @@
 import 'reflect-metadata';
 import 'dotenv/config';
 import { join } from 'path';
+import * as express from 'express';
 import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Mount static uploads on a raw Express app BEFORE Nest registers /api routes,
+  // otherwise Nest's global prefix catches /api/uploads/* as missing API handlers.
+  const server = express();
+  const uploadsDir = join(process.cwd(), 'uploads');
+  server.use('/uploads', express.static(uploadsDir));
+  server.use('/api/uploads', express.static(uploadsDir));
+
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    new ExpressAdapter(server),
+  );
   const corsOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
@@ -19,16 +31,9 @@ async function bootstrap() {
   ];
   app.enableCors({ origin: corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-  // Serve uploads at /uploads (legacy) and /api/uploads (preferred in prod).
-  // On some reverse-proxy setups only /api is routed to this service; Cloudflare
-  // then loops /uploads through Next → Error 1000. /api/uploads stays reachable.
-  const uploadsDir = join(process.cwd(), 'uploads');
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
-  app.useStaticAssets(uploadsDir, { prefix: '/api/uploads' });
   app.setGlobalPrefix('api');
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
   await app.listen(port);
   console.log(`API running at http://localhost:${port}`);
 }
 bootstrap();
-
