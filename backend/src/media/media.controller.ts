@@ -94,9 +94,12 @@ export class MediaController {
   async remove(@Param('id') id: string) {
     const item = await this.service.remove(id);
     if (!item) return { ok: false, error: 'not_found' };
-    if (item.url?.startsWith('/uploads/')) {
+    if (item.url?.startsWith('/uploads/') || item.url?.startsWith('/api/uploads/')) {
       try {
-        await unlink(join(UPLOADS_ROOT, item.url.replace(/^\/uploads\//, '')));
+        const relative = item.url
+          .replace(/^\/api\/uploads\//, '')
+          .replace(/^\/uploads\//, '');
+        await unlink(join(UPLOADS_ROOT, relative));
       } catch {
         // best-effort: file may already be gone
       }
