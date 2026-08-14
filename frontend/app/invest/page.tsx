@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
+import { useAppStore } from '@/store/appStore';
 
 type Filters = {
   q: string;
@@ -17,6 +18,8 @@ type Filters = {
   priceMin: string;
   priceMax: string;
 };
+
+type AdminStatusFilter = '' | 'unsold' | 'reserved' | 'sold';
 
 const emptyFilters: Filters = {
   q: '',
@@ -45,7 +48,24 @@ function isSoldPlan(p: any) {
   return s === 'booked' || s === 'sold';
 }
 
+function isReservedPlan(p: any) {
+  return planStatusKey(p) === 'reserved';
+}
+
+function matchesAdminStatus(p: any, status: AdminStatusFilter) {
+  if (!status) return true;
+  if (status === 'unsold') return isUnsoldPlan(p);
+  if (status === 'reserved') return isReservedPlan(p);
+  if (status === 'sold') return isSoldPlan(p);
+  return true;
+}
+
 export default function InvestPage() {
+  const user = useAppStore((s) => s.user);
+  const hydrate = useAppStore((s) => s.hydrate);
+  const hydrated = useAppStore((s) => s.hydrated);
+  const isAdmin = hydrated && user?.role === 'admin';
+
   const [plans, setPlans] = useState<any[]>([]);
   const [suites, setSuites] = useState<Record<string, any>>({});
   const [assumptions, setAssumptions] = useState<ReturnAssumptions | null>(null);
@@ -54,6 +74,16 @@ export default function InvestPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
   const [showSold, setShowSold] = useState(true);
+  const [adminStatus, setAdminStatus] = useState<AdminStatusFilter>('');
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  // Non-admins should never keep an admin-only status filter applied.
+  useEffect(() => {
+    if (hydrated && !isAdmin && adminStatus) setAdminStatus('');
+  }, [hydrated, isAdmin, adminStatus]);
 
   async function load() {
     setLoading(true);
@@ -127,7 +157,11 @@ export default function InvestPage() {
     const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax);
     return plans
       .filter((p) => {
-        if (!showSold && !isUnsoldPlan(p)) return false;
+        if (isAdmin && adminStatus) {
+          if (!matchesAdminStatus(p, adminStatus)) return false;
+        } else if (!showSold && !isUnsoldPlan(p)) {
+          return false;
+        }
         const suite = suites[p.suiteId] || {};
         const total = planTotal(p);
         if (filters.view && String(suite.view || '').toLowerCase() !== filters.view.toLowerCase()) return false;
@@ -163,18 +197,25 @@ export default function InvestPage() {
           sensitivity: 'base'
         });
       });
-  }, [plans, suites, filters, priceSort, showSold]);
+  }, [plans, suites, filters, priceSort, showSold, isAdmin, adminStatus]);
 
   const availableCount = useMemo(() => plans.filter(isUnsoldPlan).length, [plans]);
   const soldCount = useMemo(() => plans.filter((p) => !isUnsoldPlan(p)).length, [plans]);
+  const reservedCount = useMemo(() => plans.filter(isReservedPlan).length, [plans]);
+  const soldOnlyCount = useMemo(() => plans.filter(isSoldPlan).length, [plans]);
 
-  const activeFilterCount = useMemo(
-    () => Object.values(filters).filter((v) => String(v).trim() !== '').length,
-    [filters]
-  );
+  const activeFilterCount = useMemo(() => {
+    const base = Object.values(filters).filter((v) => String(v).trim() !== '').length;
+    return base + (isAdmin && adminStatus ? 1 : 0);
+  }, [filters, isAdmin, adminStatus]);
 
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function clearFilters() {
+    setFilters(emptyFilters);
+    if (isAdmin) setAdminStatus('');
   }
 
   function suiteTypeIcon(type: string) {
@@ -215,20 +256,27 @@ export default function InvestPage() {
             <p className="mt-1 text-sm text-ocean/70">
               Showing {filtered.length} plan{filtered.length === 1 ? '' : 's'}
               {` · ${availableCount} available`}
-              {showSold ? ` · ${soldCount} sold/reserved` : ''}
+              {showSold || (isAdmin && !!adminStatus)
+                ? ` · ${soldCount} sold/reserved`
+                : ''}
+              {isAdmin && adminStatus
+                ? ` · admin status: ${adminStatus}`
+                : ''}
               {activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} on` : ''}
               {' · '}
               price {priceSort === 'asc' ? 'low → high' : 'high → low'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant={showSold ? 'outline' : 'primary'}
-              onClick={() => setShowSold((v) => !v)}
-            >
-              {showSold ? 'Hide sold plans' : 'Show sold plans'}
-            </Button>
+            {!(isAdmin && adminStatus) && (
+              <Button
+                type="button"
+                variant={showSold ? 'outline' : 'primary'}
+                onClick={() => setShowSold((v) => !v)}
+              >
+                {showSold ? 'Hide sold plans' : 'Show sold plans'}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -237,7 +285,7 @@ export default function InvestPage() {
               {priceSort === 'asc' ? 'Price: High → Low' : 'Price: Low → High'}
             </Button>
             {activeFilterCount > 0 && (
-              <Button type="button" variant="ghost" onClick={() => setFilters(emptyFilters)}>
+              <Button type="button" variant="ghost" onClick={clearFilters}>
                 Clear filters
               </Button>
             )}
@@ -254,6 +302,21 @@ export default function InvestPage() {
               placeholder="Plan ID, name, suite…"
             />
           </label>
+          {isAdmin && (
+            <label className="block text-sm font-medium text-ocean sm:col-span-2 lg:col-span-2">
+              Status <span className="font-normal text-ocean/50">(admin)</span>
+              <select
+                value={adminStatus}
+                onChange={(e) => setAdminStatus(e.target.value as AdminStatusFilter)}
+                className="field mt-1"
+              >
+                <option value="">All statuses</option>
+                <option value="unsold">Unsold only ({availableCount})</option>
+                <option value="reserved">Reserved only ({reservedCount})</option>
+                <option value="sold">Sold only ({soldOnlyCount})</option>
+              </select>
+            </label>
+          )}
           <label className="block text-sm font-medium text-ocean">
             View
             <select value={filters.view} onChange={(e) => setFilter('view', e.target.value)} className="field mt-1">
