@@ -53,7 +53,7 @@ export default function InvestPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
-  const [showSold, setShowSold] = useState(false);
+  const [showSold, setShowSold] = useState(true);
 
   async function load() {
     setLoading(true);
@@ -197,8 +197,8 @@ export default function InvestPage() {
         <div>
           <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
           <p className="mt-2 max-w-2xl text-ocean/75">
-            Browse share plans by view, floor, price, or category. Available plans are shown by
-            default — turn on sold plans to see what has already been taken.
+            Browse share plans by view, floor, price, or category. Available, reserved, and sold
+            plans are shown by default — hide sold plans anytime to focus on what is still open.
           </p>
         </div>
         <Button variant="outline" onClick={load}>
@@ -224,7 +224,7 @@ export default function InvestPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
-              variant={showSold ? 'outline' : 'ghost'}
+              variant={showSold ? 'outline' : 'primary'}
               onClick={() => setShowSold((v) => !v)}
             >
               {showSold ? 'Hide sold plans' : 'Show sold plans'}
@@ -534,7 +534,7 @@ export default function InvestPage() {
         {filtered.length === 0 && !loading && (
           <div className="border border-ocean/10 p-6 text-ocean/70 sm:col-span-2 lg:col-span-3">
             {availableCount === 0 && !showSold
-              ? 'No available plans right now. Turn on “Show sold plans” to browse sold inventory, or check back soon.'
+              ? 'No available plans right now. Turn on “Show sold plans” to browse sold/reserved inventory, or check back soon.'
               : plans.length === 0
                 ? 'No plans available right now. Check back soon or contact sales.'
                 : 'No plans match these filters. Try widening the price range or clearing filters.'}
