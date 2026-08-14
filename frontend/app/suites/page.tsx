@@ -16,6 +16,63 @@ type Suite = {
   totalPrice?: number;
 };
 
+type SharePlan = {
+  id: string;
+  name?: string;
+  suiteId?: string;
+  planStatus?: string;
+  daysPerMonth?: number;
+  price?: number;
+  discountedPrice?: number;
+};
+
+function planStatusKey(p: SharePlan) {
+  return String(p?.planStatus || 'Unsold').toLowerCase().trim();
+}
+
+function isUnsoldPlan(p: SharePlan) {
+  return planStatusKey(p) === 'unsold';
+}
+
+function isSoldPlan(p: SharePlan) {
+  const s = planStatusKey(p);
+  return s === 'booked' || s === 'sold';
+}
+
+function isReservedPlan(p: SharePlan) {
+  return planStatusKey(p) === 'reserved';
+}
+
+function planTotal(p: SharePlan) {
+  return typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
+}
+
+function planStatusMeta(p: SharePlan) {
+  if (isSoldPlan(p)) {
+    return {
+      label: 'Sold',
+      chip: 'border-ocean/20 bg-ocean/10 text-ocean/60'
+    };
+  }
+  if (isReservedPlan(p)) {
+    return {
+      label: 'Reserved',
+      chip: 'border-gold/40 bg-gold/20 text-ocean'
+    };
+  }
+  return {
+    label: 'Available',
+    chip: 'border-gold/60 bg-gold/15 text-ocean'
+  };
+}
+
+function daysLabel(days?: number) {
+  if (days == null || !Number.isFinite(Number(days))) return '—';
+  const n = Number(days);
+  if (n >= 30) return 'Full month';
+  return `${n}d/mo`;
+}
+
 function firstBySuite(items: MediaItem[]) {
   const map: Record<string, { src: string; alt: string }> = {};
   for (const item of items) {
@@ -66,7 +123,7 @@ function DrawingSlot({
 
 export default function SuitesPage() {
   const [suites, setSuites] = useState<Suite[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<SharePlan[]>([]);
   const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
   const [keyMapBySuite, setKeyMapBySuite] = useState<Record<string, { src: string; alt: string }>>({});
   const [loading, setLoading] = useState(true);
@@ -111,9 +168,30 @@ export default function SuitesPage() {
       if (!suiteId) continue;
       if (!map[suiteId]) map[suiteId] = { total: 0, sold: 0 };
       map[suiteId].total += 1;
-      if ((p.planStatus || '').toLowerCase() !== 'unsold') {
+      if (planStatusKey(p) !== 'unsold') {
         map[suiteId].sold += 1;
       }
+    }
+    return map;
+  }, [plans]);
+
+  const plansBySuite = useMemo(() => {
+    const map: Record<string, SharePlan[]> = {};
+    for (const p of plans) {
+      const suiteId = p?.suiteId;
+      if (!suiteId) continue;
+      if (!map[suiteId]) map[suiteId] = [];
+      map[suiteId].push(p);
+    }
+    for (const suiteId of Object.keys(map)) {
+      map[suiteId].sort((a, b) => {
+        const priceCmp = planTotal(a) - planTotal(b);
+        if (priceCmp !== 0) return priceCmp;
+        return String(a.id).localeCompare(String(b.id), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+      });
     }
     return map;
   }, [plans]);
@@ -136,7 +214,8 @@ export default function SuitesPage() {
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
       <h1 className="font-display mt-1 text-4xl text-ocean">Suites</h1>
       <p className="mt-2 max-w-2xl text-ocean/75">
-        Browse each unit with its architectural plan and key map. Click a drawing to enlarge.
+        Browse each unit with its share plans, architectural plan, and key map. Click a drawing to
+        enlarge.
       </p>
 
       {loading && <p className="mt-8 text-ocean/70">Loading suites…</p>}
@@ -147,50 +226,93 @@ export default function SuitesPage() {
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         {sorted.map((s) => {
           const stats = planStatsBySuite[s.id] || { total: 0, sold: 0 };
+          const childPlans = plansBySuite[s.id] || [];
           return (
-          <article key={s.id} className="border border-ocean/10 bg-white p-5 md:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-display text-2xl text-ocean">{s.id}</h2>
-                <p className="mt-1 text-ocean/80">
-                  {s.type} • {s.size} sq ft • {s.view}
-                  {s.floor != null ? ` • Floor ${s.floor}` : ''}
-                </p>
-                <p className="mt-1 text-ocean/70">{formatMoney(s.totalPrice || 0)}</p>
-                <p className="mt-2">
-                  {stats.total === 0 ? (
-                    <span className="inline-block border border-ocean/15 bg-pearl px-2 py-0.5 text-xs text-ocean/70">
-                      No share plans
-                    </span>
-                  ) : (
-                    <span
-                      className={`inline-block border px-2 py-0.5 text-xs font-semibold ${
-                        stats.sold >= stats.total
-                          ? 'border-ocean/20 bg-pearl text-ocean/80'
-                          : 'border-gold/50 bg-gold/10 text-ocean'
-                      }`}
-                    >
-                      {stats.sold} sold / {stats.total} plans
-                    </span>
-                  )}
-                </p>
+            <article key={s.id} className="border border-ocean/10 bg-white p-5 md:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-2xl text-ocean">{s.id}</h2>
+                  <p className="mt-1 text-ocean/80">
+                    {s.type} • {s.size} sq ft • {s.view}
+                    {s.floor != null ? ` • Floor ${s.floor}` : ''}
+                  </p>
+                  <p className="mt-1 text-ocean/70">{formatMoney(s.totalPrice || 0)}</p>
+                  <p className="mt-2">
+                    {stats.total === 0 ? (
+                      <span className="inline-block border border-ocean/15 bg-pearl px-2 py-0.5 text-xs text-ocean/70">
+                        No share plans
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-block border px-2 py-0.5 text-xs font-semibold ${
+                          stats.sold >= stats.total
+                            ? 'border-ocean/20 bg-pearl text-ocean/80'
+                            : 'border-gold/50 bg-gold/10 text-ocean'
+                        }`}
+                      >
+                        {stats.sold} sold / {stats.total} plans
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <Link
+                  href={`/invest?q=${encodeURIComponent(s.id)}`}
+                  className="text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
+                >
+                  View plans
+                </Link>
               </div>
-              <Link
-                href={`/invest?q=${encodeURIComponent(s.id)}`}
-                className="text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
-              >
-                View plans
-              </Link>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <DrawingSlot
-                title="Architectural plan"
-                image={archBySuite[s.id]}
-                onOpen={setLightbox}
-              />
-              <DrawingSlot title="Key map" image={keyMapBySuite[s.id]} onOpen={setLightbox} />
-            </div>
-          </article>
+
+              {childPlans.length > 0 && (
+                <div className="mt-4 border-t border-ocean/10 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ocean/55">Plans</p>
+                  <ul className="mt-2 divide-y divide-ocean/10">
+                    {childPlans.map((p) => {
+                      const available = isUnsoldPlan(p);
+                      const status = planStatusMeta(p);
+                      return (
+                        <li
+                          key={p.id}
+                          className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-medium text-ocean">{p.name || p.id}</span>
+                            <span className="text-ocean/60">
+                              {' '}
+                              · {daysLabel(p.daysPerMonth)} · {formatMoney(planTotal(p))}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-block border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${status.chip}`}
+                            >
+                              {status.label}
+                            </span>
+                            {available && (
+                              <Link
+                                href={`/pricing/plans/${encodeURIComponent(p.id)}`}
+                                className="text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
+                              >
+                                Buy
+                              </Link>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <DrawingSlot
+                  title="Architectural plan"
+                  image={archBySuite[s.id]}
+                  onOpen={setLightbox}
+                />
+                <DrawingSlot title="Key map" image={keyMapBySuite[s.id]} onOpen={setLightbox} />
+              </div>
+            </article>
           );
         })}
       </div>
