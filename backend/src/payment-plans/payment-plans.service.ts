@@ -298,13 +298,27 @@ export class PaymentPlansService {
   normalize(raw: unknown): PaymentPlanPolicy {
     const s = (raw && typeof raw === 'object' ? raw : {}) as Record<string, any>;
     const d = DEFAULT_PAYMENT_PLAN_POLICY;
-    const tenors = Array.isArray(s.tenors)
+    const savedTenors = Array.isArray(s.tenors)
       ? [...new Set(s.tenors.map((n: unknown) => Math.round(num(n, 0))).filter((n: number) => n >= 1 && n <= 120))]
-      : [...d.tenors];
-    if (!tenors.length) tenors.push(24);
+      : [];
+    const tenors = savedTenors.length ? savedTenors : [...d.tenors];
+    // Merge new default tenors that might be missing in older DB rows
+    for (const dt of d.tenors) {
+      if (!tenors.includes(dt)) tenors.push(dt);
+    }
     tenors.sort((a, b) => a - b);
 
-    const tiersIn = Array.isArray(s.tiers) && s.tiers.length ? s.tiers : d.tiers;
+    const savedTiers = Array.isArray(s.tiers) && s.tiers.length ? s.tiers : [];
+    const tiersIn = savedTiers.length ? [...savedTiers] : [...d.tiers];
+    // Merge new default tiers that might be missing in older DB rows
+    for (const dt of d.tiers) {
+      if (!tiersIn.find((t: any) => t.id === dt.id)) {
+        tiersIn.push(dt);
+      }
+    }
+    
+    tiersIn.sort((a: any, b: any) => (num(a.upfrontPct, 0)) - (num(b.upfrontPct, 0)));
+
     const used = new Set<string>();
     const tiers: PaymentTier[] = tiersIn.map((t: any, i: number) => {
       let id = slug(t?.id, `tier_${i + 1}`);
