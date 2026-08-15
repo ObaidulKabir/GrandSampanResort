@@ -17,7 +17,11 @@ const TIER_DISPLAY: Record<string, { description: string; badge?: string }> = {
   fast_track: { description: 'Max discount by shortening schedule to 12 months (Early Payoff).', badge: 'Fast Track' },
   standard: { description: '10% deposit today + downpayment in 3 months + monthly installments.' },
   booking_plus_down: { description: 'Merged deposit & downpayment today. First installment at Month 4.', badge: 'Popular' },
+  advance_40: { description: 'Pay 40% upfront. Balance split across remaining monthly installments.' },
   half: { description: 'Pay 50% upfront. Balance split across remaining monthly installments.', badge: 'Best Value' },
+  advance_60: { description: 'Pay 60% upfront. Balance split across remaining monthly installments.' },
+  advance_70: { description: 'Pay 70% upfront. Balance split across remaining monthly installments.' },
+  advance_80: { description: 'Pay 80% upfront. Balance split across remaining monthly installments.' },
   max_advance: { description: 'Maximum advance payment (90%) while retaining standard installments.', badge: 'Max Advance' },
   full: { description: 'Pay 100% today for maximum actuarial present-value discount.', badge: 'Max Discount' },
 };

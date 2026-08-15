@@ -79,9 +79,41 @@ export const DEFAULT_PAYMENT_PLAN_POLICY: PaymentPlanPolicy = {
       maxDiscountPct: 12
     },
     {
+      id: 'advance_40',
+      label: '40% Advance',
+      upfrontPct: 40,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 12
+    },
+    {
       id: 'half',
       label: 'Half advance',
       upfrontPct: 50,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 12
+    },
+    {
+      id: 'advance_60',
+      label: '60% Advance',
+      upfrontPct: 60,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 12
+    },
+    {
+      id: 'advance_70',
+      label: '70% Advance',
+      upfrontPct: 70,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 12
+    },
+    {
+      id: 'advance_80',
+      label: '80% Advance',
+      upfrontPct: 80,
       discountPct: null,
       passThroughPct: 100,
       maxDiscountPct: 12
