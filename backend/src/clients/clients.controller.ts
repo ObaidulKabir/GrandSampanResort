@@ -23,7 +23,11 @@ export class ClientsController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async create(@Body(new ValidationPipe({ whitelist: true })) body: CreateClientDto) {
-    const created = await this.service.create(body);
+    const created = await this.service.create({
+      ...body,
+      profession: body.profession || '',
+      city: body.city || ''
+    });
     return { ok: true, client: created };
   }
 
