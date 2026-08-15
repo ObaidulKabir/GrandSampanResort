@@ -9,6 +9,7 @@ import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions }
 import Button from '@/components/Button';
 import PlanOwner from '@/components/PlanOwner';
 import { useAppStore } from '@/store/appStore';
+import InvestmentCheckoutModal from '@/components/checkout/InvestmentCheckoutModal';
 
 type Filters = {
   q: string;
@@ -264,6 +265,8 @@ export default function InvestPage() {
   const [adminStatus, setAdminStatus] = useState<AdminStatusFilter>('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const sheetTitleRef = useRef<HTMLHeadingElement>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -773,9 +776,16 @@ export default function InvestPage() {
 
               <div className="mt-3">
                 {available ? (
-                  <Link href={`/pricing/plans/${p.id}`} className="block">
-                    <Button className="w-full px-4 py-2.5">{t('reserveFrom', { amount: formatMoney(bookingAmount) })}</Button>
-                  </Link>
+                  <Button
+                    onClick={() => {
+                      const suite = suites[p.suiteId] || {};
+                      setCheckoutPlan({ ...p, suite });
+                      setIsCheckoutOpen(true);
+                    }}
+                    className="w-full px-4 py-2.5 bg-gold text-ocean font-bold hover:bg-gold/90 shadow-sm"
+                  >
+                    {t('reserveFrom', { amount: formatMoney(bookingAmount) })}
+                  </Button>
                 ) : sold ? (
                   <Link href={`/pricing/plans/${p.id}`} className="block">
                     <Button variant="outline" className="w-full px-4 py-2.5">
@@ -805,6 +815,17 @@ export default function InvestPage() {
           </div>
         )}
       </div>
+
+      {/* Instant Stepper Checkout Modal */}
+      <InvestmentCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        plan={checkoutPlan}
+        user={user}
+        onBookingSuccess={() => {
+          load();
+        }}
+      />
     </main>
   );
 }

@@ -9,6 +9,7 @@ import { tierHeadline } from '@/lib/paymentCopy';
 import { badgesFor, monthlyOutlay } from '@/lib/advisorUi';
 import { formatAdvisorReasons } from '@/lib/advisorReasons';
 import { apiErrorMessage } from '@/lib/errors';
+import InvestmentCheckoutModal from '@/components/checkout/InvestmentCheckoutModal';
 
 export default function InvestAdvisorPage() {
   const t = useTranslations('investAdvisor');
@@ -25,6 +26,8 @@ export default function InvestAdvisorPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   async function run(e: React.FormEvent) {
     e.preventDefault();
@@ -202,12 +205,28 @@ export default function InvestAdvisorPage() {
                   <span className="border border-red-200 bg-red-50 px-2 py-1">{t('tightBudget')}</span>
                 )}
               </div>
-              <div className="mt-4">
+              <div className="mt-4 flex gap-3">
+                <Button
+                  onClick={() => {
+                    setCheckoutPlan({
+                      id: s.planId,
+                      name: s.planName,
+                      daysPerMonth: s.daysPerMonth || 1,
+                      lockIn: s.lockInMonths || 12,
+                      price: s.listPrice || s.netPrice,
+                      suiteId: s.suiteId,
+                    });
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="w-full sm:w-auto bg-gold text-ocean font-bold hover:bg-gold/90"
+                >
+                  Instant Stepper Checkout →
+                </Button>
                 <Link
                   href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}
                   className="block sm:inline-flex"
                 >
-                  <Button className="w-full sm:w-auto">{t('continue')}</Button>
+                  <Button variant="outline" className="w-full sm:w-auto">{t('continue')}</Button>
                 </Link>
               </div>
             </article>
@@ -219,6 +238,13 @@ export default function InvestAdvisorPage() {
           )}
         </div>
       )}
+
+      {/* Stepper Checkout Modal */}
+      <InvestmentCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        plan={checkoutPlan}
+      />
     </main>
   );
 }
