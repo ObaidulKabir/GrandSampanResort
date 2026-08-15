@@ -18,11 +18,10 @@ const standard24 = {
 };
 
 describe('payment-plans PV engine', () => {
-  it('matches the locked 8% semiannual rate conversion', () => {
+  it('matches the locked 8% continuous rate conversion', () => {
     expect(v).toBeCloseTo(PV_FIXTURES.monthlyFactor, 12);
     expect(1 / v - 1).toBeCloseTo(PV_FIXTURES.effectiveMonthlyRate, 12);
-    const rp = 0.08 / 2;
-    expect(Math.pow(1 + rp, 2) - 1).toBeCloseTo(PV_FIXTURES.effectiveAnnualRate, 12);
+    expect(Math.exp(0.08) - 1).toBeCloseTo(PV_FIXTURES.effectiveAnnualRate, 12);
   });
 
   it('matches baseline PV and fair discounts for 30 / 50 / 100', () => {

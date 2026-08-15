@@ -3,8 +3,8 @@
  * Pure functions — no I/O. The model must never do this arithmetic.
  *
  * Rate convention: nominal annual %, compounded `periodsPerYear` times
- * (default 8% / 2 = 4% per half-year). Monthly factor is
- *   v = (1 + r_p)^(-1/6)
+ * (default 8%). Monthly factor is
+ *   v = e^(-r/12)
  */
 
 export type Cashflow = { dueMonth: number; amount: number };
@@ -22,24 +22,23 @@ export type NominalScheduleOpts = {
 /** Locked fixtures from the 8% semiannual confirmation (nominal price = 1). */
 export const PV_FIXTURES = {
   annualNominalPct: 8,
-  compoundingPerYear: 2,
-  monthlyFactor: 0.993484532780599,
-  effectiveMonthlyRate: 0.00655819693655935,
-  effectiveAnnualRate: 0.0816,
+  compoundingPerYear: 0, // Continuous
+  monthlyFactor: 0.9933555062550344,
+  effectiveMonthlyRate: 0.0066889383540194025,
+  effectiveAnnualRate: 0.08328706767495864,
   /** 10% now, 20% at m3, 70% over m4..m27. */
-  baselinePv: 0.929314457350995,
-  fairDiscount30: 0.00416188581716104,
-  fairDiscount50: 0.0241210038938858,
-  fairDiscount100: 0.0706855426490046,
+  baselinePv: 0.9279905637608965,
+  fairDiscount30: 0.0042494359305150775,
+  fairDiscount50: 0.024598535560385604,
+  fairDiscount100: 0.0720094362391035,
   /** 36-month standard vs 24-month standard. */
-  tenorGap36: 0.0253663671200269
+  tenorGap36: 0.025829579139239334
 } as const;
 
-export function monthlyDiscountFactor(annualNominalPct: number, periodsPerYear = 2): number {
-  const periods = Math.max(1, Number(periodsPerYear) || 2);
+export function monthlyDiscountFactor(annualNominalPct: number, _periodsPerYear = 0): number {
   const annual = Math.max(0, Number(annualNominalPct) || 0) / 100;
-  const rp = annual / periods;
-  return Math.pow(1 + rp, -1 / (12 / periods));
+  // Continuous compounding: e^(-r / 12)
+  return Math.exp(-annual / 12);
 }
 
 export function presentValue(items: Cashflow[], monthlyFactor: number): number {
