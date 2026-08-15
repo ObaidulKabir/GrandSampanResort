@@ -75,6 +75,7 @@ export default function InvestPage() {
   const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
   const [showSold, setShowSold] = useState(true);
   const [adminStatus, setAdminStatus] = useState<AdminStatusFilter>('');
+  const [filtersVisible, setFiltersVisible] = useState(true);
 
   useEffect(() => {
     hydrate();
@@ -249,7 +250,7 @@ export default function InvestPage() {
 
       {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <section className="mt-8 border border-ocean/10 bg-white p-5">
+      <section className="sticky top-[4.75rem] z-40 mt-8 border border-ocean/10 bg-white/95 p-4 shadow-sm backdrop-blur md:p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-gold">Find a plan</p>
@@ -268,6 +269,14 @@ export default function InvestPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setFiltersVisible((v) => !v)}
+              aria-expanded={filtersVisible}
+            >
+              {filtersVisible ? 'Hide filters' : 'Show filters'}
+            </Button>
             {!(isAdmin && adminStatus) && (
               <Button
                 type="button"
@@ -292,102 +301,104 @@ export default function InvestPage() {
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block text-sm font-medium text-ocean sm:col-span-2 lg:col-span-2">
-            Search
-            <input
-              value={filters.q}
-              onChange={(e) => setFilter('q', e.target.value)}
-              className="field mt-1"
-              placeholder="Plan ID, name, suite…"
-            />
-          </label>
-          {isAdmin && (
+        {filtersVisible && (
+          <div className="mt-4 max-h-[min(50vh,28rem)] overflow-y-auto grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block text-sm font-medium text-ocean sm:col-span-2 lg:col-span-2">
-              Status <span className="font-normal text-ocean/50">(admin)</span>
-              <select
-                value={adminStatus}
-                onChange={(e) => setAdminStatus(e.target.value as AdminStatusFilter)}
+              Search
+              <input
+                value={filters.q}
+                onChange={(e) => setFilter('q', e.target.value)}
                 className="field mt-1"
-              >
-                <option value="">All statuses</option>
-                <option value="unsold">Unsold only ({availableCount})</option>
-                <option value="reserved">Reserved only ({reservedCount})</option>
-                <option value="sold">Sold only ({soldOnlyCount})</option>
+                placeholder="Plan ID, name, suite…"
+              />
+            </label>
+            {isAdmin && (
+              <label className="block text-sm font-medium text-ocean sm:col-span-2 lg:col-span-2">
+                Status <span className="font-normal text-ocean/50">(admin)</span>
+                <select
+                  value={adminStatus}
+                  onChange={(e) => setAdminStatus(e.target.value as AdminStatusFilter)}
+                  className="field mt-1"
+                >
+                  <option value="">All statuses</option>
+                  <option value="unsold">Unsold only ({availableCount})</option>
+                  <option value="reserved">Reserved only ({reservedCount})</option>
+                  <option value="sold">Sold only ({soldOnlyCount})</option>
+                </select>
+              </label>
+            )}
+            <label className="block text-sm font-medium text-ocean">
+              View
+              <select value={filters.view} onChange={(e) => setFilter('view', e.target.value)} className="field mt-1">
+                <option value="">All views</option>
+                {filterOptions.views.map((v) => (
+                  <option key={v} value={v}>
+                    {humanView(v)}
+                  </option>
+                ))}
               </select>
             </label>
-          )}
-          <label className="block text-sm font-medium text-ocean">
-            View
-            <select value={filters.view} onChange={(e) => setFilter('view', e.target.value)} className="field mt-1">
-              <option value="">All views</option>
-              {filterOptions.views.map((v) => (
-                <option key={v} value={v}>
-                  {humanView(v)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-ocean">
-            Category
-            <select
-              value={filters.category}
-              onChange={(e) => setFilter('category', e.target.value)}
-              className="field mt-1"
-            >
-              <option value="">All categories</option>
-              {filterOptions.categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-ocean">
-            Floor
-            <select value={filters.floor} onChange={(e) => setFilter('floor', e.target.value)} className="field mt-1">
-              <option value="">All floors</option>
-              {filterOptions.floors.map((f) => (
-                <option key={f} value={String(f)}>
-                  Floor {f}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-ocean">
-            Days / month
-            <select value={filters.days} onChange={(e) => setFilter('days', e.target.value)} className="field mt-1">
-              <option value="">All durations</option>
-              {filterOptions.days.map((d) => (
-                <option key={d} value={String(d)}>
-                  {d >= 30 ? 'Full month (30)' : `${d} days`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium text-ocean">
-            Min price (BDT)
-            <input
-              type="number"
-              min={0}
-              value={filters.priceMin}
-              onChange={(e) => setFilter('priceMin', e.target.value)}
-              className="field mt-1"
-              placeholder={filterOptions.minPrice ? String(Math.floor(filterOptions.minPrice)) : '0'}
-            />
-          </label>
-          <label className="block text-sm font-medium text-ocean">
-            Max price (BDT)
-            <input
-              type="number"
-              min={0}
-              value={filters.priceMax}
-              onChange={(e) => setFilter('priceMax', e.target.value)}
-              className="field mt-1"
-              placeholder={filterOptions.maxPrice ? String(Math.ceil(filterOptions.maxPrice)) : ''}
-            />
-          </label>
-        </div>
+            <label className="block text-sm font-medium text-ocean">
+              Category
+              <select
+                value={filters.category}
+                onChange={(e) => setFilter('category', e.target.value)}
+                className="field mt-1"
+              >
+                <option value="">All categories</option>
+                {filterOptions.categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-ocean">
+              Floor
+              <select value={filters.floor} onChange={(e) => setFilter('floor', e.target.value)} className="field mt-1">
+                <option value="">All floors</option>
+                {filterOptions.floors.map((f) => (
+                  <option key={f} value={String(f)}>
+                    Floor {f}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-ocean">
+              Days / month
+              <select value={filters.days} onChange={(e) => setFilter('days', e.target.value)} className="field mt-1">
+                <option value="">All durations</option>
+                {filterOptions.days.map((d) => (
+                  <option key={d} value={String(d)}>
+                    {d >= 30 ? 'Full month (30)' : `${d} days`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-ocean">
+              Min price (BDT)
+              <input
+                type="number"
+                min={0}
+                value={filters.priceMin}
+                onChange={(e) => setFilter('priceMin', e.target.value)}
+                className="field mt-1"
+                placeholder={filterOptions.minPrice ? String(Math.floor(filterOptions.minPrice)) : '0'}
+              />
+            </label>
+            <label className="block text-sm font-medium text-ocean">
+              Max price (BDT)
+              <input
+                type="number"
+                min={0}
+                value={filters.priceMax}
+                onChange={(e) => setFilter('priceMax', e.target.value)}
+                className="field mt-1"
+                placeholder={filterOptions.maxPrice ? String(Math.ceil(filterOptions.maxPrice)) : ''}
+              />
+            </label>
+          </div>
+        )}
       </section>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
