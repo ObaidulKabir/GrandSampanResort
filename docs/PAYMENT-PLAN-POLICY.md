@@ -2,7 +2,7 @@
 
 Reference for how Grand Sampan prices early payment. The live numbers are admin-editable; this document is the default model shipped in August 2026.
 
-Edit the live policy at **Admin → Policy → Advance payment discounts**.  
+Edit the live policy at **Admin → Policy → Advance payment discounts** (rate, compounding, downpayment %, delay, tenors, quote lifetime, optional PV tenor pricing, and per-tier override).  
 Storage key: `payment-plan-policy` in `AppSetting`.  
 Code: `backend/src/payment-plans/`.
 

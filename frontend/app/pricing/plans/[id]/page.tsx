@@ -956,6 +956,45 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </div>
           </div>
 
+          {resolvedTiers.length > 0 && (
+            <div className="mt-5 overflow-x-auto border border-ocean/10">
+              <p className="px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-ocean/60">Compare options</p>
+              <table className="mt-2 min-w-full text-left text-xs">
+                <thead className="border-y border-ocean/10 bg-pearl text-ocean/60">
+                  <tr>
+                    <th className="px-3 py-2">Plan</th>
+                    <th className="px-3 py-2">Due today</th>
+                    <th className="px-3 py-2">You pay</th>
+                    <th className="px-3 py-2">Save</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resolvedTiers.map((tier) => {
+                    const afterPromo = quote?.afterPromo ?? effectivePrice;
+                    const net = Math.round(afterPromo * (1 - (Number(tier.offeredDiscountPct) || 0) / 100));
+                    const due = Math.round(net * (Number(tier.upfrontPct) || 0) / 100);
+                    const save = Math.max(0, afterPromo - net);
+                    const selected = paymentTierId === tier.id;
+                    return (
+                      <tr
+                        key={`cmp-${tier.id}`}
+                        className={`border-b border-ocean/10 ${selected ? 'bg-gold/10' : ''}`}
+                      >
+                        <td className="px-3 py-2 font-medium text-ocean">{tier.label}</td>
+                        <td className="px-3 py-2 text-ocean">{formatMoney(due)}</td>
+                        <td className="px-3 py-2 text-ocean">{formatMoney(net)}</td>
+                        <td className="px-3 py-2 text-gold">{save > 0 ? formatMoney(save) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <p className="px-3 py-2 text-[11px] text-ocean/55">
+                Figures follow the current quote (promo first, then advance discount). Tenor does not change the total.
+              </p>
+            </div>
+          )}
+
           <div id="booking-kyc" className="mt-6 border-t border-ocean/10 pt-5">
             <p className="text-sm font-semibold text-ocean">KYC details</p>
             <p className="mt-1 text-xs text-ocean/65">

@@ -234,6 +234,44 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
             ))}
           </section>
 
+          {booking.planId && (booking.paymentTierId || booking.advanceDiscountPct) && (
+            <section className="border border-ocean/10 bg-white p-5">
+              <h2 className="font-display text-xl text-ocean">Payment plan</h2>
+              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-ocean/60">Tier</dt>
+                  <dd className="font-medium text-ocean">{booking.paymentTierId || 'standard'}</dd>
+                </div>
+                <div>
+                  <dt className="text-ocean/60">List price</dt>
+                  <dd className="font-medium text-ocean">{formatMoney(booking.listPrice || booking.amountTotal || 0)}</dd>
+                </div>
+                <div>
+                  <dt className="text-ocean/60">Advance discount</dt>
+                  <dd className="font-medium text-ocean">
+                    {booking.advanceDiscountPct != null ? `${Number(booking.advanceDiscountPct).toFixed(2)}%` : '—'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-ocean/60">Net charged</dt>
+                  <dd className="font-medium text-ocean">{formatMoney(booking.amountTotal || 0)}</dd>
+                </div>
+                <div>
+                  <dt className="text-ocean/60">Tenor</dt>
+                  <dd className="font-medium text-ocean">
+                    {booking.installmentMonths || 24} months · {booking.cadence || 'monthly'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-ocean/60">Rate used</dt>
+                  <dd className="font-medium text-ocean">
+                    {booking.discountRateAnnualPct != null ? `${booking.discountRateAnnualPct}%` : '—'}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          )}
+
           {booking.planId && (
             <section className="border border-gold/40 bg-gold/10 p-5">
               <h2 className="font-display text-2xl text-ocean">Completion checklist</h2>

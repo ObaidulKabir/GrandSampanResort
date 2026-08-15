@@ -410,6 +410,65 @@ function PaymentPlanPolicyBlock() {
           Enabled
         </label>
       </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        <label className="text-sm text-ocean">
+          Downpayment %
+          <input
+            className="field mt-1"
+            type="number"
+            min={0}
+            max={100}
+            value={policy.downpaymentPct}
+            onChange={(e) => setPolicy({ ...policy, downpaymentPct: Number(e.target.value) })}
+          />
+        </label>
+        <label className="text-sm text-ocean">
+          Downpayment after (months)
+          <input
+            className="field mt-1"
+            type="number"
+            min={0}
+            max={24}
+            value={policy.downpaymentAfterMonths}
+            onChange={(e) => setPolicy({ ...policy, downpaymentAfterMonths: Number(e.target.value) })}
+          />
+        </label>
+        <label className="text-sm text-ocean">
+          Tenors (comma-separated)
+          <input
+            className="field mt-1"
+            value={(policy.tenors || []).join(', ')}
+            onChange={(e) =>
+              setPolicy({
+                ...policy,
+                tenors: e.target.value
+                  .split(',')
+                  .map((n) => Number(n.trim()))
+                  .filter((n) => Number.isFinite(n) && n > 0)
+              })
+            }
+          />
+        </label>
+        <label className="text-sm text-ocean">
+          Quote lifetime (minutes)
+          <input
+            className="field mt-1"
+            type="number"
+            min={5}
+            max={1440}
+            value={policy.quoteTtlMinutes}
+            onChange={(e) => setPolicy({ ...policy, quoteTtlMinutes: Number(e.target.value) })}
+          />
+        </label>
+      </div>
+      <label className="mt-3 flex items-center gap-2 text-sm text-ocean">
+        <input
+          type="checkbox"
+          checked={policy.tenorPricing === 'pv'}
+          onChange={(e) => setPolicy({ ...policy, tenorPricing: e.target.checked ? 'pv' : 'neutral' })}
+        />
+        Price 36-month tenor by present value (off = same total as 24 months)
+      </label>
       <div className="mt-4 overflow-x-auto border border-ocean/10">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-ocean/10 bg-pearl text-xs uppercase tracking-wide text-ocean/60">
