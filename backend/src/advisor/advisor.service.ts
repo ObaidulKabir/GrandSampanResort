@@ -11,6 +11,7 @@ import {
   Reason,
   ScoredOption,
   explain,
+  explainSentences,
   projectReferralInflows,
   simulateCash
 } from './score';
@@ -90,11 +91,11 @@ export class AdvisorService {
             if (q.savings > 0) {
               reasons.push({ code: 'SAVES_VS_STANDARD', amountBdt: q.savings, tierId: tier.id });
             }
-            if (yieldPct > 0) reasons.push({ code: 'HIGHER_YIELD', yieldPct });
             if (tier.upfrontPct >= 100) reasons.push({ code: 'FULL_PAYMENT', tierId: tier.id });
             else if (tier.upfrontPct >= 50) reasons.push({ code: 'HALF_ADVANCE', tierId: tier.id });
             else if (tier.mergedDownpayment) reasons.push({ code: 'MERGED_DOWNPAYMENT', tierId: tier.id });
             if (tenor > Math.min(...policy.tenors)) reasons.push({ code: 'LONGER_TENOR' });
+            if (annualMid > 0) reasons.push({ code: 'HIGHER_YIELD', amountBdt: annualMid });
             if (withRef.referralCovers > 0) {
               reasons.push({
                 code: 'REFERRAL_COVERS_INSTALLMENTS',
@@ -141,7 +142,11 @@ export class AdvisorService {
       }
       return b.yieldPct - a.yieldPct;
     });
-    const top = pool.slice(0, 8).map((s) => ({ ...s, summary: explain(s.reasons) }));
+    const top = pool.slice(0, 8).map((s) => ({
+      ...s,
+      summary: explain(s.reasons),
+      points: explainSentences(s.reasons)
+    }));
     return {
       ok: true as const,
       input: { availableNow, monthlyCapacity, horizonMonths, referralTarget: raw.referralTarget || null },

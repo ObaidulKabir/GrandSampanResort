@@ -30,8 +30,20 @@ describe('advisor scorer', () => {
     expect(without.neverNegative).toBe(false);
   });
 
-  it('explain() maps reason codes to copy', () => {
-    const text = explain([{ code: 'SAVES_VS_STANDARD', amountBdt: 48000 }]);
+  it('explain() maps reason codes to copy a buyer can check', () => {
+    const text = explain([
+      { code: 'SAVES_VS_STANDARD', amountBdt: 48000 },
+      { code: 'HIGHER_YIELD', amountBdt: 90000 },
+      { code: 'LONGER_TENOR' },
+      { code: 'REFERRAL_COVERS_INSTALLMENTS', amountBdt: 99132 }
+    ]);
     expect(text).toContain('48,000');
+    expect(text).toContain('90,000');
+    expect(text).toMatch(/a year in rent/i);
+    expect(text).toMatch(/36 months/i);
+    expect(text).toMatch(/referral target/i);
+    expect(text.toLowerCase()).not.toContain('yield');
+    expect(text.toLowerCase()).not.toContain('present-value');
+    expect(text.toLowerCase()).not.toContain('tenor');
   });
 });

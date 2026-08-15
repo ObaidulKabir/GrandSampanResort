@@ -150,7 +150,7 @@ export default function InvestAdvisorPage() {
         <div className="mt-8 space-y-4">
           <p className="text-sm text-ocean/65">
             {suggestions.length
-              ? `Here are the strongest matches from ${result.considered} live combinations.`
+              ? 'Plans that fit what you can pay, with the trade-offs in plain terms.'
               : 'No unsold plans to compare right now.'}
           </p>
           {suggestions.map((s: any, i: number) => (
@@ -174,7 +174,11 @@ export default function InvestAdvisorPage() {
                   {s.savings > 0 && <p className="text-xs text-gold">Save {formatMoney(s.savings)}</p>}
                 </div>
               </div>
-              <p className="mt-3 text-sm text-ocean/80">{s.summary}</p>
+              {(s.points?.length ? s.points : s.summary ? [s.summary] : []).map((line: string) => (
+                <p key={line} className="mt-2 text-sm text-ocean/80 first:mt-3">
+                  {line}
+                </p>
+              ))}
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="border border-ocean/15 px-2 py-1">Today {formatMoney(s.depositAmount)}</span>
                 {s.paymentTierId !== 'full' && (

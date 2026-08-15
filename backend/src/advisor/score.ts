@@ -114,32 +114,42 @@ export function simulateCash(opts: {
   return { points, neverNegative, referralCovers };
 }
 
-export function explain(reasons: Reason[]): string {
+function taka(n: number) {
+  return `৳${Math.round(n).toLocaleString()}`;
+}
+
+/** One plain sentence per reason — for buyers, not a finance memo. */
+export function explainSentences(reasons: Reason[]): string[] {
   return reasons
     .map((r) => {
       switch (r.code) {
         case 'SAVES_VS_STANDARD':
-          return `Saves ৳${(r.amountBdt || 0).toLocaleString()} versus the standard installment route.`;
+          return `You save about ${taka(r.amountBdt || 0)} compared with paying 10% today and the rest in installments.`;
         case 'HIGHER_YIELD':
-          return `Expected yield about ${(r.yieldPct || 0).toFixed(1)}% a year on present-value cost.`;
+          return r.amountBdt
+            ? `This share is projected to earn about ${taka(r.amountBdt)} a year in rent. Occupancy and room rates can change.`
+            : 'This option is stronger for rental income versus what you pay.';
         case 'FULL_PAYMENT':
-          return 'Pays in full at booking — no remaining installments.';
+          return 'You pay everything today. No more bills after that.';
         case 'HALF_ADVANCE':
-          return 'Pays half now and the rest on the installment calendar.';
+          return 'You pay half today. The rest is split into later payments.';
         case 'MERGED_DOWNPAYMENT':
-          return 'Booking and downpayment are paid together.';
+          return 'You pay the booking amount and the usual 3-month downpayment together today, so you skip that later lump sum.';
         case 'LONGER_TENOR':
-          return 'Spreads the remainder over 36 months for a smaller monthly amount.';
+          return 'You finish paying over 36 months, so each monthly bill is smaller.';
         case 'REFERRAL_COVERS_INSTALLMENTS':
-          return `Your referral target covers about ৳${(r.amountBdt || 0).toLocaleString()} of later payments.`;
+          return `If you hit the referral target you entered, that income could cover about ${taka(r.amountBdt || 0)} of later bills.`;
         case 'INFEASIBLE_WITHOUT_REFERRAL':
-          return 'This only fits if you hit the referral target you entered.';
+          return 'This only works if you actually earn that referral income. What you can pay from salary alone is not enough.';
         case 'INFEASIBLE':
-          return 'Does not fit the cash and monthly capacity you entered.';
+          return 'This asks for more cash than you said you can pay.';
         default:
           return '';
       }
     })
-    .filter(Boolean)
-    .join(' ');
+    .filter(Boolean);
+}
+
+export function explain(reasons: Reason[]): string {
+  return explainSentences(reasons).join(' ');
 }
