@@ -228,7 +228,7 @@ export default function InvestPage() {
     return v || '—';
   }
 
-  const compactField = 'field h-9 py-1 text-sm !w-auto shrink-0';
+  const compactField = 'field h-11 py-2.5 text-sm leading-normal !w-auto shrink-0';
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 md:py-10">
@@ -251,8 +251,8 @@ export default function InvestPage() {
 
       {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <section className="sticky top-[4.75rem] z-40 mt-5 border border-ocean/10 bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2">
+      <section className="sticky top-[4.75rem] z-40 mt-5 overflow-visible border border-ocean/10 bg-white/95 px-4 py-4 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
           <input
             value={filters.q}
             onChange={(e) => setFilter('q', e.target.value)}
@@ -344,7 +344,7 @@ export default function InvestPage() {
             </select>
           )}
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-ocean/70">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-ocean/70">
           <p>
             <span className="font-semibold text-ocean">{filtered.length}</span> shown
             <span className="text-ocean/40"> · </span>
