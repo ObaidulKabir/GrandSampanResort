@@ -13,7 +13,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "smtp:test": "ts-node scripts/test-smtp.ts",
-    "smoke:auth": "ts-node scripts/smoke-auth.ts"
+    "smoke:auth": "ts-node scripts/smoke-auth.ts",
+    "smoke:client": "ts-node scripts/smoke-client-journeys.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

@@ -18,6 +18,7 @@ import {
   normalizeReferralCode,
   setStoredReferralCode
 } from '@/lib/referral';
+import { formatSavePct, tierHeadline, tierHelp } from '@/lib/paymentCopy';
 
 type Plan = {
   id: string;
@@ -137,6 +138,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [tenors, setTenors] = useState<number[]>([24, 36]);
   const [resolvedTiers, setResolvedTiers] = useState<any[]>([]);
   const [quote, setQuote] = useState<any>(null);
+  const [showScheduleOptions, setShowScheduleOptions] = useState(false);
   const [tab, setTab] = useState<'payment' | 'returns'>('payment');
   const [adr, setAdr] = useState<number>(8000);
   const [occupancy, setOccupancy] = useState<number>(0.6);
@@ -280,8 +282,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       const q = new URLSearchParams(window.location.search);
       const t = q.get('tier');
       const m = Number(q.get('months'));
-      if (t) setPaymentTierId(t);
-      if (Number.isFinite(m) && m > 0) setInstallmentMonths(m);
+        if (t) setPaymentTierId(t);
+        if (Number.isFinite(m) && m > 0) {
+          setInstallmentMonths(m);
+          if (m !== 24) setShowScheduleOptions(true);
+        }
     } catch {
       /* ignore */
     }
@@ -582,7 +587,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           res?.error === 'email_not_verified'
             ? 'Verify your account email before booking'
             : res?.error === 'kyc_required'
-              ? 'Complete all KYC details before booking'
+              ? 'Add all required details and photographs before booking'
               : res?.error === 'deposit_payment_required'
                 ? 'Select a payment method and enter the payment reference'
                 : res?.error === 'plan_not_available' || res?.error === 'conflict'
@@ -656,6 +661,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const installmentCount = installmentItems.length;
   const installmentAmount = installmentItems[0]?.amount ?? 0;
   const schedule = quote?.schedule || [];
+  const afterPromo = quote?.afterPromo ?? effectivePrice;
+  const defaultTenor = tenors[0] || 24;
+  const scheduleIsCustom = paymentTierId !== 'full' && (installmentMonths !== defaultTenor || cadence !== 'monthly');
 
   const available = (plan?.planStatus || 'Unsold').toLowerCase() === 'unsold';
 
@@ -668,8 +676,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <p className="mt-3 text-ocean/75">
             {plan?.name ? `Your ${plan.name} plan` : 'Your plan'}
             {suite?.id ? ` on suite ${suite.id}` : ''} is reserved. The booking will be completed after
-            our team confirms deposit receipt (or bank encashment) and verifies your KYC details.
-            A confirmation email was sent to the KYC email address; you will also receive an invoice when
+            our team confirms your first payment and reviews your details.
+            A confirmation email was sent to the address you entered; you will also receive an invoice when
             the booking is completed.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -678,7 +686,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               <div className="mt-1 font-mono text-sm text-ocean">{confirmation.bookingId}</div>
             </div>
             <div className="bg-pearl p-4">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Deposit due</div>
+              <div className="text-xs uppercase tracking-wide text-ocean/60">Amount due today</div>
               <div className="font-display mt-1 text-2xl text-ocean">
                 {formatMoney(confirmation.depositAmount)}
               </div>
@@ -703,7 +711,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             </Link>
           </div>
           <p className="mt-6 text-sm text-ocean/60">
-            KYC and deposit details were submitted with this booking. Questions?{' '}
+            Your details and payment reference were sent with this booking. Questions?{' '}
             <a href="mailto:info@grandsampan.com" className="underline">
               info@grandsampan.com
             </a>
@@ -721,12 +729,12 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <h1 className="font-display mt-2 text-4xl text-ocean">{plan?.name || 'Plan Details'}</h1>
           <p className="mt-2 text-ocean/75">
             {plan
-              ? `${plan.daysPerMonth} days/month · ${plan.planType || 'DPM'} · Lock-in ${plan.lockIn ?? 36} months · Plan ${plan.id}`
+              ? `${plan.daysPerMonth} days each month · share held ${plan.lockIn ?? 36} months`
               : 'Loading...'}
           </p>
           {unitPlans.length > 1 && (
             <label className="mt-4 block max-w-md text-sm font-medium text-ocean">
-              Switch plan on this unit
+              Other shares on this suite
               <select
                 value={planId}
                 onChange={(e) => selectUnitPlan(e.target.value)}
@@ -734,7 +742,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               >
                 {unitPlans.map((option) => (
                   <option key={option.id} value={option.id}>
-                    {option.id} — {option.name || 'Plan'} ({option.daysPerMonth} days/mo)
+                    {option.name || 'Share'} · {option.daysPerMonth} days/mo
                   </option>
                 ))}
               </select>
@@ -768,7 +776,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today</div>
               <div className="font-display mt-1 text-3xl font-bold text-ocean">{formatMoney(depositPreview)}</div>
               <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                {quote?.upfrontPct ?? 10}% due today to reserve
+                {quote?.upfrontPct ?? 10}% with the option selected on the right
               </p>
             </div>
             {[
@@ -802,90 +810,28 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         </div>
 
         <aside className="border border-gold/40 bg-white p-6 lg:sticky lg:top-24 lg:self-start">
-          <h2 className="font-display text-2xl text-ocean">Complete purchase</h2>
+          <h2 className="font-display text-2xl text-ocean">Reserve this suite</h2>
           <p className="mt-2 text-sm text-ocean/75">
-            Reserves this plan after KYC and offline deposit details. Booking completes when admin
-            confirms payment receipt.
+            Pick how much to pay today, add your details, then send deposit proof. We confirm the booking
+            when payment is received.
+          </p>
+          <p className="mt-3 text-xs text-ocean/60">
+            Not sure which option fits?{' '}
+            <Link href="/invest/advisor" className="font-semibold text-ocean underline">
+              Help me choose
+            </Link>
           </p>
 
-          {unitPlans.length > 0 && (
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-ocean">
-                Choose a plan for unit {plan?.suiteId || suite?.id || '—'}
-              </p>
-              <p className="mt-1 text-xs text-ocean/65">
-                Available plan IDs on this unit. Switch anytime before you confirm.
-              </p>
-              <div className="mt-3 space-y-2" role="radiogroup" aria-label="Available plans on this unit">
-                {unitPlans.map((option) => {
-                  const selected = option.id === planId;
-                  const total =
-                    typeof option.discountedPrice === 'number'
-                      ? Number(option.discountedPrice)
-                      : Number(option.price || 0);
-                  const standardPct = Number(resolvedTiers.find((t) => t.id === 'standard')?.upfrontPct) || 10;
-                  const bookingAmount = Math.round(total * (standardPct / 100));
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => selectUnitPlan(option.id)}
-                      className={`w-full border px-3 py-3 text-left transition ${
-                        selected
-                          ? 'border-gold bg-gold/10'
-                          : 'border-ocean/15 bg-white hover:border-gold/60 hover:bg-gold/5'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-mono text-xs font-semibold text-ocean/70">{option.id}</div>
-                          <div className="mt-0.5 font-medium text-ocean">
-                            {option.name || option.id}
-                            <span className="text-ocean/60"> · {option.daysPerMonth} days/mo</span>
-                          </div>
-                        </div>
-                        <span
-                          className={`mt-0.5 inline-block h-3.5 w-3.5 shrink-0 rounded-full border ${
-                            selected ? 'border-gold bg-gold' : 'border-ocean/30 bg-white'
-                          }`}
-                          aria-hidden
-                        />
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                        <span className="font-semibold text-ocean">
-                          Due today {formatMoney(bookingAmount)}
-                        </span>
-                        <span className="text-ocean/70">
-                          Total <span className="font-semibold text-ocean">{formatMoney(total)}</span>
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <label className="mt-5 block text-sm text-ocean">
-            Contract start
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="field mt-1"
-            />
-          </label>
-
           <div className="mt-5">
-            <p className="text-sm font-semibold text-ocean">Payment plan</p>
-            <p className="mt-1 text-xs text-ocean/65">
-              Pay more now to unlock a time-value discount. Tenor only changes how the remainder is spread.
-            </p>
+            <p className="text-sm font-semibold text-ocean">1. How much will you pay today?</p>
+            <p className="mt-1 text-xs text-ocean/65">Pay more now to save on the total.</p>
             <div className="mt-3 grid gap-2">
               {resolvedTiers.map((tier) => {
                 const selected = paymentTierId === tier.id;
+                const net = Math.round(afterPromo * (1 - (Number(tier.offeredDiscountPct) || 0) / 100));
+                const due = Math.round((net * (Number(tier.upfrontPct) || 0)) / 100);
+                const save = Math.max(0, afterPromo - net);
+                const saveLabel = formatSavePct(tier.offeredDiscountPct);
                 return (
                   <button
                     key={tier.id}
@@ -896,110 +842,113 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                     }`}
                   >
                     <div className="flex items-baseline justify-between gap-2">
-                      <div className="font-semibold text-ocean">{tier.label}</div>
-                      {tier.offeredDiscountPct > 0 ? (
-                        <div className="text-xs font-semibold text-gold">Save {tier.offeredDiscountPct.toFixed(2)}%</div>
+                      <div className="font-semibold text-ocean">{tierHeadline(tier)}</div>
+                      {saveLabel ? (
+                        <div className="text-xs font-semibold text-gold">Save {saveLabel}</div>
                       ) : (
-                        <div className="text-xs text-ocean/50">{tier.upfrontPct}% today</div>
+                        <div className="text-xs text-ocean/50">Lowest today</div>
                       )}
                     </div>
-                    <div className="mt-0.5 text-xs text-ocean/65">{tier.upfrontPct}% due at booking</div>
-                  </button>
-                );
-              })}
-            </div>
-            {tenors.length > 1 && paymentTierId !== 'full' && (
-              <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment tenor">
-                {tenors.map((n) => {
-                  const selected = installmentMonths === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setInstallmentMonths(n)}
-                      className={`border px-3 py-2 text-sm font-semibold ${
-                        selected ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80'
-                      }`}
-                    >
-                      {n} months
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment cadence">
-              {(
-                [
-                  { value: 'monthly' as const, label: 'Monthly' },
-                  { value: 'quarterly' as const, label: 'Quarterly' }
-                ] as const
-              ).map((opt) => {
-                const selected = cadence === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => setCadence(opt.value)}
-                    className={`border px-3 py-3 text-left transition ${
-                      selected ? 'border-gold bg-gold/10' : 'border-ocean/15 hover:border-gold/50'
-                    }`}
-                  >
-                    <div className="font-semibold text-ocean">{opt.label}</div>
-                    <div className="mt-0.5 text-xs text-ocean/65">
-                      {opt.value === 'monthly' ? `${installmentMonths} payments` : `${Math.ceil(installmentMonths / 3)} payments`}
+                    <p className="mt-0.5 text-xs text-ocean/65">{tierHelp(tier)}</p>
+                    <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                      <span className="font-semibold text-ocean">Today {formatMoney(due)}</span>
+                      <span className="text-ocean/70">
+                        Total {formatMoney(net)}
+                        {save > 0 ? <span className="text-gold"> · save {formatMoney(save)}</span> : null}
+                      </span>
                     </div>
                   </button>
                 );
               })}
             </div>
+            {paymentTierId !== 'full' && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-ocean underline"
+                  onClick={() => setShowScheduleOptions((v) => !v)}
+                >
+                  {showScheduleOptions || scheduleIsCustom
+                    ? 'Hide installment options'
+                    : 'Need smaller monthly payments?'}
+                </button>
+                {(showScheduleOptions || scheduleIsCustom) && (
+                  <div className="mt-3 space-y-3">
+                    {tenors.length > 1 && (
+                      <div>
+                        <p className="text-xs font-medium text-ocean/70">How long to finish paying</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment length">
+                          {tenors.map((n) => {
+                            const selected = installmentMonths === n;
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setInstallmentMonths(n)}
+                                className={`border px-3 py-2 text-sm font-semibold ${
+                                  selected ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80'
+                                }`}
+                              >
+                                {n} months
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-medium text-ocean/70">How often you pay</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment cadence">
+                        {(
+                          [
+                            { value: 'monthly' as const, label: 'Every month', hint: `${installmentMonths} payments` },
+                            {
+                              value: 'quarterly' as const,
+                              label: 'Every 3 months',
+                              hint: `${Math.ceil(installmentMonths / 3)} payments`
+                            }
+                          ] as const
+                        ).map((opt) => {
+                          const selected = cadence === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              onClick={() => setCadence(opt.value)}
+                              className={`border px-3 py-3 text-left transition ${
+                                selected ? 'border-gold bg-gold/10' : 'border-ocean/15 hover:border-gold/50'
+                              }`}
+                            >
+                              <div className="font-semibold text-ocean">{opt.label}</div>
+                              <div className="mt-0.5 text-xs text-ocean/65">{opt.hint}</div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {resolvedTiers.length > 0 && (
-            <div className="mt-5 overflow-x-auto border border-ocean/10">
-              <p className="px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-ocean/60">Compare options</p>
-              <table className="mt-2 min-w-full text-left text-xs">
-                <thead className="border-y border-ocean/10 bg-pearl text-ocean/60">
-                  <tr>
-                    <th className="px-3 py-2">Plan</th>
-                    <th className="px-3 py-2">Due today</th>
-                    <th className="px-3 py-2">You pay</th>
-                    <th className="px-3 py-2">Save</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resolvedTiers.map((tier) => {
-                    const afterPromo = quote?.afterPromo ?? effectivePrice;
-                    const net = Math.round(afterPromo * (1 - (Number(tier.offeredDiscountPct) || 0) / 100));
-                    const due = Math.round(net * (Number(tier.upfrontPct) || 0) / 100);
-                    const save = Math.max(0, afterPromo - net);
-                    const selected = paymentTierId === tier.id;
-                    return (
-                      <tr
-                        key={`cmp-${tier.id}`}
-                        className={`border-b border-ocean/10 ${selected ? 'bg-gold/10' : ''}`}
-                      >
-                        <td className="px-3 py-2 font-medium text-ocean">{tier.label}</td>
-                        <td className="px-3 py-2 text-ocean">{formatMoney(due)}</td>
-                        <td className="px-3 py-2 text-ocean">{formatMoney(net)}</td>
-                        <td className="px-3 py-2 text-gold">{save > 0 ? formatMoney(save) : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              <p className="px-3 py-2 text-[11px] text-ocean/55">
-                Figures follow the current quote (promo first, then advance discount). Tenor does not change the total.
-              </p>
-            </div>
-          )}
+          <label className="mt-5 block text-sm text-ocean">
+            When do your suite days start?
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="field mt-1"
+            />
+          </label>
 
           <div id="booking-kyc" className="mt-6 border-t border-ocean/10 pt-5">
-            <p className="text-sm font-semibold text-ocean">KYC details</p>
+            <p className="text-sm font-semibold text-ocean">2. Your details</p>
             <p className="mt-1 text-xs text-ocean/65">
-              Provide identity details for the person this plan is being booked for. All fields and both
-              photographs are required before you can submit.
+              We need identity details for the person this plan is booked for. Every field and both
+              photographs are required.
             </p>
             <div className="mt-3 grid gap-3">
               <label className="block text-sm text-ocean">
@@ -1161,10 +1110,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           </div>
 
           <div id="booking-deposit" className="mt-6 border-t border-ocean/10 pt-5">
-            <p className="text-sm font-semibold text-ocean">Deposit payment</p>
+            <p className="text-sm font-semibold text-ocean">3. How you’ll pay today</p>
             <p className="mt-1 text-xs text-ocean/65">
-              Pay the due-today amount by cheque, cash/pay order, or online transfer. Booking
-              completes after admin confirms payment receipt and verifies KYC.
+              Send the amount due today by cheque, cash/pay order, or bank transfer, then add the
+              reference so we can match it.
             </p>
             <label className="mt-4 block text-sm text-ocean">
               Referral code <span className="font-normal text-ocean/55">(optional)</span>
@@ -1273,7 +1222,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             )}
             {quote?.advanceDiscountPct > 0 && (
               <div className="mt-1 flex justify-between">
-                <span className="text-ocean/70">Advance payment ({quote.advanceDiscountPct}%)</span>
+                <span className="text-ocean/70">Paying more now ({quote.advanceDiscountPct}%)</span>
                 <span className="font-semibold text-gold">− {formatMoney(quote.savings || 0)}</span>
               </div>
             )}
@@ -1325,7 +1274,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           )}
           {!kycComplete && (
             <p className="mt-4 text-xs text-ocean/65">
-              Missing KYC: {kycMissing.map((key) => KYC_FIELD_LABELS[key]).join(', ')}
+              Missing details: {kycMissing.map((key) => KYC_FIELD_LABELS[key]).join(', ')}
             </p>
           )}
           <Button
@@ -1350,10 +1299,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   : !kycComplete
                     ? onlyPhotosMissing
                       ? 'Upload photographs to continue'
-                      : 'Complete KYC to continue'
+                      : 'Add your details to continue'
                     : !depositReference.trim()
-                      ? 'Enter payment reference'
-                      : 'Submit booking'}
+                      ? 'Add a payment reference'
+                      : 'Reserve this plan'}
           </Button>
           <div className="mt-3 flex flex-wrap gap-3 text-sm">
             <Link href="/investor" className="text-ocean underline">

@@ -3,7 +3,6 @@ import ViewsCarousel from '@/components/ViewsCarousel';
 import FeaturesGrid from '@/components/FeaturesGrid';
 import LocationSection from '@/components/LocationSection';
 import AvailableCards from '@/components/AvailableCards';
-import ChatBot from '@/components/ChatBot';
 import Reveal from '@/components/Reveal';
 import Link from 'next/link';
 
@@ -17,8 +16,7 @@ export default function HomePage() {
           <Reveal>
             <h2 className="font-display text-3xl text-ocean md:text-4xl">Invest in oceanfront ownership</h2>
             <p className="mt-3 max-w-2xl text-ocean/75">
-              Browse live unsold share plans, lock in your suite entitlement, and manage payments from your investor
-              dashboard.
+              Browse live share plans, reserve a suite from 10% today, and follow payments from your dashboard.
             </p>
           </Reveal>
           <div className="mt-8">
@@ -49,7 +47,6 @@ export default function HomePage() {
       </section>
 
       <LocationSection />
-      <ChatBot />
     </main>
   );
 }

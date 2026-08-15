@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+import { tierHeadline } from '@/lib/paymentCopy';
+import { badgesFor } from '@/lib/advisorUi';
 
 export default function InvestAdvisorPage() {
-  const [availableNow, setAvailableNow] = useState('500000');
-  const [monthlyCapacity, setMonthlyCapacity] = useState('25000');
+  const [availableNow, setAvailableNow] = useState('');
+  const [monthlyCapacity, setMonthlyCapacity] = useState('');
   const [horizonMonths, setHorizonMonths] = useState('36');
   const [useReferral, setUseReferral] = useState(false);
   const [refMode, setRefMode] = useState<'count' | 'volume'>('count');
@@ -38,47 +40,90 @@ export default function InvestAdvisorPage() {
         })
       });
       if (!res?.ok) {
-        setError(res?.error || 'Could not score plans');
+        setError(res?.error || 'We could not match a plan right now. Try again, or browse available suites.');
         setResult(null);
       } else {
         setResult(res);
       }
     } catch {
-      setError('Could not score plans');
+      setError('We could not match a plan right now. Try again, or browse available suites.');
     }
     setLoading(false);
   }
 
+  const suggestions = result?.suggestions || [];
+  const badges = badgesFor(suggestions);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Invest</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Find the best plan for your funds</h1>
+      <h1 className="font-display mt-1 text-4xl text-ocean">Help me choose</h1>
       <p className="mt-3 max-w-2xl text-ocean/70">
-        Ranked from live prices, advance-payment discounts, and projected rental return. Referral income is
-        treated as extra cash flow — it does not change which plan yields more. These figures are illustrative.
+        Answer two questions. We’ll suggest a suite and how much to pay today — from live prices, not a sales pitch.
       </p>
 
-      <form onSubmit={run} className="mt-8 grid gap-4 border border-ocean/10 bg-white p-5 sm:grid-cols-2">
-        <label className="text-sm text-ocean">
-          Cash available now (৳)
-          <input className="field mt-1" type="number" min={0} value={availableNow} onChange={(e) => setAvailableNow(e.target.value)} />
+      <form onSubmit={run} className="mt-8 space-y-5 border border-ocean/10 bg-white p-5 sm:p-6">
+        <label className="block text-sm font-medium text-ocean">
+          How much can you pay today?
+          <input
+            className="field mt-1"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder="e.g. 500000"
+            value={availableNow}
+            onChange={(e) => setAvailableNow(e.target.value)}
+            required
+          />
+          <span className="mt-1 block text-xs font-normal text-ocean/55">The amount you can transfer now to reserve.</span>
         </label>
-        <label className="text-sm text-ocean">
-          Monthly capacity (৳)
-          <input className="field mt-1" type="number" min={0} value={monthlyCapacity} onChange={(e) => setMonthlyCapacity(e.target.value)} />
+        <label className="block text-sm font-medium text-ocean">
+          How much can you put aside each month?
+          <input
+            className="field mt-1"
+            type="number"
+            min={0}
+            inputMode="numeric"
+            placeholder="e.g. 25000"
+            value={monthlyCapacity}
+            onChange={(e) => setMonthlyCapacity(e.target.value)}
+            required
+          />
+          <span className="mt-1 block text-xs font-normal text-ocean/55">What you can comfortably pay after the first payment.</span>
         </label>
-        <label className="text-sm text-ocean">
-          Horizon (months)
-          <input className="field mt-1" type="number" min={1} max={60} value={horizonMonths} onChange={(e) => setHorizonMonths(e.target.value)} />
-        </label>
-        <label className="flex items-end gap-2 text-sm text-ocean pb-2">
-          <input type="checkbox" checked={useReferral} onChange={(e) => setUseReferral(e.target.checked)} />
-          Include my referral target
+        <div>
+          <p className="text-sm font-medium text-ocean">How long can you keep paying?</p>
+          <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
+            {['24', '36'].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setHorizonMonths(n)}
+                className={`border px-3 py-2 text-sm font-semibold ${
+                  horizonMonths === n ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80'
+                }`}
+              >
+                {n} months
+              </button>
+            ))}
+          </div>
+        </div>
+        <label className="flex items-start gap-2 text-sm text-ocean">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={useReferral}
+            onChange={(e) => setUseReferral(e.target.checked)}
+          />
+          <span>
+            I also earn from referring buyers
+            <span className="mt-0.5 block text-xs text-ocean/55">Optional. We’ll treat this as extra cash, not as a reason to pick a plan.</span>
+          </span>
         </label>
         {useReferral && (
-          <>
+          <div className="grid gap-4 border border-ocean/10 bg-pearl/60 p-4 sm:grid-cols-2">
             <label className="text-sm text-ocean">
-              Target type
+              How you measure it
               <select className="field mt-1" value={refMode} onChange={(e) => setRefMode(e.target.value as any)}>
                 <option value="count">Number of referred sales</option>
                 <option value="volume">Taka volume of referred sales</option>
@@ -92,13 +137,11 @@ export default function InvestAdvisorPage() {
               Over how many months
               <input className="field mt-1" type="number" min={1} max={36} value={refMonths} onChange={(e) => setRefMonths(e.target.value)} />
             </label>
-          </>
+          </div>
         )}
-        <div className="sm:col-span-2">
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Scoring…' : 'Show recommendations'}
-          </Button>
-        </div>
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Finding a match…' : 'Show my options'}
+        </Button>
       </form>
 
       {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
@@ -106,17 +149,23 @@ export default function InvestAdvisorPage() {
       {result && (
         <div className="mt-8 space-y-4">
           <p className="text-sm text-ocean/65">
-            Compared {result.considered} combinations. Discount rate {result.assumptions?.discountRateAnnualPct}%
-            semiannual. Referral rate {result.assumptions?.referralRatePct}%.
+            {suggestions.length
+              ? `Here are the strongest matches from ${result.considered} live combinations.`
+              : 'No unsold plans to compare right now.'}
           </p>
-          {(result.suggestions || []).map((s: any, i: number) => (
+          {suggestions.map((s: any, i: number) => (
             <article key={`${s.planId}-${s.paymentTierId}-${s.installmentMonths}-${i}`} className="border border-ocean/10 bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gold">#{i + 1}</p>
+                  {badges[i] && (
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gold">{badges[i]}</p>
+                  )}
                   <h2 className="font-display mt-1 text-2xl text-ocean">{s.planName}</h2>
                   <p className="mt-1 text-sm text-ocean/70">
-                    {s.tierLabel} · {s.installmentMonths} months · {s.cadence}
+                    {tierHeadline({ id: s.paymentTierId, label: s.tierLabel })}
+                    {s.paymentTierId !== 'full'
+                      ? ` · finish in ${s.installmentMonths} months${s.cadence === 'quarterly' ? ', every 3 months' : ''}`
+                      : ''}
                   </p>
                 </div>
                 <div className="text-right">
@@ -127,24 +176,35 @@ export default function InvestAdvisorPage() {
               </div>
               <p className="mt-3 text-sm text-ocean/80">{s.summary}</p>
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="border border-ocean/15 px-2 py-1">Yield {s.yieldPct}%</span>
-                <span className="border border-ocean/15 px-2 py-1">Due today {formatMoney(s.depositAmount)}</span>
+                <span className="border border-ocean/15 px-2 py-1">Today {formatMoney(s.depositAmount)}</span>
+                {s.paymentTierId !== 'full' && (
+                  <span className="border border-ocean/15 px-2 py-1">
+                    Then about {formatMoney(Math.round(monthlyOutlay(s)))}
+                    {s.cadence === 'quarterly' ? ' / quarter' : ' / month'}
+                  </span>
+                )}
                 {s.feasibleWithoutReferral ? (
-                  <span className="border border-ocean/15 px-2 py-1">Fits salary alone</span>
+                  <span className="border border-ocean/15 px-2 py-1">Fits the budget you entered</span>
                 ) : s.feasibleIfTargetHit ? (
-                  <span className="border border-gold/40 bg-gold/10 px-2 py-1">Needs referral target</span>
+                  <span className="border border-gold/40 bg-gold/10 px-2 py-1">Needs your referral target</span>
                 ) : (
-                  <span className="border border-red-200 bg-red-50 px-2 py-1">Tight cash flow</span>
+                  <span className="border border-red-200 bg-red-50 px-2 py-1">Tight against this budget</span>
                 )}
               </div>
               <div className="mt-4">
-                <Link href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}>
-                  <Button>Open this plan</Button>
+                <Link
+                  href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}
+                >
+                  <Button>Continue with this plan</Button>
                 </Link>
               </div>
             </article>
           ))}
-          {!result.suggestions?.length && <p className="text-ocean/65">No unsold plans to score.</p>}
+          {!suggestions.length && (
+            <Link href="/invest">
+              <Button variant="outline">Browse available suites</Button>
+            </Link>
+          )}
         </div>
       )}
     </main>

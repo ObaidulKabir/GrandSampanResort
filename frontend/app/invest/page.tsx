@@ -242,16 +242,14 @@ export default function InvestPage() {
         <div>
           <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
           <p className="mt-3 max-w-2xl text-ocean/70">
-            Choose a share plan, or{' '}
-            <Link href="/invest/advisor" className="font-semibold text-ocean underline">
-              find the best plan for your funds
+            Reserve from 10% today, or pay more now to save. Filter by view, floor, or price — or
+            let us match a plan to what you can pay.
+          </p>
+          <div className="mt-4">
+            <Link href="/invest/advisor">
+              <Button>Help me choose</Button>
             </Link>
-            .
-          </p>
-          <p className="mt-2 max-w-2xl text-ocean/75">
-            Browse share plans by view, floor, price, or category. Available, reserved, and sold
-            plans are shown by default — hide sold plans anytime to focus on what is still open.
-          </p>
+          </div>
         </div>
         <Button variant="outline" onClick={load}>
           {loading ? 'Refreshing...' : 'Refresh'}
@@ -424,6 +422,10 @@ export default function InvestPage() {
             : planStatusKey(p) === 'reserved'
               ? 'Reserved'
               : 'Available';
+          const total = planTotal(p);
+          const standardPct = Number(payPolicy?.resolved?.find((t: any) => t.id === 'standard')?.upfrontPct) || 10;
+          const bookingAmount = Math.round(total * (standardPct / 100));
+          const full = payPolicy?.resolved?.find((t: any) => t.upfrontPct >= 100);
           return (
             <article
               key={p.id}
@@ -516,72 +518,64 @@ export default function InvestPage() {
                   {p.discountPct}% OFF · Ends {formatDate(p.promoEndsAt)}
                 </span>
               )}
-              {(() => {
-                const total = planTotal(p);
-                const standardPct = Number(payPolicy?.resolved?.find((t: any) => t.id === 'standard')?.upfrontPct) || 10;
-                const bookingAmount = Math.round(total * (standardPct / 100));
-                const full = payPolicy?.resolved?.find((t: any) => t.upfrontPct >= 100);
-                return (
-                  <div className="mt-5 space-y-3">
-                    <div>
-                      <p
-                        className={`text-xs font-semibold uppercase tracking-wide ${
-                          available ? 'text-ocean/60' : 'text-ocean/40'
-                        }`}
-                      >
-                        Total price
-                      </p>
-                      {discounted && available && (
-                        <p className="text-sm text-ocean/50 line-through">{formatMoney(p.price)}</p>
-                      )}
-                      <p
-                        className={`font-display text-2xl font-semibold ${
-                          available ? 'text-ocean' : 'text-ocean/50 line-through decoration-ocean/30'
-                        }`}
-                      >
-                        {formatMoney(total)}
-                      </p>
-                    </div>
-                    {available && full?.offeredDiscountPct > 0 && (
-                      <span className="inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
-                        Pay in full, save {Number(full.offeredDiscountPct).toFixed(1)}%
-                      </span>
-                    )}
-                    {available ? (
-                      <div className="border border-gold/50 bg-gold/10 px-3 py-3">
-                        <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today (standard)</p>
-                        <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
-                          {formatMoney(bookingAmount)}
-                        </p>
-                        <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                          Pay {standardPct}% today to reserve this plan
-                        </p>
-                      </div>
-                    ) : (
-                      <div
-                        className={`border px-3 py-3 ${
-                          sold
-                            ? 'border-dashed border-ocean/25 bg-white/40'
-                            : 'border-dashed border-gold/40 bg-white/50'
-                        }`}
-                      >
-                        <p
-                          className={`text-xs font-bold uppercase tracking-wide ${
-                            sold ? 'text-ocean/55' : 'text-ocean/70'
-                          }`}
-                        >
-                          {sold ? 'No longer available' : 'Temporarily held'}
-                        </p>
-                        <p className={`mt-1 text-sm ${sold ? 'text-ocean/55' : 'text-ocean/70'}`}>
-                          {sold
-                            ? 'This share plan has already been purchased.'
-                            : 'This share plan is reserved while a booking is being completed.'}
-                        </p>
-                      </div>
-                    )}
+              <div className="mt-5 space-y-3">
+                <div>
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-wide ${
+                      available ? 'text-ocean/60' : 'text-ocean/40'
+                    }`}
+                  >
+                    Total price
+                  </p>
+                  {discounted && available && (
+                    <p className="text-sm text-ocean/50 line-through">{formatMoney(p.price)}</p>
+                  )}
+                  <p
+                    className={`font-display text-2xl font-semibold ${
+                      available ? 'text-ocean' : 'text-ocean/50 line-through decoration-ocean/30'
+                    }`}
+                  >
+                    {formatMoney(total)}
+                  </p>
+                </div>
+                {available && full?.offeredDiscountPct > 0 && (
+                  <span className="inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
+                    Pay in full, save {Number(full.offeredDiscountPct).toFixed(1)}%
+                  </span>
+                )}
+                {available ? (
+                  <div className="border border-gold/50 bg-gold/10 px-3 py-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">To reserve today</p>
+                    <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
+                      {formatMoney(bookingAmount)}
+                    </p>
+                    <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                      {standardPct}% now · pay more at checkout to save
+                    </p>
                   </div>
-                );
-              })()}
+                ) : (
+                  <div
+                    className={`border px-3 py-3 ${
+                      sold
+                        ? 'border-dashed border-ocean/25 bg-white/40'
+                        : 'border-dashed border-gold/40 bg-white/50'
+                    }`}
+                  >
+                    <p
+                      className={`text-xs font-bold uppercase tracking-wide ${
+                        sold ? 'text-ocean/55' : 'text-ocean/70'
+                      }`}
+                    >
+                      {sold ? 'No longer available' : 'Temporarily held'}
+                    </p>
+                    <p className={`mt-1 text-sm ${sold ? 'text-ocean/55' : 'text-ocean/70'}`}>
+                      {sold
+                        ? 'This share plan has already been purchased.'
+                        : 'This share plan is reserved while a booking is being completed.'}
+                    </p>
+                  </div>
+                )}
+              </div>
               {returns && available && (
                 <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">
@@ -597,14 +591,9 @@ export default function InvestPage() {
               )}
               <div className="mt-6 flex flex-wrap gap-2">
                 {available ? (
-                  <>
                     <Link href={`/pricing/plans/${p.id}`}>
-                      <Button>Buy this plan</Button>
+                      <Button>Reserve from {formatMoney(bookingAmount)}</Button>
                     </Link>
-                    <Link href={`/pricing/plans/${p.id}`}>
-                      <Button variant="outline">Details</Button>
-                    </Link>
-                  </>
                 ) : (
                   <Button
                     disabled

@@ -55,7 +55,12 @@ export default function InvestmentPlansPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl text-ocean">Investment Plans</h1>
-          <p className="mt-2 text-ocean/75">Unsold share plans ready for purchase.</p>
+          <p className="mt-2 text-ocean/75">Reserve from 10% today, or pay more now to save.</p>
+          <div className="mt-3">
+            <Link href="/invest/advisor">
+              <Button>Help me choose</Button>
+            </Link>
+          </div>
         </div>
         <Link href="/invest">
           <Button variant="outline">Full catalog</Button>
@@ -67,6 +72,10 @@ export default function InvestmentPlansPage() {
         {plans.map((p) => {
           const suite = suites[p.suiteId] || {};
           const returns = annualReturnRange(p.daysPerMonth, assumptions, suite);
+          const total = typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
+          const standardPct = Number(payPolicy?.resolved?.find((t: any) => t.id === 'standard')?.upfrontPct) || 10;
+          const bookingAmount = Math.round(total * (standardPct / 100));
+          const full = payPolicy?.resolved?.find((t: any) => t.upfrontPct >= 100);
           return (
             <article key={p.id} className="flex flex-col border border-ocean/15 bg-white p-6">
               <h2 className="font-display text-2xl text-ocean">{p.name}</h2>
@@ -76,13 +85,7 @@ export default function InvestmentPlansPage() {
               <p className="mt-2 text-sm text-ocean/70">
                 {p.suiteId || '—'} · {suite.type || '—'} · {suite.view || '—'}
               </p>
-              {(() => {
-                const total = typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
-                const standardPct = Number(payPolicy?.resolved?.find((t: any) => t.id === 'standard')?.upfrontPct) || 10;
-                const bookingAmount = Math.round(total * (standardPct / 100));
-                const full = payPolicy?.resolved?.find((t: any) => t.upfrontPct >= 100);
-                return (
-                  <div className="mt-5 space-y-3">
+              <div className="mt-5 space-y-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">Total price</p>
                       {typeof p.discountedPrice === 'number' && (
@@ -96,17 +99,15 @@ export default function InvestmentPlansPage() {
                       </span>
                     )}
                     <div className="border border-gold/50 bg-gold/10 px-3 py-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today (standard)</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">To reserve today</p>
                       <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
                         {formatMoney(bookingAmount)}
                       </p>
                       <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                        Pay {standardPct}% today to reserve this plan
+                        {standardPct}% now · pay more at checkout to save
                       </p>
                     </div>
                   </div>
-                );
-              })()}
               {returns && (
                 <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
                   <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">
@@ -122,7 +123,7 @@ export default function InvestmentPlansPage() {
               )}
               <div className="mt-6">
                 <Link href={`/pricing/plans/${p.id}`}>
-                  <Button>Buy this plan</Button>
+                  <Button>Reserve from {formatMoney(bookingAmount)}</Button>
                 </Link>
               </div>
             </article>

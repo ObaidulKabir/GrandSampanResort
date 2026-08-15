@@ -32,6 +32,14 @@ export default function Hero() {
           <Link href="/invest">
             <Button className="bg-gold text-ocean hover:bg-gold/90">Invest in a Suite</Button>
           </Link>
+          <Link href="/invest/advisor">
+            <Button
+              variant="outline"
+              className="border-white/70 text-white hover:bg-white/10 hover:text-white"
+            >
+              Help me choose
+            </Button>
+          </Link>
           <Link href="/booking">
             <Button
               variant="outline"
