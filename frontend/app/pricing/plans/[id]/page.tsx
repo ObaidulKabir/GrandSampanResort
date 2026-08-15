@@ -1392,7 +1392,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                       </tr>
                     </thead>
                     <tbody>
-                      {schedule.slice(0, 8).map((i) => (
+                      {schedule.slice(0, 8).map((i: { id: string; type: string; dueDate: string; amount: number }) => (
                         <tr key={i.id} className="border-t border-ocean/10">
                           <td className="p-3 capitalize">{i.type}</td>
                           <td className="p-3">{formatDate(i.dueDate)}</td>

@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 import { tierHeadline } from '@/lib/paymentCopy';
-import { badgesFor } from '@/lib/advisorUi';
+import { badgesFor, monthlyOutlay } from '@/lib/advisorUi';
 
 export default function InvestAdvisorPage() {
   const [availableNow, setAvailableNow] = useState('');
