@@ -4,20 +4,23 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+import Badge from '@/components/ui/Badge';
+import StatCard from '@/components/ui/StatCard';
 import ImageLightbox from '@/components/ImageLightbox';
 import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
+import { useToast } from '@/components/ui/ToastContext';
 
 type SortKey = 'id' | 'floor' | 'type' | 'size' | 'view' | 'totalPrice' | 'plans';
 type SortDir = 'asc' | 'desc';
 
 const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'id', label: 'Unit' },
+  { key: 'id', label: 'Unit ID' },
   { key: 'floor', label: 'Floor' },
   { key: 'type', label: 'Category' },
-  { key: 'size', label: 'Size' },
+  { key: 'size', label: 'Size (sq ft)' },
   { key: 'view', label: 'View' },
-  { key: 'totalPrice', label: 'Price' },
-  { key: 'plans', label: 'Plans' }
+  { key: 'totalPrice', label: 'List Price' },
+  { key: 'plans', label: 'Share Status' }
 ];
 
 function firstBySuite(items: MediaItem[]) {
@@ -43,22 +46,23 @@ function DrawingThumb({
   onOpen: (img: { src: string; alt: string }) => void;
 }) {
   if (!image) {
-    return <span className="text-xs text-ocean/45">Not uploaded</span>;
+    return <span className="text-[11px] text-ocean/40 font-normal">Not Uploaded</span>;
   }
   return (
     <button
       type="button"
       onClick={() => onOpen({ src: image.src, alt: image.alt || label })}
-      className="group block w-20 overflow-hidden border border-ocean/15 bg-pearl/40 transition hover:border-gold/50"
+      className="group block w-16 overflow-hidden rounded border border-ocean/15 bg-pearl/60 transition hover:border-gold hover:shadow-sm"
       title={`View ${label}`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={image.src} alt={image.alt || label} className="h-14 w-full object-contain p-1" />
+      <img src={image.src} alt={image.alt || label} className="h-10 w-full object-contain p-0.5" />
     </button>
   );
 }
 
 export default function AdminUnitsListPage() {
+  const { success, error: toastError } = useToast();
   const [items, setItems] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
@@ -86,6 +90,7 @@ export default function AdminUnitsListPage() {
       setKeyMapBySuite(firstBySuite(keyMedia));
     } catch {
       setError('Failed to load units');
+      toastError('Failed to load units');
     }
     setLoading(false);
   }
@@ -115,18 +120,18 @@ export default function AdminUnitsListPage() {
     );
     if (!ok) return;
     setDeletingId(id);
-    setError('');
     try {
       const json = await api(`/suites/${id}`, { method: 'DELETE' });
       if (json?.ok) {
+        success(`Unit ${id} successfully deleted!`);
         await load();
       } else if (json?.error === 'has_bookings') {
-        setError(`Unit ${id} has sales/bookings and cannot be deleted.`);
+        toastError(`Unit ${id} has active sales/bookings and cannot be deleted.`);
       } else {
-        setError(json?.error === 'not_found' ? `Unit ${id} was not found` : json?.error || `Failed to delete ${id}`);
+        toastError(json?.error || `Failed to delete ${id}`);
       }
     } catch {
-      setError(`Failed to delete ${id}`);
+      toastError(`Failed to delete ${id}`);
     }
     setDeletingId('');
   }
@@ -162,133 +167,164 @@ export default function AdminUnitsListPage() {
     return rows;
   }, [items, plans, sortKey, sortDir]);
 
-  function SortHeader({ col }: { col: (typeof COLUMNS)[number] }) {
-    const active = sortKey === col.key;
-    return (
-      <th className="p-3 font-medium">
-        <button
-          type="button"
-          onClick={() => toggleSort(col.key)}
-          className={`inline-flex items-center gap-1 ${active ? 'text-ocean' : 'text-ocean/70 hover:text-ocean'}`}
-          aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-        >
-          {col.label}
-          <span className="text-[10px] font-semibold" aria-hidden>
-            {active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}
-          </span>
-        </button>
-      </th>
-    );
-  }
+  const totalUnsoldShares = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'unsold').length;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
-          <h1 className="font-display mt-1 text-4xl text-ocean">Units</h1>
-          <p className="mt-2 text-ocean/75">Each unit needs at least one Unsold plan to appear in the buyer catalog.</p>
+          <Badge variant="gold" size="sm" dot>Physical Asset &amp; Inventory Matrix</Badge>
+          <h1 className="font-display mt-1 text-2xl font-bold text-ocean sm:text-3xl">
+            Resort Suites &amp; Units
+          </h1>
+          <p className="mt-1 text-xs text-ocean/65">
+            Configure rooms, floor locations, architectural keymaps, and associated fractional share plans.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/units/new">
-            <Button>Create unit</Button>
-          </Link>
-          <Button variant="outline" onClick={load}>
-            {loading ? 'Refreshing...' : 'Refresh'}
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="text-xs" onClick={load}>
+            {loading ? 'Refreshing...' : '↻ Refresh'}
           </Button>
+          <Link href="/admin/units/new">
+            <Button className="text-xs">+ Create Unit</Button>
+          </Link>
         </div>
       </div>
 
-      {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+          {error}
+        </div>
+      )}
 
-      <div className="mt-6 overflow-auto border border-ocean/10 bg-white">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-ocean/10 text-left">
-              {COLUMNS.map((col) => (
-                <SortHeader key={col.key} col={col} />
-              ))}
-              <th className="p-3 font-medium text-ocean/70">Architectural plan</th>
-              <th className="p-3 font-medium text-ocean/70">Key map</th>
-              <th className="p-3 font-medium text-ocean/70">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((i) => {
-              const stats = { total: i._plansTotal, unsold: i._plansUnsold };
-              return (
-                <tr key={i.id} className="border-t border-ocean/10">
-                  <td className="p-3 font-medium text-ocean">{i.id}</td>
-                  <td className="p-3">{i.floor}</td>
-                  <td className="p-3">{i.type}</td>
-                  <td className="p-3">{i.size} sq ft</td>
-                  <td className="p-3">{i.view}</td>
-                  <td className="p-3">{formatMoney(i.totalPrice || 0)}</td>
-                  <td className="p-3">
-                    {stats.total === 0 ? (
-                      <span className="inline-block border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
-                        No plans
-                      </span>
-                    ) : (
-                      <span
-                        className={`inline-block border px-2 py-0.5 text-xs ${
-                          stats.unsold > 0
-                            ? 'border-gold/50 bg-gold/10 text-ocean'
-                            : 'border-ocean/20 bg-pearl text-ocean/80'
-                        }`}
-                      >
-                        {stats.unsold} on sale / {stats.total}
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <DrawingThumb
-                      label="Architectural plan"
-                      image={archBySuite[i.id]}
-                      onOpen={setLightbox}
-                    />
-                  </td>
-                  <td className="p-3">
-                    <DrawingThumb label="Key map" image={keyMapBySuite[i.id]} onOpen={setLightbox} />
-                  </td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-3 text-xs font-semibold">
-                      <Link href={`/admin/units/${i.id}/plans`} className="text-ocean underline">
-                        Plans
-                      </Link>
-                      <Link href={`/admin/units/${i.id}/edit`} className="text-ocean underline">
-                        Edit
-                      </Link>
+      {/* KPI Metrics */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Total Resort Suites"
+          value={items.length}
+          variant="ocean"
+          icon={<span className="text-lg">🏢</span>}
+          subtext="Configured inventory rooms"
+        />
+        <StatCard
+          label="Unsold Available Shares"
+          value={totalUnsoldShares}
+          variant="gold"
+          icon={<span className="text-lg">🏷️</span>}
+          subtext={`Across ${plans.length} total published plans`}
+        />
+        <StatCard
+          label="Drawings Uploaded"
+          value={Object.keys(archBySuite).length}
+          variant="pearl"
+          icon={<span className="text-lg">📐</span>}
+          subtext="Architectural floor drawings active"
+        />
+      </div>
+
+      {/* Units Table */}
+      <div className="overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm">
+        <div className="border-b border-ocean/10 bg-pearl px-5 py-3">
+          <h3 className="font-display text-base font-bold text-ocean">Suite Inventory Matrix</h3>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-ocean/10 bg-pearl/60 text-ocean/60 uppercase font-semibold">
+                {COLUMNS.map((col) => {
+                  const active = sortKey === col.key;
+                  return (
+                    <th key={col.key} className="px-4 py-3">
                       <button
                         type="button"
-                        onClick={() => deleteUnit(i.id)}
-                        disabled={deletingId === i.id}
-                        className="text-red-700 underline disabled:opacity-50"
+                        onClick={() => toggleSort(col.key)}
+                        className={`inline-flex items-center gap-1 font-bold ${
+                          active ? 'text-ocean' : 'text-ocean/70 hover:text-ocean'
+                        }`}
                       >
-                        {deletingId === i.id ? 'Deleting…' : 'Delete'}
+                        {col.label}
+                        <span className="text-[10px]">{active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
                       </button>
-                    </div>
+                    </th>
+                  );
+                })}
+                <th className="px-4 py-3">Floor Plan</th>
+                <th className="px-4 py-3">Key Map</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ocean/10">
+              {sorted.map((i) => {
+                const stats = { total: i._plansTotal, unsold: i._plansUnsold };
+                return (
+                  <tr key={i.id} className="hover:bg-pearl/30 transition">
+                    <td className="px-4 py-3.5 font-bold text-ocean font-mono text-sm">{i.id}</td>
+                    <td className="px-4 py-3.5 font-semibold text-ocean">Floor {i.floor}</td>
+                    <td className="px-4 py-3.5 font-semibold text-ocean">{i.type}</td>
+                    <td className="px-4 py-3.5 text-ocean/80">{i.size} sq ft</td>
+                    <td className="px-4 py-3.5 capitalize text-ocean">{i.view} View</td>
+                    <td className="px-4 py-3.5 font-bold text-ocean">{formatMoney(i.totalPrice || 0)}</td>
+                    <td className="px-4 py-3.5">
+                      {stats.total === 0 ? (
+                        <Badge variant="danger" size="sm">No Plans</Badge>
+                      ) : (
+                        <Badge variant={stats.unsold > 0 ? 'gold' : 'neutral'} size="sm">
+                          {stats.unsold} on sale / {stats.total}
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <DrawingThumb label="Architectural plan" image={archBySuite[i.id]} onOpen={setLightbox} />
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <DrawingThumb label="Key map" image={keyMapBySuite[i.id]} onOpen={setLightbox} />
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/units/${i.id}/plans`}
+                          className="rounded bg-ocean px-2.5 py-1 text-xs font-semibold text-white hover:bg-ocean/90 transition"
+                        >
+                          Plans
+                        </Link>
+                        <Link
+                          href={`/admin/units/${i.id}/edit`}
+                          className="rounded border border-ocean/20 px-2.5 py-1 text-xs font-semibold text-ocean hover:bg-ocean/5 transition"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => deleteUnit(i.id)}
+                          disabled={deletingId === i.id}
+                          className="text-xs text-rose-600 hover:underline disabled:opacity-50"
+                        >
+                          {deletingId === i.id ? '…' : 'Delete'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {items.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-ocean/60">
+                    No suites created yet.{' '}
+                    <Link href="/admin/units/new" className="font-bold text-ocean underline">
+                      Create the first unit &rarr;
+                    </Link>
                   </td>
                 </tr>
-              );
-            })}
-            {items.length === 0 && !loading && (
-              <tr>
-                <td className="p-4 text-ocean/70" colSpan={10}>
-                  No units yet —{' '}
-                  <Link href="/admin/units/new" className="font-semibold text-ocean underline">
-                    create the first one
-                  </Link>
-                  .
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      {lightbox && (
-        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
-      )}
-    </main>
+
+      {lightbox && <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
+    </div>
   );
 }

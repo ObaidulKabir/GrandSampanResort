@@ -1,9 +1,16 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { api } from '@/lib/api';
 import { formatDateTime, formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+import Badge from '@/components/ui/Badge';
+import StatCard from '@/components/ui/StatCard';
+import Tabs, { type TabItem } from '@/components/ui/Tabs';
+import Drawer from '@/components/ui/Drawer';
+import Skeleton from '@/components/ui/Skeleton';
+import { useToast } from '@/components/ui/ToastContext';
 
 type SaleRow = {
   booking: any;
@@ -16,6 +23,7 @@ type SaleRow = {
 type Tab = 'pipeline' | 'inventory' | 'investors';
 
 export default function AdminSalesPage() {
+  const { success, error: toastError } = useToast();
   const [tab, setTab] = useState<Tab>('pipeline');
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -28,7 +36,9 @@ export default function AdminSalesPage() {
   const [investorQuery, setInvestorQuery] = useState('');
   const [kycFilter, setKycFilter] = useState<'all' | 'verified' | 'pending'>('all');
   const [actingId, setActingId] = useState<string | null>(null);
-  const [actionMsg, setActionMsg] = useState('');
+
+  // Side-by-side KYC review drawer
+  const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null);
 
   async function load() {
     setLoading(true);
@@ -45,6 +55,7 @@ export default function AdminSalesPage() {
       setPlans(planList);
     } catch {
       setError('Failed to load sales data');
+      toastError('Failed to load sales data');
     }
     setLoading(false);
   }
@@ -71,14 +82,6 @@ export default function AdminSalesPage() {
       pendingKyc
     };
   }, [sales, users, plans]);
-
-  const statuses = useMemo(() => {
-    const set = new Set<string>();
-    sales.forEach((s) => {
-      if (s.booking?.status) set.add(String(s.booking.status));
-    });
-    return Array.from(set);
-  }, [sales]);
 
   const filteredSales = useMemo(() => {
     const q = pipelineQuery.trim().toLowerCase();
@@ -130,618 +133,596 @@ export default function AdminSalesPage() {
       const hay = [u.id, u.name, u.email].filter(Boolean).join(' ').toLowerCase();
       return hay.includes(q);
     });
-  }, [users, investorQuery, kycFilter]);
+  }, [users, kycFilter, investorQuery]);
 
-  async function toggleKyc(userId: string, kyc: boolean) {
-    await api('/auth/kyc', {
-      method: 'PUT',
-      body: JSON.stringify({ userId, kyc: !kyc })
-    });
-    await load();
-  }
-
-  function canConfirmBooking(booking: any) {
-    if (!booking?.planId) return false;
-    const status = String(booking.status || '').toLowerCase();
-    return status === 'awaiting_payment' || status === 'awaiting_kyc';
-  }
-
-  function canCancelBooking(booking: any) {
-    if (!booking?.planId) return false;
-    const status = String(booking.status || '').toLowerCase();
-    return status === 'awaiting_payment' || status === 'awaiting_kyc' || status === 'confirmed';
-  }
-
-  async function confirmBooking(sale: SaleRow) {
-    const bookingId = sale.booking?.id;
-    if (!bookingId || !canConfirmBooking(sale.booking)) return;
-    if (
-      !window.confirm(
-        'Confirm this booking? This marks deposit received and KYC verified, then completes the sale (plan → Booked).'
-      )
-    ) {
-      return;
-    }
+  async function updateStatus(bookingId: string, nextStatus: string) {
     setActingId(bookingId);
-    setActionMsg('');
     try {
-      let completed = false;
-      if (!sale.booking.depositConfirmedAt) {
-        const dep = await api(`/booking/${encodeURIComponent(bookingId)}/confirm-deposit`, {
-          method: 'POST',
-          body: JSON.stringify({})
-        });
-        if (!dep?.ok) {
-          setActionMsg(
-            dep?.error === 'not_pending_review' || dep?.error === 'not_awaiting_payment'
-              ? `Could not confirm ${bookingId}: not pending review`
-              : `Could not confirm deposit for ${bookingId}`
-          );
-          return;
-        }
-        completed = !!dep.completed;
-      }
-      if (!completed && !sale.booking.kycVerified) {
-        const kyc = await api(`/booking/${encodeURIComponent(bookingId)}/verify-kyc`, {
-          method: 'POST',
-          body: JSON.stringify({})
-        });
-        if (!kyc?.ok) {
-          setActionMsg(
-            kyc?.error === 'kyc_missing'
-              ? `Could not confirm ${bookingId}: KYC snapshot missing`
-              : `Could not verify KYC for ${bookingId}`
-          );
-          await load();
-          return;
-        }
-        completed = !!kyc.completed;
-      }
-      if (!completed && sale.booking.depositConfirmedAt && sale.booking.kycVerified) {
-        // Both flags already set but status still pending — confirm deposit again to finalize.
-        const dep = await api(`/booking/${encodeURIComponent(bookingId)}/confirm-deposit`, {
-          method: 'POST',
-          body: JSON.stringify({})
-        });
-        completed = !!dep?.completed;
-      }
-      setActionMsg(
-        completed
-          ? `Booking ${bookingId} confirmed. Plan booked and client notified.`
-          : `Booking ${bookingId} updated. Open the booking if anything is still pending.`
-      );
-      await load();
-    } catch {
-      setActionMsg(`Could not confirm booking ${bookingId}`);
-    } finally {
-      setActingId(null);
-    }
-  }
-
-  async function cancelBooking(sale: SaleRow) {
-    const bookingId = sale.booking?.id;
-    if (!bookingId || !canCancelBooking(sale.booking)) return;
-    const reason = window.prompt(
-      'Cancellation reason (required — emailed to the client):',
-      sale.booking.status === 'confirmed'
-        ? 'Booking cancelled by admin'
-        : 'Payment not received / KYC not valid'
-    );
-    if (reason == null) return;
-    if (!reason.trim()) {
-      setActionMsg('A cancellation reason is required.');
-      return;
-    }
-    if (
-      !window.confirm(
-        'Cancel this booking and set the share plan back to Unsold? The client will be emailed.'
-      )
-    ) {
-      return;
-    }
-    setActingId(bookingId);
-    setActionMsg('');
-    try {
-      const res = await api(`/booking/${encodeURIComponent(bookingId)}/cancel`, {
-        method: 'POST',
-        body: JSON.stringify({ reason: reason.trim() })
+      const res = await api(`/booking/admin/${bookingId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: nextStatus })
       });
-      if (!res?.ok) {
-        setActionMsg(
-          res?.error === 'reason_required'
-            ? 'A cancellation reason is required'
-            : res?.error === 'already_cancelled'
-              ? `Booking ${bookingId} is already cancelled`
-              : res?.error === 'not_cancellable'
-                ? `Booking ${bookingId} cannot be cancelled in its current status`
-                : `Could not cancel booking ${bookingId}`
+      if (res?.ok) {
+        success(`Booking status updated to ${nextStatus}`);
+        setSales((prev) =>
+          prev.map((s) => (s.booking?.id === bookingId ? { ...s, booking: { ...s.booking, status: nextStatus } } : s))
         );
-      } else {
-        const parts = [
-          res.planReleased
-            ? `Booking ${bookingId} cancelled. Plan released to Unsold.`
-            : `Booking ${bookingId} cancelled.`
-        ];
-        if (res.clientNotified && res.notifiedEmail) {
-          parts.push(`Email sent to ${res.notifiedEmail}.`);
-        } else {
-          parts.push('Client email could not be sent — check SMTP or buyer email.');
+        if (selectedSale?.booking?.id === bookingId) {
+          setSelectedSale((prev) => (prev ? { ...prev, booking: { ...prev.booking, status: nextStatus } } : null));
         }
-        setActionMsg(parts.join(' '));
-        await load();
+      } else {
+        toastError(res?.error || 'Failed to update booking status');
       }
     } catch {
-      setActionMsg(`Could not cancel booking ${bookingId}`);
-    } finally {
-      setActingId(null);
+      toastError('Status update failed');
     }
+    setActingId(null);
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'pipeline', label: 'Bookings' },
-    { id: 'inventory', label: 'Inventory' },
-    { id: 'investors', label: 'Investors' }
+  async function verifyKyc(bookingId: string) {
+    setActingId(bookingId);
+    try {
+      const res = await api(`/booking/admin/${bookingId}/verify-kyc`, { method: 'POST' });
+      if (res?.ok) {
+        success('KYC verified and confirmed!');
+        setSales((prev) =>
+          prev.map((s) =>
+            s.booking?.id === bookingId
+              ? { ...s, booking: { ...s.booking, kycVerified: true, status: 'confirmed' } }
+              : s
+          )
+        );
+        if (selectedSale?.booking?.id === bookingId) {
+          setSelectedSale((prev) =>
+            prev ? { ...prev, booking: { ...prev.booking, kycVerified: true, status: 'confirmed' } } : null
+          );
+        }
+      } else {
+        toastError(res?.error || 'Failed to verify KYC');
+      }
+    } catch {
+      toastError('KYC verification error');
+    }
+    setActingId(null);
+  }
+
+  async function toggleUserKyc(userId: string, current: boolean) {
+    setActingId(userId);
+    try {
+      const res = await api(`/auth/users/${userId}/kyc`, {
+        method: 'PUT',
+        body: JSON.stringify({ kyc: !current })
+      });
+      if (res?.ok) {
+        success(`User KYC status set to ${!current ? 'Verified' : 'Pending'}`);
+        setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, kyc: !current } : u)));
+      } else {
+        toastError('Failed to update user KYC');
+      }
+    } catch {
+      toastError('User KYC update error');
+    }
+    setActingId(null);
+  }
+
+  const tabList: TabItem[] = [
+    { id: 'pipeline', label: 'Sales Pipeline & Bookings', icon: <span>💼</span>, badge: <Badge size="sm">{filteredSales.length}</Badge> },
+    { id: 'inventory', label: 'Inventory & Plan Status', icon: <span>🏢</span>, badge: <Badge variant="gold" size="sm">{plans.length}</Badge> },
+    { id: 'investors', label: 'Investor Directory & KYC', icon: <span>👥</span>, badge: stats.pendingKyc > 0 ? <Badge variant="warning" size="sm">{stats.pendingKyc} Pending</Badge> : undefined }
   ];
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 md:py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Company sales</p>
-          <h1 className="font-display mt-1 text-4xl text-ocean">Sales Desk</h1>
-          <p className="mt-2 text-ocean/75">
-            Investment bookings, inventory, and investors. Completing a booking (deposit + KYC) emails the
-            client an invoice.
+          <Badge variant="gold" size="sm" dot>Sales &amp; CRM Operations</Badge>
+          <h1 className="font-display mt-1 text-2xl font-bold text-ocean sm:text-3xl">
+            Sales Desk Command Center
+          </h1>
+          <p className="mt-1 text-xs text-ocean/65">
+            Monitor real-time reservations, inspect buyer NID KYC dossiers, and verify cash flows.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={load}>{loading ? 'Refreshing...' : 'Refresh'}</Button>
-          <Link href="/admin/units">
-            <Button variant="outline">Manage units</Button>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="text-xs" onClick={load}>
+            {loading ? 'Refreshing...' : '↻ Refresh Data'}
+          </Button>
+          <Link href="/admin/units/new">
+            <Button className="text-xs">+ New Unit</Button>
           </Link>
         </div>
       </div>
 
-      {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
-
-      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-        {[
-          { label: 'Bookings', value: String(stats.total) },
-          { label: 'Investments', value: String(stats.investments) },
-          { label: 'Stays', value: String(stats.stays) },
-          { label: 'GMV', value: formatMoney(stats.gmv) },
-          { label: 'Unsold plans', value: String(stats.unsold) },
-          { label: 'Booked plans', value: String(stats.booked) },
-          { label: 'KYC pending', value: String(stats.pendingKyc) }
-        ].map((s) => (
-          <div key={s.label} className="border border-ocean/10 bg-white p-4">
-            <div className="text-xs uppercase tracking-wide text-ocean/60">{s.label}</div>
-            <div className="font-display mt-1 text-xl text-ocean">{s.value}</div>
-          </div>
-        ))}
-      </section>
-
-      <div className="mt-8 flex flex-wrap gap-2 border-b border-ocean/10 pb-px">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
-              tab === t.id
-                ? 'border-ocean text-ocean'
-                : 'border-transparent text-ocean/60 hover:text-ocean'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* KPI Metric Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Gross Booking GMV"
+          isMoney
+          moneyAmount={stats.gmv}
+          variant="ocean"
+          icon={<span className="text-lg">💰</span>}
+          subtext={`${stats.investments} share sales`}
+        />
+        <StatCard
+          label="Pending KYC Reviews"
+          value={stats.pendingKyc}
+          variant={stats.pendingKyc > 0 ? 'gold' : 'pearl'}
+          icon={<span className="text-lg">🛡️</span>}
+          subtext="Requires admin compliance verification"
+        />
+        <StatCard
+          label="Unsold Share Plans"
+          value={stats.unsold}
+          variant="default"
+          icon={<span className="text-lg">📦</span>}
+          subtext={`${stats.booked} shares booked`}
+        />
+        <StatCard
+          label="Registered Investors"
+          value={stats.investors}
+          variant="pearl"
+          icon={<span className="text-lg">👥</span>}
+          subtext="Active platform accounts"
+        />
       </div>
 
+      {/* Tabs */}
+      <div className="mt-6">
+        <Tabs
+          items={tabList}
+          activeId={tab}
+          onChange={(id) => setTab(id as Tab)}
+          variant="underline"
+        />
+      </div>
+
+      {/* TAB 1: PIPELINE & BOOKINGS */}
       {tab === 'pipeline' && (
-        <section className="mt-6">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="text-sm text-ocean/80">
-              Type
+        <div className="space-y-4">
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ocean/10 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              {(['all', 'investment', 'stay'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTypeFilter(t)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${
+                    typeFilter === t
+                      ? 'bg-ocean text-white shadow-sm'
+                      : 'bg-pearl text-ocean/70 hover:bg-ocean/10'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
               <select
-                className="field mt-1"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
-              >
-                <option value="all">All</option>
-                <option value="investment">Investments</option>
-                <option value="stay">Stays</option>
-              </select>
-            </label>
-            <label className="text-sm text-ocean/80">
-              Status
-              <select
-                className="field mt-1"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-ocean/20 bg-white px-3 py-1.5 text-xs text-ocean outline-none"
               >
-                <option value="all">All</option>
-                {statuses.map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
+                <option value="all">All Statuses</option>
+                <option value="awaiting_payment">Awaiting Payment</option>
+                <option value="awaiting_kyc">Awaiting KYC</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
-            </label>
-            <label className="min-w-[220px] flex-1 text-sm text-ocean/80">
-              Search
+
               <input
-                className="field mt-1"
-                placeholder="Booking, suite, plan, investor…"
+                type="text"
+                placeholder="Filter by buyer, NID, suite..."
                 value={pipelineQuery}
                 onChange={(e) => setPipelineQuery(e.target.value)}
+                className="w-48 sm:w-64 rounded-lg border border-ocean/20 bg-white px-3 py-1.5 text-xs text-ocean outline-none focus:border-gold"
               />
-            </label>
+            </div>
           </div>
 
-          {actionMsg && (
-            <div className="mt-4 border border-ocean/15 bg-ocean/5 p-3 text-sm text-ocean">{actionMsg}</div>
-          )}
-          <p className="mt-3 text-xs text-ocean/60">
-            Use the pinned <span className="font-semibold text-ocean">Actions</span> column (Confirm /
-            Cancel / Details) next to each booking ID.
-          </p>
+          {/* Bookings Table */}
+          <div className="overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-ocean/10 bg-pearl/60 uppercase font-semibold text-ocean/60 tracking-wider">
+                    <th className="px-4 py-3">Booking ID</th>
+                    <th className="px-4 py-3">Suite / Plan</th>
+                    <th className="px-4 py-3">Buyer &amp; Contact</th>
+                    <th className="px-4 py-3">NID Number</th>
+                    <th className="px-4 py-3">Total Amount</th>
+                    <th className="px-4 py-3">Status &amp; KYC</th>
+                    <th className="px-4 py-3 text-right">Quick Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ocean/10">
+                  {filteredSales.map((s) => {
+                    const buyerName = s.client?.name || s.investor?.name || 'Guest / Unassigned';
+                    const email = s.client?.email || s.investor?.email || '';
+                    const isActing = actingId === s.booking?.id;
 
-          <div className="mt-4 overflow-auto border border-ocean/10 bg-white">
-            <table className="w-full min-w-[1100px] text-sm">
+                    return (
+                      <tr key={s.booking?.id} className="hover:bg-pearl/30 transition">
+                        <td className="px-4 py-3.5">
+                          <span className="font-mono text-ocean font-bold block">
+                            #{s.booking?.id.slice(0, 8)}
+                          </span>
+                          <span className="text-[11px] text-ocean/50 block">
+                            {formatDateTime(s.booking?.createdAt || s.booking?.depositSubmittedAt || null)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-ocean">
+                            {s.suite?.id || s.booking?.suiteId} &middot; {s.plan?.name || (s.booking?.planId ? 'Share Plan' : 'Stay')}
+                          </div>
+                          <div className="text-[11px] text-ocean/60">
+                            {s.suite?.type} &middot; <span className="capitalize">{s.suite?.view}</span> View
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="font-semibold text-ocean">{buyerName}</div>
+                          <div className="text-[11px] text-ocean/60">{email || s.client?.contact || '—'}</div>
+                        </td>
+                        <td className="px-4 py-3.5 font-mono font-medium text-ocean">
+                          {s.client?.nid || '—'}
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-ocean">
+                          {formatMoney(s.booking?.amountTotal || 0)}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <Badge
+                            variant={
+                              s.booking?.status === 'confirmed'
+                                ? 'success'
+                                : s.booking?.status === 'cancelled'
+                                ? 'danger'
+                                : 'warning'
+                            }
+                            size="sm"
+                            dot
+                          >
+                            {String(s.booking?.status || '—').replace(/_/g, ' ')}
+                            {s.booking?.kycVerified ? ' · KYC OK' : ''}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {s.client && (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSale(s)}
+                                className="rounded bg-gold/15 px-2.5 py-1 text-xs font-bold text-[#886915] hover:bg-gold/25 transition"
+                              >
+                                Review KYC
+                              </button>
+                            )}
+                            {s.booking?.status !== 'confirmed' && (
+                              <button
+                                type="button"
+                                disabled={isActing}
+                                onClick={() => updateStatus(s.booking.id, 'confirmed')}
+                                className="rounded bg-ocean px-2.5 py-1 text-xs font-semibold text-white hover:bg-ocean/90 transition"
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            <Link
+                              href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
+                              className="rounded border border-ocean/20 px-2 py-1 text-xs font-semibold text-ocean hover:bg-ocean/5 transition"
+                            >
+                              Details &rarr;
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredSales.length === 0 && !loading && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-ocean/60">
+                        No bookings match the specified filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: INVENTORY & SHARE MATRIX */}
+      {tab === 'inventory' && (
+        <div className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Unsold Ready to Market</span>
+              <div className="font-display text-3xl font-bold text-emerald-950 mt-1">{inventoryByStatus.unsold.length}</div>
+              <p className="mt-1 text-xs text-emerald-800/80">Available immediately on public catalog</p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Reserved in Pipeline</span>
+              <div className="font-display text-3xl font-bold text-amber-950 mt-1">{inventoryByStatus.reserved.length}</div>
+              <p className="mt-1 text-xs text-amber-800/80">Deposit locked, awaiting KYC clearance</p>
+            </div>
+            <div className="rounded-xl border border-ocean/20 bg-white p-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-ocean/70">Completed &amp; Deeded</span>
+              <div className="font-display text-3xl font-bold text-ocean mt-1">{inventoryByStatus.booked.length}</div>
+              <p className="mt-1 text-xs text-ocean/60">Deed registered to investor</p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm">
+            <div className="border-b border-ocean/10 bg-pearl px-5 py-3">
+              <h3 className="font-display text-base font-bold text-ocean">Share Plans Inventory</h3>
+            </div>
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-ocean/10 text-left text-ocean/70">
-                  <th className="sticky left-0 z-20 bg-white p-3 font-medium shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
-                    Booking
-                  </th>
-                  <th className="sticky left-[7.5rem] z-20 min-w-[11rem] bg-white p-3 font-medium shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
-                    Actions
-                  </th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium">Booked at</th>
-                  <th className="p-3 font-medium">Plan</th>
-                  <th className="p-3 font-medium">Unit</th>
-                  <th className="p-3 font-medium">Buyer</th>
-                  <th className="p-3 font-medium">Contact</th>
-                  <th className="p-3 font-medium">NID</th>
-                  <th className="p-3 font-medium">Deposit</th>
-                  <th className="p-3 font-medium">Amount</th>
+                <tr className="border-b border-ocean/10 bg-pearl/60 text-ocean/60 uppercase font-semibold">
+                  <th className="p-3">Plan Name / ID</th>
+                  <th className="p-3">Suite ID</th>
+                  <th className="p-3">Days / Mo</th>
+                  <th className="p-3">List Price</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredSales.map((s) => {
-                  const buyerName =
-                    s.client?.name || s.investor?.name || s.booking.investorId || '—';
-                  const contact = s.client?.contact || s.investor?.email || '—';
-                  const email = s.client?.email || s.investor?.email || '';
-                  const busy = actingId === s.booking.id;
-                  const showConfirm = canConfirmBooking(s.booking);
-                  const showCancel = canCancelBooking(s.booking);
-                  return (
-                    <tr key={s.booking.id} className="border-t border-ocean/10">
-                      <td className="sticky left-0 z-10 bg-white p-3 shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
-                        <div className="font-mono text-xs text-ocean">{s.booking.id}</div>
-                        {!s.booking.planId && (
-                          <span className="mt-1 inline-block border border-ocean/20 bg-pearl px-2 py-0.5 text-[10px] text-ocean/80">
-                            Stay
-                          </span>
-                        )}
-                      </td>
-                      <td className="sticky left-[7.5rem] z-10 min-w-[11rem] bg-white p-3 shadow-[1px_0_0_0_rgba(15,40,60,0.08)]">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {showConfirm && (
-                            <button
-                              type="button"
-                              disabled={!!actingId}
-                              onClick={() => confirmBooking(s)}
-                              className="border border-ocean bg-ocean px-2 py-1 text-xs font-semibold text-white disabled:opacity-50"
-                            >
-                              {busy ? '…' : 'Confirm'}
-                            </button>
-                          )}
-                          {showCancel && (
-                            <button
-                              type="button"
-                              disabled={!!actingId}
-                              onClick={() => cancelBooking(s)}
-                              className="border border-red-700 px-2 py-1 text-xs font-semibold text-red-700 disabled:opacity-50"
-                            >
-                              {busy ? '…' : 'Cancel'}
-                            </button>
-                          )}
-                          <Link
-                            href={`/admin/sales/${encodeURIComponent(s.booking.id)}`}
-                            className="border border-ocean/25 px-2 py-1 text-xs font-semibold text-ocean"
-                          >
-                            Details
-                          </Link>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <span
-                          className={`inline-block border px-2 py-0.5 text-xs capitalize ${
-                            s.booking.status === 'awaiting_payment' ||
-                            s.booking.status === 'awaiting_kyc'
-                              ? 'border-gold/50 bg-gold/10 text-ocean'
-                              : s.booking.status === 'confirmed'
-                                ? 'border-ocean/30 bg-ocean/5 text-ocean'
-                                : s.booking.status === 'cancelled'
-                                  ? 'border-red-200 bg-red-50 text-red-700'
-                                  : 'border-ocean/20 bg-pearl text-ocean/80'
-                          }`}
+              <tbody className="divide-y divide-ocean/10">
+                {plans.map((p) => (
+                  <tr key={p.id} className="hover:bg-pearl/30">
+                    <td className="p-3 font-semibold text-ocean">{p.name || p.id}</td>
+                    <td className="p-3 font-mono text-ocean">{p.suiteId || '—'}</td>
+                    <td className="p-3">{p.daysPerMonth ?? '—'} days</td>
+                    <td className="p-3 font-bold text-ocean">{formatMoney(p.price || 0)}</td>
+                    <td className="p-3 capitalize">
+                      <Badge
+                        variant={
+                          p.planStatus === 'unsold'
+                            ? 'success'
+                            : p.planStatus === 'reserved'
+                            ? 'warning'
+                            : 'ocean'
+                        }
+                        size="sm"
+                      >
+                        {p.planStatus || 'Unsold'}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-right">
+                      {p.suiteId && (
+                        <Link
+                          href={`/admin/units/${p.suiteId}/plans`}
+                          className="font-semibold text-ocean underline hover:text-gold"
                         >
-                          {String(s.booking.status || '—').replace(/_/g, ' ')}
-                          {s.booking.status !== 'confirmed' &&
-                          s.booking.status !== 'cancelled' &&
-                          s.booking.planId
-                            ? s.booking.kycVerified
-                              ? ' · KYC ok'
-                              : ' · KYC pending'
-                            : ''}
-                        </span>
-                      </td>
-                      <td className="p-3 whitespace-nowrap text-ocean">
-                        {formatDateTime(
-                          s.booking.createdAt || s.booking.depositSubmittedAt || null
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {s.booking.planId ? (
-                          <div>
-                            <div className="font-medium text-ocean">{s.plan?.name || s.booking.planId}</div>
-                            <div className="font-mono text-xs text-ocean/60">{s.booking.planId}</div>
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {s.suite?.id || s.booking.suiteId ? (
-                          <Link
-                            href={`/admin/units/${s.suite?.id || s.booking.suiteId}/plans`}
-                            className="text-ocean underline"
-                          >
-                            {s.suite?.id || s.booking.suiteId}
-                          </Link>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="font-medium text-ocean">{buyerName}</div>
-                        {s.investor?.email && s.client?.name && (
-                          <div className="text-xs text-ocean/55">Account: {s.investor.email}</div>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div>{contact}</div>
-                        {email && email !== contact && (
-                          <div className="text-xs text-ocean/55">{email}</div>
-                        )}
-                      </td>
-                      <td className="p-3 font-mono text-xs">{s.client?.nid || '—'}</td>
-                      <td className="p-3 text-xs">
-                        {s.booking.depositMethod ? (
-                          <div>
-                            <div className="capitalize text-ocean">
-                              {String(s.booking.depositMethod).replace(/_/g, ' ')}
-                            </div>
-                            {s.booking.depositReference && (
-                              <div className="font-mono text-ocean/55">{s.booking.depositReference}</div>
-                            )}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className="p-3">{formatMoney(s.booking.amountTotal || 0)}</td>
-                    </tr>
-                  );
-                })}
-                {filteredSales.length === 0 && !loading && (
-                  <tr>
-                    <td className="p-4 text-ocean/70" colSpan={11}>
-                      No bookings match these filters
+                          Manage Unit Plans &rarr;
+                        </Link>
+                      )}
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
       )}
 
-      {tab === 'inventory' && (
-        <section className="mt-6 space-y-8">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="border border-gold/40 bg-gold/10 p-5">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Ready to sell</div>
-              <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.unsold.length}</div>
-              <p className="mt-2 text-sm text-ocean/70">Unsold share plans</p>
-            </div>
-            <div className="border border-gold/30 bg-white p-5">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Reserved</div>
-              <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.reserved.length}</div>
-              <p className="mt-2 text-sm text-ocean/70">Pending payment / KYC</p>
-            </div>
-            <div className="border border-ocean/10 bg-white p-5">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Booked</div>
-              <div className="font-display mt-1 text-3xl text-ocean">{inventoryByStatus.booked.length}</div>
-              <p className="mt-2 text-sm text-ocean/70">Completed sales</p>
-            </div>
-            <div className="border border-ocean/10 bg-white p-5">
-              <div className="text-xs uppercase tracking-wide text-ocean/60">Actions</div>
-              <div className="mt-3 flex flex-col gap-2">
-                <Link href="/admin/units" className="text-sm font-semibold text-ocean underline">
-                  Open units list
-                </Link>
-                <Link href="/admin/units/new" className="text-sm font-semibold text-ocean underline">
-                  Create a unit
-                </Link>
-                <Link href="/invest" className="text-sm font-semibold text-ocean underline">
-                  Preview buyer catalog
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="font-display text-2xl text-ocean">Unsold plans</h2>
-            <PlanTable plans={inventoryByStatus.unsold} empty="No unsold plans — create plans on a unit." />
-          </div>
-          <div>
-            <h2 className="font-display text-2xl text-ocean">Reserved plans</h2>
-            <p className="mt-1 text-sm text-ocean/65">
-              Held while a booking awaits payment or KYC. Use Confirm or Cancel on the Bookings tab to
-              complete the sale or release the plan back to Unsold.
-            </p>
-            <PlanTable plans={inventoryByStatus.reserved} empty="No reserved plans." />
-          </div>
-          <div>
-            <h2 className="font-display text-2xl text-ocean">Booked plans</h2>
-            <PlanTable plans={inventoryByStatus.booked} empty="No booked plans yet." />
-          </div>
-          {inventoryByStatus.other.length > 0 && (
-            <div>
-              <h2 className="font-display text-2xl text-ocean">Other status</h2>
-              <PlanTable plans={inventoryByStatus.other} empty="" />
-            </div>
-          )}
-        </section>
-      )}
-
+      {/* TAB 3: INVESTOR DIRECTORY */}
       {tab === 'investors' && (
-        <section className="mt-6">
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="text-sm text-ocean/80">
-              KYC
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ocean/10 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
               <select
-                className="field mt-1"
                 value={kycFilter}
-                onChange={(e) => setKycFilter(e.target.value as typeof kycFilter)}
+                onChange={(e) => setKycFilter(e.target.value as any)}
+                className="rounded-lg border border-ocean/20 bg-white px-3 py-1.5 text-xs text-ocean outline-none"
               >
-                <option value="all">All</option>
-                <option value="verified">Verified</option>
-                <option value="pending">Pending</option>
+                <option value="all">All Investors</option>
+                <option value="verified">KYC Verified Only</option>
+                <option value="pending">KYC Pending Only</option>
               </select>
-            </label>
-            <label className="min-w-[220px] flex-1 text-sm text-ocean/80">
-              Search
-              <input
-                className="field mt-1"
-                placeholder="Name, email, or ID…"
-                value={investorQuery}
-                onChange={(e) => setInvestorQuery(e.target.value)}
-              />
-            </label>
+            </div>
+            <input
+              type="text"
+              placeholder="Search by name, email, ID..."
+              value={investorQuery}
+              onChange={(e) => setInvestorQuery(e.target.value)}
+              className="w-48 sm:w-64 rounded-lg border border-ocean/20 bg-white px-3 py-1.5 text-xs text-ocean outline-none focus:border-gold"
+            />
           </div>
 
-          <div className="mt-4 overflow-auto border border-ocean/10 bg-white">
-            <table className="w-full text-sm">
+          <div className="overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-ocean/10 text-left text-ocean/70">
-                  <th className="p-3 font-medium">Investor</th>
-                  <th className="p-3 font-medium">Email</th>
-                  <th className="p-3 font-medium">Holdings</th>
-                  <th className="p-3 font-medium">KYC</th>
-                  <th className="p-3 font-medium">Actions</th>
+                <tr className="border-b border-ocean/10 bg-pearl/60 text-ocean/60 uppercase font-semibold">
+                  <th className="p-3">Investor Name &amp; ID</th>
+                  <th className="p-3">Email Address</th>
+                  <th className="p-3">Total Holdings</th>
+                  <th className="p-3">KYC Status</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-ocean/10">
                 {filteredUsers.map((u) => {
-                  const holdings = sales.filter((s) => s.booking?.investorId === u.id).length;
+                  const userHoldings = sales.filter((s) => s.booking?.investorId === u.id).length;
                   return (
-                    <tr key={u.id} className="border-t border-ocean/10">
+                    <tr key={u.id} className="hover:bg-pearl/30">
                       <td className="p-3">
-                        <div className="font-medium text-ocean">{u.name || '—'}</div>
-                        <div className="font-mono text-xs text-ocean/50">{u.id}</div>
+                        <span className="font-semibold text-ocean block">{u.name || 'Unassigned Name'}</span>
+                        <span className="font-mono text-[11px] text-ocean/50 block">ID: {u.id}</span>
                       </td>
-                      <td className="p-3">{u.email}</td>
-                      <td className="p-3">{holdings}</td>
+                      <td className="p-3 text-ocean/80">{u.email}</td>
+                      <td className="p-3 font-bold text-ocean">{userHoldings} Shares</td>
                       <td className="p-3">
-                        <span
-                          className={`inline-block border px-2 py-0.5 text-xs ${
-                            u.kyc
-                              ? 'border-ocean/30 bg-ocean/5 text-ocean'
-                              : 'border-gold/50 bg-gold/10 text-ocean'
-                          }`}
-                        >
-                          {u.kyc ? 'Verified' : 'Pending'}
-                        </span>
+                        <Badge variant={u.kyc ? 'success' : 'warning'} size="sm" dot>
+                          {u.kyc ? 'Verified' : 'Pending Verification'}
+                        </Badge>
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 text-right">
                         <button
                           type="button"
-                          onClick={() => toggleKyc(u.id, !!u.kyc)}
-                          className="rounded-md border border-ocean/25 px-3 py-1.5 text-xs font-semibold text-ocean hover:bg-ocean/5"
+                          onClick={() => toggleUserKyc(u.id, !!u.kyc)}
+                          className="rounded-lg border border-ocean/20 px-3 py-1 text-xs font-semibold text-ocean hover:bg-ocean/5"
                         >
-                          {u.kyc ? 'Revoke KYC' : 'Mark KYC'}
+                          {u.kyc ? 'Revoke KYC' : 'Verify KYC'}
                         </button>
                       </td>
                     </tr>
                   );
                 })}
-                {filteredUsers.length === 0 && !loading && (
-                  <tr>
-                    <td className="p-4 text-ocean/70" colSpan={5}>
-                      No investors match these filters
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
       )}
-    </main>
-  );
-}
 
-function PlanTable({ plans, empty }: { plans: any[]; empty: string }) {
-  return (
-    <div className="mt-3 overflow-auto border border-ocean/10 bg-white">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-ocean/10 text-left text-ocean/70">
-            <th className="p-3 font-medium">Plan</th>
-            <th className="p-3 font-medium">Suite</th>
-            <th className="p-3 font-medium">Days/mo</th>
-            <th className="p-3 font-medium">Price</th>
-            <th className="p-3 font-medium">Status</th>
-            <th className="p-3 font-medium">Manage</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plans.map((p) => (
-            <tr key={p.id} className="border-t border-ocean/10">
-              <td className="p-3">
-                <div className="font-medium text-ocean">{p.name || p.id}</div>
-                <div className="font-mono text-xs text-ocean/50">{p.id}</div>
-              </td>
-              <td className="p-3">{p.suiteId || '—'}</td>
-              <td className="p-3">{p.daysPerMonth ?? '—'}</td>
-              <td className="p-3">{formatMoney(p.price || 0)}</td>
-              <td className="p-3 capitalize">{p.planStatus || '—'}</td>
-              <td className="p-3">
-                {p.suiteId ? (
-                  <Link href={`/admin/units/${p.suiteId}/plans`} className="text-ocean underline">
-                    Unit plans
-                  </Link>
-                ) : (
-                  '—'
-                )}
-              </td>
-            </tr>
-          ))}
-          {plans.length === 0 && (
-            <tr>
-              <td className="p-4 text-ocean/70" colSpan={6}>
-                {empty}
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      {/* SIDE-BY-SIDE KYC INSPECTION DRAWER */}
+      <Drawer
+        isOpen={!!selectedSale}
+        onClose={() => setSelectedSale(null)}
+        title="Buyer & Nominee KYC Dossier"
+        description={`Audit verification for Booking #${selectedSale?.booking?.id.slice(0, 8)}`}
+        width="half"
+        footer={
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedSale(null)}
+              className="rounded-lg border border-ocean/20 px-4 py-2 text-xs font-semibold text-ocean hover:bg-ocean/5"
+            >
+              Close Dossier
+            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (selectedSale?.booking?.id) updateStatus(selectedSale.booking.id, 'cancelled');
+                }}
+                className="text-xs text-rose-600 border-rose-300 hover:bg-rose-50"
+              >
+                Reject &amp; Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedSale?.booking?.id) verifyKyc(selectedSale.booking.id);
+                }}
+                className="text-xs bg-emerald-700 text-white hover:bg-emerald-800"
+              >
+                ✓ Approve &amp; Verify KYC
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {selectedSale && (
+          <div className="space-y-6">
+            {/* Booking Reference Pill */}
+            <div className="flex items-center justify-between rounded-xl bg-pearl p-4">
+              <div>
+                <span className="text-xs text-ocean/60 block">Selected Asset</span>
+                <span className="font-display text-base font-bold text-ocean">
+                  Suite {selectedSale.suite?.id || selectedSale.booking?.suiteId} &middot; {selectedSale.plan?.name || 'Share Plan'}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-ocean/60 block">Committed GMV</span>
+                <span className="font-display text-lg font-bold text-ocean">
+                  {formatMoney(selectedSale.booking?.amountTotal || 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Split Dossier: Buyer on Left, Nominee on Right */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Buyer Profile */}
+              <div className="rounded-xl border border-ocean/10 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-ocean/10 pb-3">
+                  <h4 className="font-display text-base font-bold text-ocean">Primary Buyer</h4>
+                  <Badge variant="ocean" size="sm">Investor</Badge>
+                </div>
+
+                <div className="mt-4 space-y-3 text-xs">
+                  {selectedSale.client?.picUrl ? (
+                    <div className="relative h-40 w-full overflow-hidden rounded-lg border border-ocean/10 bg-pearl">
+                      <Image
+                        src={selectedSale.client.picUrl}
+                        alt="Buyer Photograph"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-32 w-full items-center justify-center rounded-lg border border-dashed border-ocean/20 bg-pearl text-ocean/45">
+                      No Buyer Photo Uploaded
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-ocean/55 block">Full Legal Name</span>
+                    <span className="font-bold text-ocean text-sm">{selectedSale.client?.name || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">Father / Husband Name</span>
+                    <span className="font-semibold text-ocean">{selectedSale.client?.fatherName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">National ID (NID)</span>
+                    <span className="font-mono font-bold text-ocean">{selectedSale.client?.nid || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">Date of Birth</span>
+                    <span className="font-medium text-ocean">{selectedSale.client?.dob || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">Contact &amp; Email</span>
+                    <span className="font-medium text-ocean">{selectedSale.client?.contact} / {selectedSale.client?.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">Present &amp; Permanent Address</span>
+                    <span className="text-ocean/80">{selectedSale.client?.address || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nominee Profile */}
+              <div className="rounded-xl border border-ocean/10 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between border-b border-ocean/10 pb-3">
+                  <h4 className="font-display text-base font-bold text-ocean">Registered Nominee</h4>
+                  <Badge variant="gold" size="sm">Succession Deed</Badge>
+                </div>
+
+                <div className="mt-4 space-y-3 text-xs">
+                  {selectedSale.client?.nomineePicUrl ? (
+                    <div className="relative h-40 w-full overflow-hidden rounded-lg border border-ocean/10 bg-pearl">
+                      <Image
+                        src={selectedSale.client.nomineePicUrl}
+                        alt="Nominee Photograph"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-32 w-full items-center justify-center rounded-lg border border-dashed border-ocean/20 bg-pearl text-ocean/45">
+                      No Nominee Photo Uploaded
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-ocean/55 block">Nominee Legal Name</span>
+                    <span className="font-bold text-ocean text-sm">{selectedSale.client?.nomineeName || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-ocean/55 block">Nominee NID Number</span>
+                    <span className="font-mono font-bold text-ocean">{selectedSale.client?.nomineeNid || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
+import Badge from '@/components/ui/Badge';
 import { tierHeadline } from '@/lib/paymentCopy';
 import { badgesFor, monthlyOutlay } from '@/lib/advisorUi';
+import { useToast } from '@/components/ui/ToastContext';
 
 export default function InvestAdvisorPage() {
+  const { error: toastError } = useToast();
   const [availableNow, setAvailableNow] = useState('');
   const [monthlyCapacity, setMonthlyCapacity] = useState('');
   const [horizonMonths, setHorizonMonths] = useState('36');
@@ -45,12 +48,15 @@ export default function InvestAdvisorPage() {
             ? 'We could not match a plan right now. Try again, or browse available suites.'
             : res.error;
         setError(safeMessage);
+        toastError(safeMessage);
         setResult(null);
       } else {
         setResult(res);
       }
     } catch {
-      setError('We could not match a plan right now. Try again, or browse available suites.');
+      const safeMessage = 'We could not match a plan right now. Try again, or browse available suites.';
+      setError(safeMessage);
+      toastError(safeMessage);
     }
     setLoading(false);
   }
@@ -60,160 +66,191 @@ export default function InvestAdvisorPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-14">
-      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Invest</p>
-      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Help me choose</h1>
-      <p className="mt-3 max-w-2xl text-ocean/70">
-        Answer two questions. We’ll suggest a suite and how much to pay today — from live prices, not a sales pitch.
-      </p>
+      <div className="max-w-2xl">
+        <Badge variant="gold" size="sm" dot>Financial Planning Assistant</Badge>
+        <h1 className="font-display mt-2 text-3xl font-bold text-ocean md:text-4xl">
+          AI Investment Advisor
+        </h1>
+        <p className="mt-2 text-sm text-ocean/75 leading-relaxed">
+          Input your available capital and monthly liquidity. We’ll match optimal suite share options and present-value discount schedules from real-time resort inventory.
+        </p>
+      </div>
 
-      <form onSubmit={run} className="mt-8 space-y-5 border border-ocean/10 bg-white p-5 sm:p-6">
-        <label className="block text-sm font-medium text-ocean">
-          How much can you pay today?
-          <input
-            className="field mt-1"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="e.g. 500000"
-            value={availableNow}
-            onChange={(e) => setAvailableNow(e.target.value)}
-            required
-          />
-          <span className="mt-1 block text-xs font-normal text-ocean/55">The amount you can transfer now to reserve.</span>
-        </label>
-        <label className="block text-sm font-medium text-ocean">
-          How much can you put aside each month?
-          <input
-            className="field mt-1"
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="e.g. 25000"
-            value={monthlyCapacity}
-            onChange={(e) => setMonthlyCapacity(e.target.value)}
-            required
-          />
-          <span className="mt-1 block text-xs font-normal text-ocean/55">What you can comfortably pay after the first payment.</span>
-        </label>
+      <form onSubmit={run} className="mt-8 space-y-6 rounded-2xl border border-ocean/10 bg-white p-6 shadow-sm sm:p-8">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <label className="block text-xs font-bold uppercase tracking-wider text-ocean">
+            Available Upfront Capital (BDT)
+            <input
+              className="field mt-1.5 text-sm"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="e.g. 500000"
+              value={availableNow}
+              onChange={(e) => setAvailableNow(e.target.value)}
+              required
+            />
+            <span className="mt-1 block text-[11px] font-normal text-ocean/55">
+              Cash ready to transfer today for reservation &amp; downpayment.
+            </span>
+          </label>
+
+          <label className="block text-xs font-bold uppercase tracking-wider text-ocean">
+            Comfortable Monthly Outlay (BDT)
+            <input
+              className="field mt-1.5 text-sm"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="e.g. 35000"
+              value={monthlyCapacity}
+              onChange={(e) => setMonthlyCapacity(e.target.value)}
+              required
+            />
+            <span className="mt-1 block text-[11px] font-normal text-ocean/55">
+              Monthly cashflow capacity for ongoing installments.
+            </span>
+          </label>
+        </div>
+
         <div>
-          <p className="text-sm font-medium text-ocean">How long can you keep paying?</p>
-          <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
+          <span className="block text-xs font-bold uppercase tracking-wider text-ocean mb-2">
+            Target Payment Horizon
+          </span>
+          <div className="grid max-w-sm grid-cols-2 gap-3">
             {['24', '36'].map((n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setHorizonMonths(n)}
-                className={`border px-3 py-2 text-sm font-semibold ${
-                  horizonMonths === n ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80'
+                className={`rounded-xl border p-3 text-xs font-bold transition-all ${
+                  horizonMonths === n
+                    ? 'border-gold bg-ocean text-white shadow-md ring-2 ring-gold/40'
+                    : 'border-ocean/15 bg-pearl text-ocean/70 hover:border-ocean/30'
                 }`}
               >
-                {n} months
+                {n} Months Tenor
               </button>
             ))}
           </div>
         </div>
-        <label className="flex items-start gap-2 text-sm text-ocean">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={useReferral}
-            onChange={(e) => setUseReferral(e.target.checked)}
-          />
-          <span>
-            I also earn from referring buyers
-            <span className="mt-0.5 block text-xs text-ocean/55">Optional. We’ll treat this as extra cash, not as a reason to pick a plan.</span>
-          </span>
-        </label>
-        {useReferral && (
-          <div className="grid gap-4 border border-ocean/10 bg-pearl/60 p-4 sm:grid-cols-2">
-            <label className="text-sm text-ocean">
-              How you measure it
-              <select className="field mt-1" value={refMode} onChange={(e) => setRefMode(e.target.value as any)}>
-                <option value="count">Number of referred sales</option>
-                <option value="volume">Taka volume of referred sales</option>
-              </select>
-            </label>
-            <label className="text-sm text-ocean">
-              {refMode === 'count' ? 'How many referrals' : 'Sales volume (৳)'}
-              <input className="field mt-1" type="number" min={0} value={refValue} onChange={(e) => setRefValue(e.target.value)} />
-            </label>
-            <label className="text-sm text-ocean sm:col-span-2">
-              Over how many months
-              <input className="field mt-1" type="number" min={1} max={36} value={refMonths} onChange={(e) => setRefMonths(e.target.value)} />
-            </label>
-          </div>
-        )}
+
+        <div className="rounded-xl border border-ocean/10 bg-pearl/40 p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded accent-ocean"
+              checked={useReferral}
+              onChange={(e) => setUseReferral(e.target.checked)}
+            />
+            <div>
+              <span className="text-xs font-bold text-ocean block">
+                Factor in Referral / Broker Incentive Inflow
+              </span>
+              <span className="text-[11px] text-ocean/60 block">
+                If you plan to refer colleagues or family, we can simulate commission cash offsetting your installment costs.
+              </span>
+            </div>
+          </label>
+
+          {useReferral && (
+            <div className="mt-4 grid gap-4 border-t border-ocean/10 pt-4 sm:grid-cols-3">
+              <label className="text-xs text-ocean font-semibold">
+                Referral Mode
+                <select className="field mt-1 text-xs" value={refMode} onChange={(e) => setRefMode(e.target.value as any)}>
+                  <option value="count">Number of referred buyers</option>
+                  <option value="volume">Total sales volume (৳)</option>
+                </select>
+              </label>
+              <label className="text-xs text-ocean font-semibold">
+                {refMode === 'count' ? 'Referred Sales Count' : 'Sales Volume (৳)'}
+                <input className="field mt-1 text-xs" type="number" min={0} value={refValue} onChange={(e) => setRefValue(e.target.value)} />
+              </label>
+              <label className="text-xs text-ocean font-semibold">
+                Over Timeline (Months)
+                <input className="field mt-1 text-xs" type="number" min={1} max={36} value={refMonths} onChange={(e) => setRefMonths(e.target.value)} />
+              </label>
+            </div>
+          )}
+        </div>
+
         <Button type="submit" disabled={loading} className="w-full sm:w-auto">
-          {loading ? 'Finding a match…' : 'Show my options'}
+          {loading ? 'Analyzing Inventory...' : 'Generate Personalized Recommendations →'}
         </Button>
       </form>
 
-      {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+      {error && (
+        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+          {error}
+        </div>
+      )}
 
       {result && (
-        <div className="mt-8 space-y-4">
-          <p className="text-sm text-ocean/65">
-            {suggestions.length
-              ? 'Plans that fit what you can pay, with the trade-offs in plain terms.'
-              : 'No unsold plans to compare right now.'}
-          </p>
-          {suggestions.map((s: any, i: number) => (
-            <article key={`${s.planId}-${s.paymentTierId}-${s.installmentMonths}-${i}`} className="border border-ocean/10 bg-white p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  {badges[i] && (
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gold">{badges[i]}</p>
-                  )}
-                  <h2 className="font-display mt-1 text-2xl text-ocean">{s.planName}</h2>
-                  <p className="mt-1 text-sm text-ocean/70">
-                    {tierHeadline({ id: s.paymentTierId, label: s.tierLabel })}
-                    {s.paymentTierId !== 'full'
-                      ? ` · finish in ${s.installmentMonths} months${s.cadence === 'quarterly' ? ', every 3 months' : ''}`
-                      : ''}
-                  </p>
+        <div className="mt-10 space-y-6">
+          <div className="flex items-center justify-between border-b border-ocean/10 pb-4">
+            <h2 className="font-display text-xl font-bold text-ocean">Recommended Plan Matches</h2>
+            <Badge variant="gold" size="sm">{suggestions.length} Optimal Matches</Badge>
+          </div>
+
+          <div className="grid gap-6">
+            {suggestions.map((s: any, i: number) => (
+              <article
+                key={`${s.planId}-${s.paymentTierId}-${s.installmentMonths}-${i}`}
+                className="relative overflow-hidden rounded-2xl border border-ocean/10 bg-white p-6 shadow-sm transition hover:border-gold/50 hover:shadow-lg"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    {badges[i] && (
+                      <Badge variant="gold" size="sm" dot>{badges[i]}</Badge>
+                    )}
+                    <h3 className="font-display mt-2 text-2xl font-bold text-ocean">{s.planName}</h3>
+                    <p className="mt-1 text-xs text-ocean/70">
+                      {tierHeadline({ id: s.paymentTierId, label: s.tierLabel })}
+                      {s.paymentTierId !== 'full'
+                        ? ` · ${s.installmentMonths} Months Amortization (${s.cadence === 'quarterly' ? 'Quarterly' : 'Monthly'})`
+                        : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs uppercase tracking-wider text-ocean/55 block">Net Committed Price</span>
+                    <span className="font-display text-2xl font-bold text-ocean block">{formatMoney(s.netPrice)}</span>
+                    {s.savings > 0 && (
+                      <span className="text-xs font-semibold text-emerald-700 block">
+                        PV Discount: Save {formatMoney(s.savings)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs uppercase tracking-wide text-ocean/55">You pay</p>
-                  <p className="font-display text-2xl text-ocean">{formatMoney(s.netPrice)}</p>
-                  {s.savings > 0 && <p className="text-xs text-gold">Save {formatMoney(s.savings)}</p>}
-                </div>
-              </div>
-              {(s.points?.length ? s.points : s.summary ? [s.summary] : []).map((line: string) => (
-                <p key={line} className="mt-2 text-sm text-ocean/80 first:mt-3">
-                  {line}
-                </p>
-              ))}
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="border border-ocean/15 px-2 py-1">Today {formatMoney(s.depositAmount)}</span>
-                {s.paymentTierId !== 'full' && (
-                  <span className="border border-ocean/15 px-2 py-1">
-                    Then about {formatMoney(Math.round(monthlyOutlay(s)))}
-                    {s.cadence === 'quarterly' ? ' / quarter' : ' / month'}
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-lg bg-pearl px-3 py-1 font-semibold text-ocean">
+                    Due Today: {formatMoney(s.depositAmount)}
                   </span>
-                )}
-                {s.feasibleWithoutReferral ? (
-                  <span className="border border-ocean/15 px-2 py-1">Fits the budget you entered</span>
-                ) : s.feasibleIfTargetHit ? (
-                  <span className="border border-gold/40 bg-gold/10 px-2 py-1">Needs your referral target</span>
-                ) : (
-                  <span className="border border-red-200 bg-red-50 px-2 py-1">Tight against this budget</span>
-                )}
-              </div>
-              <div className="mt-4">
-                <Link
-                  href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}
-                  className="block sm:inline-flex"
-                >
-                  <Button className="w-full sm:w-auto">Continue with this plan</Button>
-                </Link>
-              </div>
-            </article>
-          ))}
-          {!suggestions.length && (
-            <Link href="/invest">
-              <Button variant="outline">Browse available suites</Button>
-            </Link>
-          )}
+                  {s.paymentTierId !== 'full' && (
+                    <span className="rounded-lg bg-pearl px-3 py-1 font-semibold text-ocean">
+                      Then ~{formatMoney(Math.round(monthlyOutlay(s)))} {s.cadence === 'quarterly' ? '/ quarter' : '/ month'}
+                    </span>
+                  )}
+                  {s.feasibleWithoutReferral ? (
+                    <Badge variant="success" size="sm">✓ Fully Fits Monthly Budget</Badge>
+                  ) : s.feasibleIfTargetHit ? (
+                    <Badge variant="warning" size="sm">Offset by Target Referrals</Badge>
+                  ) : (
+                    <Badge variant="neutral" size="sm">High Budget Stretch</Badge>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-ocean/10 flex items-center justify-between">
+                  <span className="text-xs text-ocean/65">Lock quote for 30 minutes</span>
+                  <Link
+                    href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}
+                  >
+                    <Button className="text-xs">Proceed with this Match &rarr;</Button>
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       )}
     </main>

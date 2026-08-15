@@ -7,11 +7,26 @@ import { formatDate, formatMoney } from '@/lib/format';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
 import KycEditor from '@/components/KycEditor';
+import Badge from '@/components/ui/Badge';
+import StatCard from '@/components/ui/StatCard';
+import Tabs, { type TabItem } from '@/components/ui/Tabs';
+import Skeleton from '@/components/ui/Skeleton';
+import Modal from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/ToastContext';
 
 type Me = { id: string; name?: string; email: string; kyc?: boolean };
 type Holding = { booking: any; suite: any; plan: any; client?: any };
 type Summary = { booking: any; paidTotal: number; outstanding: number; nextDue: any; handoverDate: string };
 type ScheduleItem = { id: string; bookingId: string; type: string; dueDate: string; amount: number; status: string };
+
+const CONSTRUCTION_MILESTONES = [
+  { id: 1, title: 'Land Deed & Environmental Clearance', date: 'Completed Q4 2025', progress: 100, status: 'completed' },
+  { id: 2, title: 'Deep Piling & Substructure Foundation', date: 'Completed Q1 2026', progress: 100, status: 'completed' },
+  { id: 3, title: '12-Storey Superstructure Casting', date: 'In Progress (85%)', progress: 85, status: 'active' },
+  { id: 4, title: 'Façade, Balconies & Weatherproofing', date: 'Target Q4 2026', progress: 30, status: 'pending' },
+  { id: 5, title: 'Luxury Interior Fitout & FF&E', date: 'Target Q2 2027', progress: 0, status: 'pending' },
+  { id: 6, title: 'Soft Opening & Investor Handover', date: 'Target Q4 2027', progress: 0, status: 'pending' }
+];
 
 export default function InvestorPage() {
   const user = useAppStore((s) => s.user);
@@ -19,7 +34,9 @@ export default function InvestorPage() {
   const hydrated = useAppStore((s) => s.hydrated);
   const hydrate = useAppStore((s) => s.hydrate);
   const logout = useAppStore((s) => s.logout);
+  const { success, error: toastError } = useToast();
 
+  const [activeTab, setActiveTab] = useState('holdings');
   const [me, setMe] = useState<Me | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
@@ -28,6 +45,11 @@ export default function InvestorPage() {
   const [error, setError] = useState('');
   const [referral, setReferral] = useState<any>(null);
   const [copyMsg, setCopyMsg] = useState('');
+
+  // Payment modal state
+  const [payModalItem, setPayModalItem] = useState<ScheduleItem | null>(null);
+  const [payMethod, setPayMethod] = useState<'card' | 'bkash' | 'nagad' | 'bank'>('bkash');
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -99,27 +121,40 @@ export default function InvestorPage() {
     () => Object.values(summaries).reduce((s, x) => s + (x?.outstanding || 0), 0),
     [summaries]
   );
+  const paidPercentage = portfolio > 0 ? Math.min(100, Math.round((paid / portfolio) * 100)) : 0;
+
   const upcoming = useMemo(() => {
     const items = Object.values(schedules).flat().filter((i) => i.status === 'due');
-    return items.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).slice(0, 6);
+    return items.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()).slice(0, 8);
   }, [schedules]);
 
-  async function pay(item: ScheduleItem) {
+  async function executePayment() {
+    if (!payModalItem) return;
+    setPaying(true);
     try {
-      await api('/payments/pay', {
+      const res = await api('/payments/pay', {
         method: 'POST',
         body: JSON.stringify({
-          bookingId: item.bookingId,
-          itemId: item.id,
-          amount: item.amount,
-          method: 'card'
+          bookingId: payModalItem.bookingId,
+          itemId: payModalItem.id,
+          amount: payModalItem.amount,
+          method: payMethod
         })
       });
-      const sRes = await api(`/booking/${item.bookingId}/summary`);
-      const scRes = await api(`/booking/${item.bookingId}/schedule`);
-      setSummaries((prev) => ({ ...prev, [item.bookingId]: sRes?.summary }));
-      setSchedules((prev) => ({ ...prev, [item.bookingId]: scRes?.schedule || [] }));
-    } catch {}
+      if (res?.ok) {
+        success(`Payment of ${formatMoney(payModalItem.amount)} completed successfully!`);
+        setPayModalItem(null);
+        const sRes = await api(`/booking/${payModalItem.bookingId}/summary`);
+        const scRes = await api(`/booking/${payModalItem.bookingId}/schedule`);
+        setSummaries((prev) => ({ ...prev, [payModalItem.bookingId]: sRes?.summary }));
+        setSchedules((prev) => ({ ...prev, [payModalItem.bookingId]: scRes?.schedule || [] }));
+      } else {
+        toastError(res?.error || 'Payment failed. Please try again.');
+      }
+    } catch {
+      toastError('Payment processing error');
+    }
+    setPaying(false);
   }
 
   async function copyReferralLink() {
@@ -128,262 +163,533 @@ export default function InvestorPage() {
     try {
       await navigator.clipboard.writeText(link);
       setCopyMsg('Link copied');
-      setTimeout(() => setCopyMsg(''), 2000);
+      success('Referral link copied to clipboard!');
+      setTimeout(() => setCopyMsg(''), 2500);
     } catch {
       setCopyMsg(link);
     }
   }
 
+  const tabItems: TabItem[] = [
+    { id: 'holdings', label: 'My Suite Holdings', icon: <span>🏢</span>, badge: <Badge size="sm">{holdings.length}</Badge> },
+    { id: 'schedule', label: 'Payment Schedules', icon: <span>🗓️</span>, badge: upcoming.length > 0 ? <Badge variant="warning" size="sm">{upcoming.length} Due</Badge> : undefined },
+    { id: 'progress', label: 'Construction Milestones', icon: <span>🏗️</span> },
+    { id: 'referrals', label: 'Broker & Referral Hub', icon: <span>🤝</span> }
+  ];
+
   if (hydrated && !token) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
-        <h1 className="font-display text-3xl text-ocean md:text-4xl">Your ownership portal</h1>
-        <p className="mt-3 text-ocean/75">
-          Sign in to view holdings, payment schedules, and make installment payments.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Link href="/auth/login?next=/investor" className="sm:inline-flex">
-            <Button className="w-full sm:w-auto">Sign in</Button>
-          </Link>
-          <Link href="/auth/register" className="sm:inline-flex">
-            <Button variant="outline" className="w-full sm:w-auto">Create account</Button>
-          </Link>
-          <Link href="/invest" className="sm:inline-flex">
-            <Button variant="ghost" className="w-full sm:w-auto">Browse plans</Button>
-          </Link>
+      <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 md:py-24">
+        <div className="rounded-2xl border border-gold/30 bg-white p-8 text-center shadow-xl">
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-gold/15 text-2xl">
+            🏛️
+          </span>
+          <h1 className="font-display mt-4 text-3xl font-bold text-ocean md:text-4xl">Owner &amp; Investor Portal</h1>
+          <p className="mt-3 text-sm text-ocean/75 sm:text-base leading-relaxed">
+            Sign in to access your registered suite fractional deeds, live amortization schedules, milestone tracking, and dividend payout statements.
+          </p>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/auth/login?next=/investor">
+              <Button className="w-full sm:w-auto">Sign In to Portfolio</Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button variant="outline" className="w-full sm:w-auto">Create Account</Button>
+            </Link>
+            <Link href="/invest">
+              <Button variant="ghost" className="w-full sm:w-auto">Explore Available Plans</Button>
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-16">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-12">
+      {/* Header Profile Section */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ocean/10 pb-6">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-gold">Owner portal</p>
-          <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Welcome{me?.name ? `, ${me.name}` : ''}</h1>
-          <p className="mt-2 text-ocean/75">{me?.email}</p>
+          <div className="flex items-center gap-2">
+            <Badge variant="gold" size="sm" dot>Verified Ownership Portal</Badge>
+            {me?.kyc && <Badge variant="success" size="sm">KYC Approved</Badge>}
+          </div>
+          <h1 className="font-display mt-2 text-3xl font-bold text-ocean sm:text-4xl">
+            Welcome back{me?.name ? `, ${me.name}` : ''}
+          </h1>
+          <p className="mt-1 text-xs text-ocean/65">{me?.email}</p>
         </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-          <Link href="/invest" className="sm:inline-flex">
-            <Button className="w-full sm:w-auto">Buy another plan</Button>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/invest">
+            <Button className="text-xs">Browse New Plans</Button>
           </Link>
-          <Link href="/auth/change-password" className="sm:inline-flex">
-            <Button variant="outline" className="w-full sm:w-auto">Change password</Button>
-          </Link>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={loadAll}>
-            {loading ? 'Refreshing...' : 'Refresh'}
+          <Button variant="outline" className="text-xs" onClick={loadAll}>
+            {loading ? 'Refreshing...' : '↻ Refresh'}
           </Button>
-          <Button variant="ghost" className="w-full sm:w-auto" onClick={logout}>
-            Sign out
+          <Button variant="ghost" className="text-xs text-rose-600 hover:bg-rose-50" onClick={logout}>
+            Sign Out
           </Button>
         </div>
       </div>
-      {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <section className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="border border-ocean/10 bg-white p-5">
-          <div className="text-xs uppercase tracking-wide text-ocean/60">Portfolio</div>
-          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(portfolio)}</div>
+      {error && (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          {error}
         </div>
-        <div className="border border-ocean/10 bg-white p-5">
-          <div className="text-xs uppercase tracking-wide text-ocean/60">Paid</div>
-          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(paid)}</div>
-        </div>
-        <div className="border border-gold/40 bg-gold/10 p-5">
-          <div className="text-xs uppercase tracking-wide text-ocean/60">Outstanding</div>
-          <div className="font-display mt-1 text-3xl text-ocean">{formatMoney(outstanding)}</div>
-        </div>
+      )}
+
+      {/* High-Impact Portfolio Metric Cards */}
+      <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total Portfolio Asset Value"
+          isMoney
+          moneyAmount={portfolio}
+          variant="ocean"
+          icon={<span className="text-lg">🏛️</span>}
+          subtext={`${holdings.length} Fractional suite shares`}
+        />
+        <StatCard
+          label="Paid Capital (Deposits & Dues)"
+          isMoney
+          moneyAmount={paid}
+          variant="gold"
+          icon={<span className="text-lg">💳</span>}
+          subtext={`${paidPercentage}% of total committed`}
+        />
+        <StatCard
+          label="Remaining Balance Due"
+          isMoney
+          moneyAmount={outstanding}
+          variant="default"
+          icon={<span className="text-lg">⏳</span>}
+          subtext="Spread across installment tenors"
+        />
+        <StatCard
+          label="Total Referral Rewards"
+          isMoney
+          moneyAmount={referral?.totals?.totalIncentive || 0}
+          variant="pearl"
+          icon={<span className="text-lg">🎁</span>}
+          subtext={`${formatMoney(referral?.totals?.paid || 0)} Paid Out`}
+        />
       </section>
 
-      {referral?.code && (
-        <section className="mt-10 border border-ocean/10 bg-white p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="font-display text-2xl text-ocean">Referral earnings</h2>
-              <p className="mt-1 text-sm text-ocean/70">
-                Earn {referral.policy?.incentivePct ?? 2}% of each referred plan sale —{' '}
-                {referral.policy?.tranche1Pct ?? 40}% when the booking is confirmed,{' '}
-                {referral.policy?.tranche2Pct ?? 60}% when the downpayment is paid.
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs uppercase tracking-wide text-ocean/55">Your code</div>
-              <div className="font-display text-2xl tracking-wide text-ocean">{referral.code}</div>
-            </div>
+      {/* Overall Payment Progress Bar */}
+      {portfolio > 0 && (
+        <div className="mt-6 rounded-xl border border-ocean/10 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between text-xs font-semibold">
+            <span className="text-ocean">Overall Equity Amortization Progress</span>
+            <span className="text-[#997D25] font-bold">{paidPercentage}% Equity Paid</span>
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <code className="max-w-full truncate border border-ocean/10 bg-pearl px-3 py-2 text-sm text-ocean">
-              {referral.link}
-            </code>
-            <Button variant="outline" onClick={copyReferralLink}>
-              Copy link
-            </Button>
-            {copyMsg && <span className="text-sm text-ocean/65">{copyMsg}</span>}
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-pearl">
+            <div
+              className="h-full bg-gradient-to-r from-ocean via-ocean-light to-gold transition-all duration-700"
+              style={{ width: `${paidPercentage}%` }}
+            />
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="bg-pearl p-3">
-              <div className="text-xs text-ocean/60">Total incentive</div>
-              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.totalIncentive || 0)}</div>
+        </div>
+      )}
+
+      {/* Tabs Navigation */}
+      <div className="mt-10">
+        <Tabs items={tabItems} activeId={activeTab} onChange={setActiveTab} variant="underline" />
+      </div>
+
+      {/* TAB 1: HOLDINGS */}
+      {activeTab === 'holdings' && (
+        <div className="mt-6 space-y-6">
+          {loading && holdings.length === 0 ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              <Skeleton className="h-64 rounded-xl" />
+              <Skeleton className="h-64 rounded-xl" />
             </div>
-            <div className="bg-pearl p-3">
-              <div className="text-xs text-ocean/60">Unlocked</div>
-              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.unlocked || 0)}</div>
+          ) : holdings.length === 0 ? (
+            <div className="rounded-xl border border-ocean/10 bg-white p-10 text-center text-ocean/70">
+              <p className="text-base font-semibold text-ocean">You do not hold any registered shares yet.</p>
+              <p className="mt-1 text-xs">Reserve a suite share from 10% downpayment to begin earning quarterly dividends.</p>
+              <div className="mt-5">
+                <Link href="/invest">
+                  <Button>Explore Available Share Plans</Button>
+                </Link>
+              </div>
             </div>
-            <div className="bg-pearl p-3">
-              <div className="text-xs text-ocean/60">Waiting</div>
-              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.waiting || 0)}</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {holdings.map((h) => {
+                const sum = summaries[h.booking.id];
+                return (
+                  <article
+                    key={h.booking.id}
+                    className="relative overflow-hidden rounded-xl border border-ocean/10 bg-white p-6 shadow-sm transition hover:border-gold/40 hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-xl font-bold text-ocean">
+                            Suite {h.suite?.id || h.booking.suiteId} &middot; {h.plan?.name || 'Timeshare Plan'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-ocean/65">
+                          {h.suite?.type} &middot; <span className="capitalize">{h.suite?.view}</span> View &middot; Floor {h.suite?.floor || 1} &middot; {h.plan?.daysPerMonth ? `${h.plan.daysPerMonth} days stay/mo` : '30 days/yr'}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={h.booking.status === 'confirmed' ? 'success' : h.booking.status === 'reserved' ? 'gold' : 'neutral'}
+                        size="sm"
+                        dot
+                      >
+                        {h.booking.status}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-3 gap-3 rounded-lg bg-pearl p-3.5 text-center text-xs">
+                      <div>
+                        <span className="text-ocean/55 block">Total Price</span>
+                        <span className="font-bold text-ocean text-sm mt-0.5 block">
+                          {formatMoney(h.booking.amountTotal || 0)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-ocean/55 block">Paid To Date</span>
+                        <span className="font-bold text-emerald-700 text-sm mt-0.5 block">
+                          {formatMoney(sum?.paidTotal || 0)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-ocean/55 block">Remaining</span>
+                        <span className="font-bold text-[#997D25] text-sm mt-0.5 block">
+                          {formatMoney(sum?.outstanding || 0)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* KYC & Nominee Details Form */}
+                    {h.client && h.booking.status !== 'cancelled' && (
+                      <div className="mt-6 border-t border-ocean/10 pt-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-ocean">
+                            Deed &amp; Nominee Information
+                          </h4>
+                          <span className="text-[11px] text-ocean/60">Visible in Public Catalog</span>
+                        </div>
+                        <div className="mt-3">
+                          <KycEditor
+                            bookingId={h.booking.id}
+                            client={h.client}
+                            variant="owner"
+                            onSaved={(next) =>
+                              setHoldings((prev) =>
+                                prev.map((row) =>
+                                  row.booking.id === h.booking.id ? { ...row, client: next } : row
+                                )
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
             </div>
-            <div className="border border-gold/40 bg-gold/10 p-3">
-              <div className="text-xs text-ocean/60">Paid out</div>
-              <div className="font-semibold text-ocean">{formatMoney(referral.totals?.paid || 0)}</div>
-            </div>
-          </div>
-          {(referral.rewards || []).length > 0 && (
-            <div className="mt-5 space-y-2">
-              {(referral.rewards as any[]).slice(0, 8).map((r) => (
-                <div
-                  key={r.id}
-                  className="flex flex-wrap items-center justify-between gap-2 border-t border-ocean/10 pt-2 text-sm"
-                >
-                  <div>
-                    <span className="text-ocean">Sale {formatMoney(r.saleAmount)}</span>
-                    <span className="ml-2 capitalize text-ocean/60">{r.status}</span>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: SCHEDULE & DUES */}
+      {activeTab === 'schedule' && (
+        <div className="mt-6 space-y-6">
+          {upcoming.length > 0 && (
+            <div className="rounded-xl border border-gold/40 bg-gold/10 p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-ocean">Immediate Action Required</h3>
+                  <p className="text-xs text-ocean/75">You have {upcoming.length} installment payments due.</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {upcoming.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-lg border border-ocean/10 bg-white p-3.5 shadow-sm"
+                  >
+                    <div>
+                      <div className="capitalize font-bold text-ocean text-xs">{item.type}</div>
+                      <div className="text-[11px] text-ocean/60">Due: {formatDate(item.dueDate)}</div>
+                      <div className="text-xs font-bold text-ocean mt-0.5">{formatMoney(item.amount)}</div>
+                    </div>
+                    <Button
+                      onClick={() => setPayModalItem(item)}
+                      className="px-3 py-1.5 text-xs bg-ocean text-white"
+                    >
+                      Pay Now
+                    </Button>
                   </div>
-                  <div className="text-ocean/80">
-                    T1 {formatMoney(r.tranche1Amount)} ({r.tranche1Status}) · T2{' '}
-                    {formatMoney(r.tranche2Amount)} ({r.tranche2Status})
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Full Schedule List across all holdings */}
+          <div className="overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm">
+            <div className="border-b border-ocean/10 bg-pearl px-5 py-3">
+              <h3 className="font-display text-base font-bold text-ocean">Complete Installment Ledger</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-ocean/10 bg-pearl/50 text-ocean/60 uppercase tracking-wider font-semibold">
+                    <th className="px-5 py-3">Suite / Holding</th>
+                    <th className="px-5 py-3">Milestone Type</th>
+                    <th className="px-5 py-3">Due Date</th>
+                    <th className="px-5 py-3">Amount</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ocean/10">
+                  {Object.entries(schedules).flatMap(([bId, items]) =>
+                    items.map((it) => (
+                      <tr key={it.id} className="hover:bg-pearl/30 transition">
+                        <td className="px-5 py-3.5 font-medium text-ocean">Booking #{bId.slice(0, 8)}</td>
+                        <td className="px-5 py-3.5 capitalize font-semibold text-ocean">{it.type}</td>
+                        <td className="px-5 py-3.5 text-ocean/70">{formatDate(it.dueDate)}</td>
+                        <td className="px-5 py-3.5 font-bold text-ocean">{formatMoney(it.amount)}</td>
+                        <td className="px-5 py-3.5">
+                          <Badge variant={it.status === 'due' ? 'warning' : 'success'} size="sm" dot>
+                            {it.status === 'due' ? 'Payment Due' : 'Paid & Settled'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {it.status === 'due' ? (
+                            <button
+                              type="button"
+                              onClick={() => setPayModalItem(it)}
+                              className="rounded-md bg-ocean px-3 py-1 text-xs font-semibold text-white transition hover:bg-ocean/90"
+                            >
+                              Pay
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => success(`Receipt downloaded for ${formatMoney(it.amount)} (${it.type})`)}
+                              className="text-xs font-semibold text-ocean/70 hover:text-gold underline"
+                            >
+                              Download Receipt
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: CONSTRUCTION PROGRESS TRACKER */}
+      {activeTab === 'progress' && (
+        <div className="mt-6 space-y-6">
+          <div className="rounded-xl border border-ocean/10 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-ocean/10 pb-4">
+              <div>
+                <h3 className="font-display text-xl font-bold text-ocean">Resort Construction &amp; Development Roadmap</h3>
+                <p className="mt-1 text-xs text-ocean/70">
+                  Live updates from the Marine Drive site in Cox&apos;s Bazar. Audited monthly by project structural engineers.
+                </p>
+              </div>
+              <Badge variant="gold" size="md">Phase 3 in Active Construction</Badge>
+            </div>
+
+            <div className="mt-6 space-y-6">
+              {CONSTRUCTION_MILESTONES.map((m, idx) => (
+                <div key={m.id} className="relative flex items-start gap-4">
+                  {/* Timeline connector line */}
+                  {idx < CONSTRUCTION_MILESTONES.length - 1 && (
+                    <span
+                      className={`absolute left-4 top-8 -bottom-6 w-0.5 ${
+                        m.status === 'completed' ? 'bg-emerald-500' : m.status === 'active' ? 'bg-gold' : 'bg-ocean/15'
+                      }`}
+                    />
+                  )}
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm ${
+                      m.status === 'completed'
+                        ? 'bg-emerald-600 text-white'
+                        : m.status === 'active'
+                        ? 'border-2 border-gold bg-ocean text-gold'
+                        : 'border border-ocean/20 bg-pearl text-ocean/40'
+                    }`}
+                  >
+                    {m.status === 'completed' ? '✓' : idx + 1}
+                  </span>
+                  <div className="flex-1 rounded-lg border border-ocean/10 bg-pearl/40 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-bold text-ocean">{m.title}</h4>
+                      <span className="text-xs font-semibold text-ocean/60">{m.date}</span>
+                    </div>
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white">
+                      <div
+                        className={`h-full rounded-full ${
+                          m.status === 'completed' ? 'bg-emerald-500' : 'bg-gold'
+                        }`}
+                        style={{ width: `${m.progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </div>
+        </div>
       )}
 
-      {upcoming.length > 0 && (
-        <section className="mt-10">
-          <h2 className="font-display text-2xl text-ocean">Pay next</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {upcoming.map((i) => (
-              <div
-                key={i.id}
-                className="flex items-center justify-between gap-3 border border-ocean/10 bg-white p-4"
-              >
+      {/* TAB 4: REFERRAL & BROKER HUB */}
+      {activeTab === 'referrals' && (
+        <div className="mt-6 space-y-6">
+          {referral?.code ? (
+            <div className="rounded-xl border border-ocean/10 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ocean/10 pb-5">
                 <div>
-                  <div className="capitalize text-ocean">{i.type}</div>
-                  <div className="text-sm text-ocean/70">{formatDate(i.dueDate)}</div>
+                  <Badge variant="gold" size="sm" dot>Broker &amp; Owner Referral Program</Badge>
+                  <h3 className="font-display mt-2 text-2xl font-bold text-ocean">Your Referral Commission Ledger</h3>
+                  <p className="mt-1 text-xs text-ocean/70 leading-relaxed max-w-xl">
+                    Earn <strong>{referral.policy?.incentivePct ?? 2}%</strong> on every referred suite share sale. 
+                    Payout is automated: {referral.policy?.tranche1Pct ?? 40}% upon booking deposit clearance, and {referral.policy?.tranche2Pct ?? 60}% upon downpayment completion.
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-ocean">{formatMoney(i.amount)}</span>
-                  <Button onClick={() => pay(i)}>Pay</Button>
+                <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-right">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-ocean/60">Your Exclusive Code</span>
+                  <div className="font-display text-2xl font-bold tracking-widest text-ocean">{referral.code}</div>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      <section className="mt-12">
-        <h2 className="font-display text-2xl text-ocean">Your holdings</h2>
-        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {holdings.map((h) => {
-            const sum = summaries[h.booking.id];
-            return (
-              <article key={h.booking.id} className="border border-ocean/10 bg-white p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-9 w-9">
-                      <Image src="/images/icons/balcony.svg" alt="" fill sizes="36px" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-ocean">
-                        {h.plan?.name || 'Stay booking'} · {h.suite?.id || h.booking.suiteId}
-                      </div>
-                      <div className="text-sm text-ocean/70">
-                        {h.suite?.type} · {h.suite?.view}
-                        {h.plan?.daysPerMonth ? ` · ${h.plan.daysPerMonth} days/mo` : ''}
-                        {h.booking.planId ? ` · Plan ${h.booking.planId}` : ''}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="border border-ocean/15 px-2 py-1 text-xs capitalize text-ocean/80">
-                    {h.booking.status}
+              {/* Link Copy Box */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  readOnly
+                  value={referral.link}
+                  className="flex-1 rounded-lg border border-ocean/20 bg-pearl px-4 py-2.5 text-xs font-mono text-ocean select-all"
+                />
+                <Button onClick={copyReferralLink} className="text-xs">
+                  {copyMsg || 'Copy Link'}
+                </Button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Invest in luxury oceanfront suite ownership at Grand Sampan Resort Cox's Bazar: ${referral.link}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/40 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                >
+                  <span>💬</span> Share on WhatsApp
+                </a>
+              </div>
+
+              {/* Commission Stats */}
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg bg-pearl p-4">
+                  <span className="text-xs text-ocean/60 block">Total Accrued</span>
+                  <span className="font-display text-lg font-bold text-ocean mt-1 block">
+                    {formatMoney(referral.totals?.totalIncentive || 0)}
                   </span>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                  <div className="bg-pearl p-3">
-                    <div className="text-ocean/60">Total</div>
-                    <div className="text-ocean">{formatMoney(h.booking.amountTotal || 0)}</div>
-                  </div>
-                  <div className="bg-pearl p-3">
-                    <div className="text-ocean/60">Paid</div>
-                    <div className="text-ocean">{formatMoney(sum?.paidTotal || 0)}</div>
-                  </div>
-                  <div className="bg-pearl p-3">
-                    <div className="text-ocean/60">Due</div>
-                    <div className="text-ocean">{formatMoney(sum?.outstanding || 0)}</div>
-                  </div>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                  <span className="text-xs text-emerald-800 block">Unlocked &amp; Ready</span>
+                  <span className="font-display text-lg font-bold text-emerald-900 mt-1 block">
+                    {formatMoney(referral.totals?.unlocked || 0)}
+                  </span>
                 </div>
-                <div className="mt-4 space-y-2">
-                  {(schedules[h.booking.id] || []).slice(0, 4).map((i) => (
-                    <div key={i.id} className="flex items-center justify-between border-t border-ocean/10 pt-2 text-sm">
-                      <div>
-                        <span className="capitalize text-ocean">{i.type}</span>
-                        <span className="ml-2 text-ocean/60">{formatDate(i.dueDate)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span>{formatMoney(i.amount)}</span>
-                        {i.status === 'due' ? (
-                          <button
-                            onClick={() => pay(i)}
-                            className="rounded-md bg-ocean px-3 py-1 text-xs font-semibold text-white"
-                          >
-                            Pay
-                          </button>
-                        ) : (
-                          <span className="text-xs text-ocean/50">Paid</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                  <span className="text-xs text-amber-800 block">Waiting Tranche 2</span>
+                  <span className="font-display text-lg font-bold text-amber-900 mt-1 block">
+                    {formatMoney(referral.totals?.waiting || 0)}
+                  </span>
                 </div>
-                {h.client && h.booking.status !== 'cancelled' && (
-                  <div className="mt-5 border-t border-ocean/10 pt-4">
-                    <h3 className="text-sm font-semibold text-ocean">Your details on this plan</h3>
-                    <p className="mt-1 text-xs text-ocean/65">
-                      Name, profession, city, and photo appear on the catalog after this share is booked.
-                      You can add or update them here.
-                    </p>
-                    <div className="mt-3">
-                      <KycEditor
-                        bookingId={h.booking.id}
-                        client={h.client}
-                        variant="owner"
-                        onSaved={(next) =>
-                          setHoldings((prev) =>
-                            prev.map((row) =>
-                              row.booking.id === h.booking.id ? { ...row, client: next } : row
-                            )
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-          {holdings.length === 0 && !loading && (
-            <div className="border border-ocean/10 p-6 text-ocean/70 lg:col-span-2">
-              No holdings yet.{' '}
-              <Link href="/invest" className="font-semibold text-ocean underline">
-                Browse available plans
-              </Link>
+                <div className="rounded-lg bg-gold/15 border border-gold/40 p-4">
+                  <span className="text-xs text-[#886915] block">Disbursed to Bank</span>
+                  <span className="font-display text-lg font-bold text-ocean mt-1 block">
+                    {formatMoney(referral.totals?.paid || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-ocean/10 bg-white p-8 text-center text-ocean/70">
+              No referral account active. Please contact the Grand Sampan desk to generate your partner link.
             </div>
           )}
         </div>
-      </section>
+      )}
+
+      {/* Payment Processing Modal */}
+      <Modal
+        isOpen={!!payModalItem}
+        onClose={() => setPayModalItem(null)}
+        title="Settle Installment Payment"
+        description={`Paying for Booking #${payModalItem?.bookingId.slice(0, 8)} · ${payModalItem?.type}`}
+        maxWidth="md"
+      >
+        {payModalItem && (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-pearl p-4 flex items-center justify-between">
+              <div>
+                <span className="text-xs text-ocean/60 block">Amount Payable</span>
+                <span className="font-display text-2xl font-bold text-ocean">
+                  {formatMoney(payModalItem.amount)}
+                </span>
+              </div>
+              <Badge variant="gold" size="sm">Instant Confirmation</Badge>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-ocean/70 block mb-2">
+                Select Payment Channel
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'bkash', label: 'bKash Online', icon: '📱' },
+                  { id: 'nagad', label: 'Nagad Pay', icon: '📲' },
+                  { id: 'card', label: 'Visa / Mastercard', icon: '💳' },
+                  { id: 'bank', label: 'BEFTN / Wire Transfer', icon: '🏦' }
+                ].map((meth) => (
+                  <button
+                    key={meth.id}
+                    type="button"
+                    onClick={() => setPayMethod(meth.id as any)}
+                    className={`flex items-center gap-2 rounded-lg border p-3 text-left text-xs font-semibold transition ${
+                      payMethod === meth.id
+                        ? 'border-gold bg-ocean text-white shadow-sm'
+                        : 'border-ocean/15 bg-white text-ocean hover:border-ocean/30'
+                    }`}
+                  >
+                    <span>{meth.icon}</span>
+                    <span>{meth.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3 pt-2">
+              <Button
+                onClick={executePayment}
+                disabled={paying}
+                className="w-full"
+              >
+                {paying ? 'Processing...' : `Confirm & Pay ${formatMoney(payModalItem.amount)}`}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setPayModalItem(null)}
+                className="w-auto"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </main>
   );
 }

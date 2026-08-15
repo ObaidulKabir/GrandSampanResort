@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { suitePhoto } from '@/lib/photos';
 import { fetchMedia, resolveMediaUrl } from '@/lib/media';
+import Badge from '@/components/ui/Badge';
+import Skeleton from '@/components/ui/Skeleton';
 
 type Suite = { id: string; floor: number; type: string; size: number; view: string };
 
-/** Homepage showcase: one card per tier, in this order. */
 const SHOWCASE_TYPES = ['Standard', 'Delux', 'Premium'] as const;
 
 function normalizeType(type: string) {
@@ -24,9 +25,8 @@ function pickShowcaseSuites(list: Suite[]): Suite[] {
     const candidates = list.filter(
       (s) => normalizeType(s.type) === normalizeType(wanted) && !used.has(s.id)
     );
-    // Prefer a sea-view example when available for that tier.
     const match =
-      candidates.find((s) => String(s.view).toLowerCase() === 'sea') || candidates[0];
+      candidates.find((s) => String(s.view).toLowerCase().includes('sea')) || candidates[0];
     if (match) {
       used.add(match.id);
       picked.push(match);
@@ -92,57 +92,87 @@ export default function AvailableCards() {
     loadSuites();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+        {[1, 2, 3].map((n) => (
+          <div key={n} className="overflow-hidden rounded-xl border border-ocean/10 bg-white p-4 shadow-sm">
+            <Skeleton className="h-48 w-full rounded-lg" />
+            <div className="mt-4 space-y-2">
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
       {suites.map((s) => {
         const ok = availability[s.id];
         return (
-          <article key={s.id} className="group border border-ocean/10 bg-white transition hover:border-gold/50">
-            <div className="relative h-44 w-full overflow-hidden">
+          <article
+            key={s.id}
+            className="group relative flex flex-col overflow-hidden rounded-xl border border-ocean/10 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gold/50 hover:shadow-xl"
+          >
+            <div className="relative h-48 w-full overflow-hidden bg-ocean/10">
               <Image
                 src={photoFor(s.type).src}
                 alt={`${s.type} suite`}
                 fill
                 sizes="(min-width: 768px) 33vw, 100vw"
                 unoptimized={photoFor(s.type).unoptimized}
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              <span
-                className={`absolute right-3 top-3 border px-2 py-0.5 text-xs font-semibold ${
-                  ok ? 'border-gold bg-gold/90 text-ocean' : 'border-white/40 bg-ocean/80 text-white'
-                }`}
-              >
-                {ok ? 'Available' : 'Fully booked'}
-              </span>
+              <div className="absolute inset-0 bg-gradient-to-t from-ocean/80 via-transparent to-transparent opacity-60 transition-opacity group-hover:opacity-40" />
+              <div className="absolute right-3 top-3">
+                <Badge variant={ok ? 'gold' : 'ocean'} size="sm" dot pulse={ok}>
+                  {ok ? 'Share Available' : 'Reserved'}
+                </Badge>
+              </div>
+              <div className="absolute bottom-3 left-3 text-white">
+                <span className="text-xs uppercase tracking-wider text-gold font-semibold">
+                  Suite {s.id}
+                </span>
+              </div>
             </div>
-            <div className="p-5">
-              <div className="font-display text-lg text-ocean">
-                {s.type} &middot; {s.view} view
+
+            <div className="flex flex-1 flex-col justify-between p-5">
+              <div>
+                <h3 className="font-display text-xl font-bold text-ocean">
+                  {s.type} Suite &middot; <span className="capitalize">{s.view}</span> View
+                </h3>
+                <div className="mt-1 flex items-center gap-3 text-xs text-ocean/65">
+                  <span>Floor {s.floor}</span>
+                  <span>&bull;</span>
+                  <span>{s.size} sq ft</span>
+                  <span>&bull;</span>
+                  <span className="text-emerald-700 font-semibold">8% Est. ROI</span>
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-ocean/75">
+                  Exclusive deeded fraction with 30 days annual stay allowance and semiannual dividend distributions.
+                </p>
               </div>
-              <div className="mt-1 text-sm text-ocean/70">
-                Floor {s.floor} &middot; {s.size} sq ft
+
+              <div className="mt-5 pt-4 border-t border-ocean/10 flex items-center justify-between">
+                <span className="text-xs font-semibold text-ocean/60">Reserve from 10%</span>
+                <Link
+                  href="/invest"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-ocean transition hover:text-gold"
+                >
+                  View Share Plans &rarr;
+                </Link>
               </div>
-              <p className="mt-3 text-sm text-ocean/70">
-                {ok ? 'Open dates in the next 30 days.' : 'No open dates in the next 30 days.'}
-              </p>
-              <Link
-                href="/invest"
-                className="mt-4 inline-flex text-sm font-semibold text-ocean underline decoration-gold underline-offset-4 hover:text-gold"
-              >
-                View investment plans
-              </Link>
             </div>
           </article>
         );
       })}
       {suites.length === 0 && !loading && (
-        <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
-          No units to display
-        </div>
-      )}
-      {loading && (
-        <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
-          Loading availability...
+        <div className="rounded-xl border border-ocean/10 bg-white p-8 text-center text-ocean/70 sm:col-span-2 md:col-span-3">
+          No units currently available for preview.
         </div>
       )}
     </div>
