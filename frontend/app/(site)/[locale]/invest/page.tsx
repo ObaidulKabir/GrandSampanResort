@@ -497,7 +497,7 @@ export default function InvestPage() {
     <div className="flex flex-wrap items-center gap-x-3">
       {!(isAdmin && adminStatus) && (
         <button type="button" className="font-semibold text-ocean hover:text-gold" onClick={() => setShowSold((v) => !v)}>
-          showSold ? t('hideBooked') : t('showBooked')
+          {showSold ? t('hideBooked') : t('showBooked')}
         </button>
       )}
       <button
@@ -529,7 +529,7 @@ export default function InvestPage() {
             <Button className="w-full sm:w-auto">{t('helpChoose')}</Button>
           </Link>
           <Button variant="ghost" onClick={load} className="px-3 py-2">
-            loading ? t('refreshing') : t('refresh')
+            {loading ? t('refreshing') : t('refresh')}
           </Button>
         </div>
       </div>
@@ -641,7 +641,7 @@ export default function InvestPage() {
                     className="min-h-11 border border-ocean/15 px-3 text-sm font-semibold text-ocean"
                     onClick={() => setShowSold((v) => !v)}
                   >
-                    showSold ? t('hideBooked') : t('showBooked')
+                    {showSold ? t('hideBooked') : t('showBooked')}
                   </button>
                 )}
                 <button
@@ -779,7 +779,7 @@ export default function InvestPage() {
                 ) : sold ? (
                   <Link href={`/pricing/plans/${p.id}`} className="block">
                     <Button variant="outline" className="w-full px-4 py-2.5">
-                      owner ? t('seeWhoBooked') : t('viewBookedPlan')
+                      {owner ? t('seeWhoBooked') : t('viewBookedPlan')}
                     </Button>
                   </Link>
                 ) : (
