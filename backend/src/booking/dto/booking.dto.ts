@@ -106,4 +106,7 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   referralCode?: string;
+  @IsOptional()
+  @IsString()
+  quoteToken?: string;
 }

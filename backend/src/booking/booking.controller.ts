@@ -69,7 +69,8 @@ export class BookingController {
       },
       body.referralCode,
       body.paymentTierId,
-      body.installmentMonths
+      body.installmentMonths,
+      body.quoteToken
     );
   }
 

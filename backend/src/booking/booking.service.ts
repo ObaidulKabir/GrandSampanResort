@@ -1,5 +1,6 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import {
   Booking,
   BookingDepositPayment,
@@ -16,6 +17,7 @@ import { ReferralService } from "../referral/referral.service";
 import { PaymentPlansService } from "../payment-plans/payment-plans.service";
 import { applyDiscount, presentValue, monthlyDiscountFactor } from "../payment-plans/pv";
 import { generatePaymentSchedule, monthsFromAnchor } from "../payment-plans/schedule";
+import { signQuoteToken, verifyQuoteToken } from "./quote-token";
 import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -89,6 +91,7 @@ export class BookingService {
 
   constructor(
     @Optional() private readonly referral: ReferralService = new ReferralService(),
+    @Optional() private readonly jwt: JwtService | null = null,
   ) {}
 
   private depositAmountOf(booking: {
@@ -498,9 +501,8 @@ export class BookingService {
       schedule.map((s) => ({ dueMonth: monthsFromAnchor(anchor, new Date(s.dueDate)), amount: s.amount })),
       v,
     );
-    return {
-      ok: true as const,
-      quote: {
+    const expiresAt = new Date(Date.now() + policy.quoteTtlMinutes * 60 * 1000).toISOString();
+    const quote = {
         planId,
         suiteId: plan.suiteId || null,
         listPrice,
@@ -523,6 +525,8 @@ export class BookingService {
         schedule,
         depositAmount: schedule.find((s) => s.type === 'deposit')?.amount ?? 0,
         generatedAt: new Date().toISOString(),
+        expiresAt,
+        quoteToken: null as string | null,
         assumptions: {
           discountRateAnnualPct: policy.discountRateAnnualPct,
           compoundingPerYear: policy.compoundingPerYear,
@@ -530,8 +534,26 @@ export class BookingService {
           downpaymentPct: policy.downpaymentPct,
           downpaymentAfterMonths: policy.downpaymentAfterMonths,
         },
-      },
     };
+    if (this.jwt) {
+      quote.quoteToken = await signQuoteToken(
+        this.jwt,
+        {
+          planId,
+          paymentTierId: tier.id,
+          installmentMonths: tenor,
+          cadence,
+          listPrice,
+          promoDiscountPct: promo?.discountPct || 0,
+          advanceDiscountPct: advancePct,
+          discountRateAnnualPct: policy.discountRateAnnualPct,
+          netPrice,
+          upfrontPct: tier.upfrontPct,
+        },
+        policy.quoteTtlMinutes,
+      );
+    }
+    return { ok: true as const, quote };
   }
 
   async book(
@@ -546,6 +568,7 @@ export class BookingService {
     referralCodeRaw?: string | null,
     paymentTierId?: string | null,
     installmentMonths?: number | null,
+    quoteToken?: string | null,
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
     const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
@@ -569,6 +592,7 @@ export class BookingService {
         referralCodeRaw,
         paymentTierId,
         installmentMonths,
+        quoteToken,
       );
     } catch (err: any) {
       this.logger.error(
@@ -597,6 +621,7 @@ export class BookingService {
     referralCodeRaw?: string | null,
     paymentTierId?: string | null,
     installmentMonths?: number | null,
+    quoteToken?: string | null,
   ) {
       const suite = await this.suites.get(suiteId);
       if (!suite) return { ok: false as const, error: 'suite_not_found' };
@@ -633,13 +658,81 @@ export class BookingService {
         if (planStatus !== 'unsold') {
           return { ok: false as const, error: 'plan_not_available' };
         }
-        const priced = await this.quote({
-          planId: normalizedPlanId,
-          paymentTierId,
-          installmentMonths,
-          cadence: payCadence,
-          start,
-        });
+        let priced: Awaited<ReturnType<BookingService['quote']>>;
+        if (quoteToken) {
+          if (!this.jwt) return { ok: false as const, error: 'quote_expired' };
+          const verified = await verifyQuoteToken(this.jwt, quoteToken);
+          if (!verified.ok) return { ok: false as const, error: verified.error };
+          if (verified.payload.planId !== normalizedPlanId) {
+            return { ok: false as const, error: 'quote_expired' };
+          }
+          const policy = await this.paymentPlans.getPolicy();
+          const lockedNet = Math.round(Number(verified.payload.netPrice) || 0);
+          const lockedCadence = verified.payload.cadence === 'quarterly' ? 'quarterly' : 'monthly';
+          const scheduleFromToken = generatePaymentSchedule(lockedNet, new Date(start), {
+            upfrontPct: Number(verified.payload.upfrontPct) || 10,
+            downpaymentPct: policy.downpaymentPct,
+            downpaymentAfterMonths: policy.downpaymentAfterMonths,
+            installmentMonths: verified.payload.installmentMonths,
+            cadence: lockedCadence,
+          });
+          priced = {
+            ok: true as const,
+            quote: {
+              planId: normalizedPlanId,
+              suiteId: plan.suiteId || null,
+              listPrice: Math.round(Number(verified.payload.listPrice) || 0),
+              promo: Number(verified.payload.promoDiscountPct)
+                ? {
+                    promoId: '',
+                    promoName: '',
+                    discountPct: Number(verified.payload.promoDiscountPct),
+                    discountedPrice: Math.round(
+                      Number(verified.payload.listPrice) *
+                        (1 - Number(verified.payload.promoDiscountPct) / 100),
+                    ),
+                  }
+                : null,
+              afterPromo: Math.round(
+                Number(verified.payload.listPrice) *
+                  (1 - (Number(verified.payload.promoDiscountPct) || 0) / 100),
+              ),
+              paymentTierId: verified.payload.paymentTierId,
+              tierLabel: verified.payload.paymentTierId,
+              upfrontPct: Number(verified.payload.upfrontPct) || 10,
+              fairDiscountPct: 0,
+              advanceDiscountPct: Number(verified.payload.advanceDiscountPct) || 0,
+              discountSource: 'override' as const,
+              netPrice: lockedNet,
+              savings: 0,
+              installmentMonths: verified.payload.installmentMonths,
+              cadence: lockedCadence,
+              discountRateAnnualPct: Number(verified.payload.discountRateAnnualPct) || 8,
+              presentValue: lockedNet,
+              schedule: scheduleFromToken,
+              depositAmount: scheduleFromToken.find((s) => s.type === 'deposit')?.amount ?? 0,
+              generatedAt: new Date().toISOString(),
+              expiresAt: new Date().toISOString(),
+              quoteToken,
+              assumptions: {
+                discountRateAnnualPct: Number(verified.payload.discountRateAnnualPct) || 8,
+                compoundingPerYear: policy.compoundingPerYear,
+                tenorPricing: policy.tenorPricing,
+                downpaymentPct: policy.downpaymentPct,
+                downpaymentAfterMonths: policy.downpaymentAfterMonths,
+              },
+            },
+          };
+          priced.quote.savings = Math.max(0, priced.quote.afterPromo - lockedNet);
+        } else {
+          priced = await this.quote({
+            planId: normalizedPlanId,
+            paymentTierId,
+            installmentMonths,
+            cadence: payCadence,
+            start,
+          });
+        }
         if (!priced.ok) return { ok: false as const, error: priced.error };
         const q = priced.quote;
         const total = q.netPrice;

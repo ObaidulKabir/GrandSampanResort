@@ -573,7 +573,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           depositNote: depositNote.trim() || undefined,
           referralCode: normalizeReferralCode(referralCode) || undefined,
           paymentTierId,
-          installmentMonths
+          installmentMonths,
+          quoteToken: quote?.quoteToken || undefined
         })
       });
       if (!res?.ok || !res.booking?.id) {
@@ -592,13 +593,28 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                       ? 'This plan is not linked to the selected unit'
                       : res?.error === 'suite_not_found'
                         ? 'Unit not found'
-                        : res?.error === 'busy'
+                        : res?.error === 'quote_expired' || res?.error === 'quote_invalid'
+                      ? 'This price quote expired. Review the updated total, then submit again.'
+                      : res?.error === 'busy'
                           ? 'Another booking is in progress — please try again'
                           : res?.error === 'booking_failed'
                             ? 'Could not complete booking. Please try again.'
                             : 'Purchase failed';
         if (res?.error === 'email_not_verified') {
           router.push(`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+        }
+        if (res?.error === 'quote_expired' || res?.error === 'quote_invalid') {
+          const fresh = await api('/booking/quote', {
+            method: 'POST',
+            body: JSON.stringify({
+              planId,
+              paymentTierId,
+              installmentMonths,
+              cadence,
+              start: start.toISOString()
+            })
+          });
+          if (fresh?.ok) setQuote(fresh.quote);
         }
         setStatus(msg);
         setBuying(false);
