@@ -230,6 +230,8 @@ export class PaymentPlansService {
     const allowed = policy.tenors.length ? policy.tenors : [24];
     const n = Number(months);
     if (Number.isFinite(n) && allowed.includes(n)) return n;
+    // Prefer classic 24-month default even when shorter tenors exist (sorted ascending).
+    if (allowed.includes(24)) return 24;
     return allowed[0];
   }
 

@@ -47,7 +47,10 @@ export class AdvisorService {
         size: (suite as any)?.size
       });
       const annualMid = returns ? Math.round((returns.low + returns.high) / 2) : 0;
-      const resolved = this.paymentPlans.resolveTiers(policy, { installmentMonths: policy.tenors[0], cadence: 'monthly' });
+      const resolved = this.paymentPlans.resolveTiers(policy, {
+        installmentMonths: this.paymentPlans.pickTenor(policy),
+        cadence: 'monthly'
+      });
 
       for (const tenor of policy.tenors) {
         for (const cadence of cadences) {

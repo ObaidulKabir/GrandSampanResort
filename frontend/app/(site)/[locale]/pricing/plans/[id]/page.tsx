@@ -675,7 +675,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const installmentAmount = installmentItems[0]?.amount ?? 0;
   const schedule = quote?.schedule || [];
   const afterPromo = quote?.afterPromo ?? effectivePrice;
-  const defaultTenor = tenors[0] || 24;
+  const defaultTenor = tenors.includes(24) ? 24 : tenors[0] || 24;
   const scheduleIsCustom = paymentTierId !== 'full' && (installmentMonths !== defaultTenor || cadence !== 'monthly');
 
   const available = (plan?.planStatus || 'Unsold').toLowerCase() === 'unsold';
