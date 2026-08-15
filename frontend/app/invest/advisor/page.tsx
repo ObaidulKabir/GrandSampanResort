@@ -40,7 +40,11 @@ export default function InvestAdvisorPage() {
         })
       });
       if (!res?.ok) {
-        setError(res?.error || 'We could not match a plan right now. Try again, or browse available suites.');
+        const safeMessage =
+          !res?.error || res.error === 'bad_response' || res.error === 'request_failed'
+            ? 'We could not match a plan right now. Try again, or browse available suites.'
+            : res.error;
+        setError(safeMessage);
         setResult(null);
       } else {
         setResult(res);
