@@ -14,6 +14,8 @@ export type PaymentTier = {
   id: string;
   label: string;
   upfrontPct: number;
+  /** If set, forces the tier to use this tenor (e.g. 12 months) instead of the default picked tenor, yielding a higher PV discount. */
+  installmentMonthsOverride?: number;
   /** null = use PV-fair value. A number is a fixed advertised override. */
   discountPct: number | null;
   passThroughPct: number;
@@ -44,13 +46,22 @@ const POLICY_KEY = 'payment-plan-policy';
 export const DEFAULT_PAYMENT_PLAN_POLICY: PaymentPlanPolicy = {
   enabled: true,
   discountRateAnnualPct: 8,
-  compoundingPerYear: 2,
+  compoundingPerYear: 1, // Matches our discrete annual switch
   downpaymentPct: 20,
   downpaymentAfterMonths: 3,
-  tenors: [24, 36],
+  tenors: [12, 18, 24, 36],
   tenorPricing: 'neutral',
   quoteTtlMinutes: 30,
   tiers: [
+    {
+      id: 'fast_track',
+      label: 'Fast Track (12 mo)',
+      upfrontPct: 10,
+      installmentMonthsOverride: 12,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 15
+    },
     {
       id: 'standard',
       label: 'Booking only',
@@ -76,12 +87,20 @@ export const DEFAULT_PAYMENT_PLAN_POLICY: PaymentPlanPolicy = {
       maxDiscountPct: 12
     },
     {
+      id: 'max_advance',
+      label: 'Max Advance',
+      upfrontPct: 90,
+      discountPct: null,
+      passThroughPct: 100,
+      maxDiscountPct: 12
+    },
+    {
       id: 'full',
       label: 'Full payment',
       upfrontPct: 100,
       discountPct: null,
       passThroughPct: 100,
-      maxDiscountPct: 12
+      maxDiscountPct: 15
     }
   ]
 };
@@ -148,11 +167,12 @@ export class PaymentPlansService {
     const standardPv = presentValue(nominalCashflows(standardOpts), v);
 
     return policy.tiers.map((tier) => {
+      const tierTenor = tier.installmentMonthsOverride ?? tenor;
       const sameTenorOpts: NominalScheduleOpts = {
         upfrontPct: tier.upfrontPct,
         downpaymentPct: policy.downpaymentPct,
         downpaymentAfterMonths: policy.downpaymentAfterMonths,
-        installmentMonths: tenor,
+        installmentMonths: tierTenor,
         cadence
       };
       const compareOpts: NominalScheduleOpts =
@@ -160,7 +180,7 @@ export class PaymentPlansService {
           ? sameTenorOpts
           : {
               ...sameTenorOpts,
-              installmentMonths: tenor
+              installmentMonths: tierTenor
             };
       // Neutral: compare against same tenor's standard (no-advance) schedule.
       const baselineForTier =
@@ -175,7 +195,7 @@ export class PaymentPlansService {
             );
       const tierPv = presentValue(nominalCashflows(compareOpts), v);
       const fair = Math.max(0, fairDiscountPct(tierPv, baselineForTier) * 100);
-      const isStandard = tier.id === standardTier.id || tier.upfrontPct <= standardTier.upfrontPct;
+      const isStandard = tier.id === standardTier.id || (tier.upfrontPct <= standardTier.upfrontPct && !tier.installmentMonthsOverride);
       if (isStandard && (tier.discountPct === 0 || tier.discountPct == null)) {
         return {
           ...tier,
@@ -267,7 +287,8 @@ export class PaymentPlansService {
         upfrontPct: clampPct(num(t?.upfrontPct, d.tiers[Math.min(i, d.tiers.length - 1)].upfrontPct)),
         discountPct: override,
         passThroughPct: clampPct(num(t?.passThroughPct, 100)),
-        maxDiscountPct: clampPct(num(t?.maxDiscountPct, 12))
+        installmentMonthsOverride: t?.installmentMonthsOverride ? Math.max(1, Math.round(Number(t.installmentMonthsOverride))) : undefined,
+        maxDiscountPct: clampPct(num(t?.maxDiscountPct, 15))
       };
     });
 

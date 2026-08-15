@@ -14,9 +14,11 @@ export type PaymentTierInfo = {
 
 /** Fallback display metadata — discount values here are ONLY used if the backend policy is unavailable. */
 const TIER_DISPLAY: Record<string, { description: string; badge?: string }> = {
+  fast_track: { description: 'Max discount by shortening schedule to 12 months (Early Payoff).', badge: 'Fast Track' },
   standard: { description: '10% deposit today + downpayment in 3 months + monthly installments.' },
   booking_plus_down: { description: 'Merged deposit & downpayment today. First installment at Month 4.', badge: 'Popular' },
   half: { description: 'Pay 50% upfront. Balance split across remaining monthly installments.', badge: 'Best Value' },
+  max_advance: { description: 'Maximum advance payment (90%) while retaining standard installments.', badge: 'Max Advance' },
   full: { description: 'Pay 100% today for maximum actuarial present-value discount.', badge: 'Max Discount' },
 };
 

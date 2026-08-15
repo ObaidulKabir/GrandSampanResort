@@ -504,7 +504,7 @@ export class BookingService {
       upfrontPct: tier.upfrontPct,
       downpaymentPct: policy.downpaymentPct,
       downpaymentAfterMonths: policy.downpaymentAfterMonths,
-      installmentMonths: tenor,
+      installmentMonths: tier.installmentMonthsOverride ?? tenor,
       cadence,
     };
     const schedule = generatePaymentSchedule(netPrice, anchor, scheduleOpts);
