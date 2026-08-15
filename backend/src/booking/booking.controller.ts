@@ -4,6 +4,26 @@ import { ValidationPipe } from '@nestjs/common';
 import { AvailabilityQueryDto, CreateBookingDto } from './dto/booking.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class QuoteBookingDto {
+  @IsString()
+  planId!: string;
+  @IsOptional()
+  @IsString()
+  paymentTierId?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  installmentMonths?: number;
+  @IsOptional()
+  @IsIn(['monthly', 'quarterly'])
+  cadence?: 'monthly' | 'quarterly';
+  @IsOptional()
+  @IsString()
+  start?: string;
+}
 
 @Controller('booking')
 export class BookingController {
@@ -20,6 +40,13 @@ export class BookingController {
   async listAll() {
     const sales = await this.service.listAll();
     return { ok: true, sales };
+  }
+
+  @Post('quote')
+  async quote(
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) body: QuoteBookingDto
+  ) {
+    return this.service.quote(body);
   }
 
   @Post()
@@ -40,7 +67,9 @@ export class BookingController {
         depositProofUrl: body.depositProofUrl,
         depositNote: body.depositNote
       },
-      body.referralCode
+      body.referralCode,
+      body.paymentTierId,
+      body.installmentMonths
     );
   }
 

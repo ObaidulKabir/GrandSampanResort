@@ -72,7 +72,7 @@ export function buildDepositInvoicePdf(data: InvoiceData): Promise<Buffer> {
     doc.text(`Total plan price: ${money(data.totalPrice, currency)}`);
     doc.moveDown(1);
 
-    doc.fillColor('#000').fontSize(12).text('Deposit (booking amount)');
+    doc.fillColor('#000').fontSize(12).text('Amount due today');
     doc.fontSize(10).fillColor('#222');
     doc.text(`Amount: ${money(data.depositAmount, currency)}`);
     doc.text(`Method: ${methodLabel(data.depositMethod)}`);

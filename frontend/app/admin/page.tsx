@@ -25,7 +25,7 @@ const tools = [
   {
     label: 'Revenue Policy',
     href: '/admin/policy',
-    desc: 'Configure revenue share rules.'
+    desc: 'Revenue share, expected returns, and advance-payment discounts.'
   },
   {
     label: 'Media Library',

@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEmail,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -72,10 +73,17 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   investorId?: string;
-  /** After booking + downpayment, remaining balance is paid over 24 months. */
+  /** After booking + downpayment, remaining balance is paid over the chosen tenor. */
   @IsOptional()
   @IsIn(['monthly', 'quarterly'])
   cadence?: 'monthly' | 'quarterly';
+  @IsOptional()
+  @IsString()
+  paymentTierId?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  installmentMonths?: number;
   /** Required for investment purchases (when planId is set). */
   @IsOptional()
   @ValidateNested()

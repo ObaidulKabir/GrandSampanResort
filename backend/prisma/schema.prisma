@@ -66,6 +66,15 @@ model Booking {
   referralCode     String?
   /// Referrer user id resolved from referralCode at purchase.
   referredByUserId String?
+  /// List price before promo / advance discounts (investment bookings).
+  listPrice            Int?
+  promoDiscountPct     Float?
+  promoName            String?
+  advanceDiscountPct   Float?
+  paymentTierId        String?
+  installmentMonths    Int?
+  cadence              String?
+  discountRateAnnualPct Float?
   schedule    PaymentScheduleItem[]
   /// Investment purchases link to a share plan; guest stays leave this null.
   plan        SharePlan? @relation(fields: [planId], references: [id], onDelete: Restrict, onUpdate: Cascade)

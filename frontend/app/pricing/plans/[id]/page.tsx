@@ -132,8 +132,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [depositPct, setDepositPct] = useState<number>(10);
   const [downPct, setDownPct] = useState<number>(20);
   const [cadence, setCadence] = useState<'monthly' | 'quarterly'>('monthly');
-  /** Remaining balance after booking + downpayment is paid over 24 months. */
-  const INSTALLMENT_MONTHS = 24;
+  const [paymentTierId, setPaymentTierId] = useState('standard');
+  const [installmentMonths, setInstallmentMonths] = useState(24);
+  const [tenors, setTenors] = useState<number[]>([24, 36]);
+  const [resolvedTiers, setResolvedTiers] = useState<any[]>([]);
+  const [quote, setQuote] = useState<any>(null);
   const [tab, setTab] = useState<'payment' | 'returns'>('payment');
   const [adr, setAdr] = useState<number>(8000);
   const [occupancy, setOccupancy] = useState<number>(0.6);
@@ -209,6 +212,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         setDepositProofUrl(typeof draft?.depositProofUrl === 'string' ? draft.depositProofUrl : '');
         if (typeof draft?.startDate === 'string' && draft.startDate) setStartDate(draft.startDate);
         if (draft?.cadence === 'monthly' || draft?.cadence === 'quarterly') setCadence(draft.cadence);
+        if (typeof draft?.paymentTierId === 'string' && draft.paymentTierId) setPaymentTierId(draft.paymentTierId);
+        if (Number(draft?.installmentMonths) > 0) setInstallmentMonths(Number(draft.installmentMonths));
       } else {
         setKyc(emptyKyc());
         setDepositReference('');
@@ -236,7 +241,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           depositNote,
           depositProofUrl,
           startDate,
-          cadence
+          cadence,
+          paymentTierId,
+          installmentMonths
         })
       );
     } catch {
@@ -250,7 +257,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     depositNote,
     depositProofUrl,
     startDate,
-    cadence
+    cadence,
+    paymentTierId,
+    installmentMonths
   ]);
 
   useEffect(() => {
@@ -265,6 +274,56 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const t = q.get('tier');
+      const m = Number(q.get('months'));
+      if (t) setPaymentTierId(t);
+      if (Number.isFinite(m) && m > 0) setInstallmentMonths(m);
+    } catch {
+      /* ignore */
+    }
+  }, [planId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await api('/payment-plans/policy');
+      if (cancelled || !res?.ok) return;
+      if (Array.isArray(res.policy?.tenors) && res.policy.tenors.length) {
+        setTenors(res.policy.tenors);
+      }
+      if (Array.isArray(res.resolved)) setResolvedTiers(res.resolved);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!planId) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const res = await api('/booking/quote', {
+        method: 'POST',
+        body: JSON.stringify({
+          planId,
+          paymentTierId,
+          installmentMonths,
+          cadence,
+          start: new Date(startDate).toISOString()
+        })
+      });
+      if (cancelled || !res?.ok) return;
+      setQuote(res.quote);
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [planId, paymentTierId, installmentMonths, cadence, startDate]);
 
   useEffect(() => {
     return () => {
@@ -512,7 +571,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           depositReference: depositReference.trim(),
           depositProofUrl: depositProofUrl.trim() || undefined,
           depositNote: depositNote.trim() || undefined,
-          referralCode: normalizeReferralCode(referralCode) || undefined
+          referralCode: normalizeReferralCode(referralCode) || undefined,
+          paymentTierId,
+          installmentMonths
         })
       });
       if (!res?.ok || !res.booking?.id) {
@@ -566,50 +627,19 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   }
 
   const discounted = typeof plan?.discountedPrice === 'number';
-  const effectivePrice = discounted ? (plan!.discountedPrice as number) : plan?.price || 0;
+  const effectivePrice = quote?.netPrice ?? (discounted ? (plan!.discountedPrice as number) : plan?.price || 0);
   const kycMissing = useMemo(() => missingKycFields(kyc), [kyc]);
   const kycComplete = kycMissing.length === 0;
   const onlyPhotosMissing =
     kycMissing.length > 0 && kycMissing.every((k) => k === 'picUrl' || k === 'nomineePicUrl');
 
-  const depositPreview = useMemo(() => Math.round(effectivePrice * 0.1), [effectivePrice]);
-  const downPreview = useMemo(() => Math.round(effectivePrice * 0.2), [effectivePrice]);
-  const remainderPreview = useMemo(
-    () => Math.max(0, Math.round(effectivePrice) - depositPreview - downPreview),
-    [effectivePrice, depositPreview, downPreview]
-  );
-  const installmentCount = cadence === 'monthly' ? INSTALLMENT_MONTHS : Math.ceil(INSTALLMENT_MONTHS / 3);
-  const installmentAmount = useMemo(() => {
-    if (installmentCount <= 0) return 0;
-    return Math.floor(remainderPreview / installmentCount);
-  }, [remainderPreview, installmentCount]);
-
-  const schedule = useMemo(() => {
-    if (!plan) return [];
-    const total = Math.round(effectivePrice);
-    const deposit = Math.round(total * (depositPct / 100));
-    const down = Math.round(total * (downPct / 100));
-    const remainder = Math.max(0, total - deposit - down);
-    const durationMonths = INSTALLMENT_MONTHS;
-    const stepMonths = cadence === 'monthly' ? 1 : 3;
-    const installments = cadence === 'monthly' ? durationMonths : Math.ceil(durationMonths / 3);
-    const baseAmount = Math.floor(remainder / installments);
-    const start = new Date(startDate);
-    const items: { id: string; type: string; dueDate: string; amount: number }[] = [];
-    items.push({ id: 'S1', type: 'deposit', dueDate: start.toISOString(), amount: deposit });
-    const downDate = new Date(start);
-    downDate.setMonth(downDate.getMonth() + 3);
-    items.push({ id: 'S2', type: 'downpayment', dueDate: downDate.toISOString(), amount: down });
-    let sum = 0;
-    for (let i = 1; i <= installments; i++) {
-      const due = new Date(start);
-      due.setMonth(due.getMonth() + 3 + i * stepMonths);
-      const amt = i === installments ? remainder - sum : baseAmount;
-      sum += amt;
-      items.push({ id: 'S-' + i, type: 'installment', dueDate: due.toISOString(), amount: amt });
-    }
-    return items;
-  }, [plan, startDate, depositPct, downPct, cadence, effectivePrice]);
+  const depositPreview = quote?.depositAmount ?? Math.round(effectivePrice * ((resolvedTiers.find((t) => t.id === paymentTierId)?.upfrontPct || 10) / 100));
+  const downItem = (quote?.schedule || []).find((s: any) => s.type === 'downpayment');
+  const downPreview = downItem?.amount ?? 0;
+  const installmentItems = (quote?.schedule || []).filter((s: any) => s.type === 'installment');
+  const installmentCount = installmentItems.length;
+  const installmentAmount = installmentItems[0]?.amount ?? 0;
+  const schedule = quote?.schedule || [];
 
   const available = (plan?.planStatus || 'Unsold').toLowerCase() === 'unsold';
 
@@ -719,9 +749,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               )}
             </div>
             <div className="border border-gold/50 bg-gold/10 p-4 sm:col-span-1">
-              <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</div>
+              <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today</div>
               <div className="font-display mt-1 text-3xl font-bold text-ocean">{formatMoney(depositPreview)}</div>
-              <p className="mt-1 text-[11px] font-medium text-ocean/65">Pay only 10% today to reserve</p>
+              <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                {quote?.upfrontPct ?? 10}% due today to reserve
+              </p>
             </div>
             {[
               ['Entitlement', `${plan?.daysPerMonth || 0} days/mo`],
@@ -775,7 +807,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                     typeof option.discountedPrice === 'number'
                       ? Number(option.discountedPrice)
                       : Number(option.price || 0);
-                  const bookingAmount = Math.round(total * 0.1);
+                  const standardPct = Number(resolvedTiers.find((t) => t.id === 'standard')?.upfrontPct) || 10;
+                  const bookingAmount = Math.round(total * (standardPct / 100));
                   return (
                     <button
                       key={option.id}
@@ -806,7 +839,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                       </div>
                       <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
                         <span className="font-semibold text-ocean">
-                          Booking {formatMoney(bookingAmount)}
+                          Due today {formatMoney(bookingAmount)}
                         </span>
                         <span className="text-ocean/70">
                           Total <span className="font-semibold text-ocean">{formatMoney(total)}</span>
@@ -830,23 +863,59 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           </label>
 
           <div className="mt-5">
-            <p className="text-sm font-semibold text-ocean">Installment plan (24 months)</p>
+            <p className="text-sm font-semibold text-ocean">Payment plan</p>
             <p className="mt-1 text-xs text-ocean/65">
-              After booking (10%) and downpayment (20%), pay the rest over 24 months.
+              Pay more now to unlock a time-value discount. Tenor only changes how the remainder is spread.
             </p>
+            <div className="mt-3 grid gap-2">
+              {resolvedTiers.map((tier) => {
+                const selected = paymentTierId === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    onClick={() => setPaymentTierId(tier.id)}
+                    className={`border px-3 py-3 text-left transition ${
+                      selected ? 'border-gold bg-gold/10' : 'border-ocean/15 hover:border-gold/50'
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="font-semibold text-ocean">{tier.label}</div>
+                      {tier.offeredDiscountPct > 0 ? (
+                        <div className="text-xs font-semibold text-gold">Save {tier.offeredDiscountPct.toFixed(2)}%</div>
+                      ) : (
+                        <div className="text-xs text-ocean/50">{tier.upfrontPct}% today</div>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-xs text-ocean/65">{tier.upfrontPct}% due at booking</div>
+                  </button>
+                );
+              })}
+            </div>
+            {tenors.length > 1 && paymentTierId !== 'full' && (
+              <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment tenor">
+                {tenors.map((n) => {
+                  const selected = installmentMonths === n;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setInstallmentMonths(n)}
+                      className={`border px-3 py-2 text-sm font-semibold ${
+                        selected ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80'
+                      }`}
+                    >
+                      {n} months
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Installment cadence">
               {(
                 [
-                  {
-                    value: 'monthly' as const,
-                    label: 'Monthly',
-                    detail: `${INSTALLMENT_MONTHS} payments`
-                  },
-                  {
-                    value: 'quarterly' as const,
-                    label: 'Quarterly',
-                    detail: `${Math.ceil(INSTALLMENT_MONTHS / 3)} payments`
-                  }
+                  { value: 'monthly' as const, label: 'Monthly' },
+                  { value: 'quarterly' as const, label: 'Quarterly' }
                 ] as const
               ).map((opt) => {
                 const selected = cadence === opt.value;
@@ -862,7 +931,9 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                     }`}
                   >
                     <div className="font-semibold text-ocean">{opt.label}</div>
-                    <div className="mt-0.5 text-xs text-ocean/65">{opt.detail}</div>
+                    <div className="mt-0.5 text-xs text-ocean/65">
+                      {opt.value === 'monthly' ? `${installmentMonths} payments` : `${Math.ceil(installmentMonths / 3)} payments`}
+                    </div>
                   </button>
                 );
               })}
@@ -1037,7 +1108,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <div id="booking-deposit" className="mt-6 border-t border-ocean/10 pt-5">
             <p className="text-sm font-semibold text-ocean">Deposit payment</p>
             <p className="mt-1 text-xs text-ocean/65">
-              Pay the 10% booking amount by cheque, cash/pay order, or online transfer. Booking
+              Pay the due-today amount by cheque, cash/pay order, or online transfer. Booking
               completes after admin confirms payment receipt and verifies KYC.
             </p>
             <label className="mt-4 block text-sm text-ocean">
@@ -1145,28 +1216,44 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <span className="font-semibold text-ocean">{formatMoney(effectivePrice)}</span>
               </div>
             )}
+            {quote?.advanceDiscountPct > 0 && (
+              <div className="mt-1 flex justify-between">
+                <span className="text-ocean/70">Advance payment ({quote.advanceDiscountPct}%)</span>
+                <span className="font-semibold text-gold">− {formatMoney(quote.savings || 0)}</span>
+              </div>
+            )}
+            {quote && (
+              <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2">
+                <span className="font-semibold text-ocean">You pay</span>
+                <span className="font-semibold text-ocean">{formatMoney(quote.netPrice)}</span>
+              </div>
+            )}
             <div className="mt-3 space-y-2 border border-ocean/10 bg-pearl px-3 py-3">
-              <div className="flex justify-between">
-                <span>Downpayment (20%)</span>
-                <span className="font-semibold text-ocean">{formatMoney(downPreview)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>
-                  {cadence === 'monthly' ? 'Monthly' : 'Quarterly'} installment × {installmentCount}
-                </span>
-                <span className="font-semibold text-ocean">{formatMoney(installmentAmount)}</span>
-              </div>
-              <p className="text-[11px] text-ocean/60">
-                Installments start after the downpayment and finish within 24 months.
-              </p>
+              {downPreview > 0 && (
+                <div className="flex justify-between">
+                  <span>Downpayment</span>
+                  <span className="font-semibold text-ocean">{formatMoney(downPreview)}</span>
+                </div>
+              )}
+              {installmentCount > 0 && (
+                <div className="flex justify-between">
+                  <span>
+                    {cadence === 'monthly' ? 'Monthly' : 'Quarterly'} installment × {installmentCount}
+                  </span>
+                  <span className="font-semibold text-ocean">{formatMoney(installmentAmount)}</span>
+                </div>
+              )}
+              {installmentCount === 0 && (
+                <p className="text-[11px] text-ocean/60">No remaining installments on this plan.</p>
+              )}
             </div>
             <div className="mt-3 border border-gold/50 bg-gold/10 px-3 py-3">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</span>
+                <span className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today</span>
                 <span className="font-display text-2xl font-bold text-ocean">{formatMoney(depositPreview)}</span>
               </div>
               <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                10% deposit via cheque, cash/pay order, or transfer — confirmed by admin
+                {quote?.upfrontPct ?? 10}% via cheque, cash/pay order, or transfer — confirmed by admin
               </p>
             </div>
           </div>
@@ -1256,6 +1343,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
             {tab === 'payment' && (
               <div className="mt-6">
+                <p className="text-sm text-ocean/65">
+                  This table is the live quote for the payment plan selected in the sidebar. The sliders below are
+                  illustrative only and do not change the booking.
+                </p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                   <label className="text-sm text-ocean">
                     Deposit (%)

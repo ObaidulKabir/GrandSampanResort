@@ -324,6 +324,155 @@ export default function AdminPolicyPage() {
           </Button>
         </div>
       </form>
+
+      <PaymentPlanPolicyBlock />
     </main>
+  );
+}
+
+function PaymentPlanPolicyBlock() {
+  const [policy, setPolicy] = useState<any>(null);
+  const [resolved, setResolved] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      const res = await api('/payment-plans/policy');
+      if (res?.ok) {
+        setPolicy(res.policy);
+        setResolved(res.resolved || []);
+      }
+    })();
+  }, []);
+
+  async function save() {
+    if (!policy) return;
+    setSaving(true);
+    setMsg('');
+    const res = await api('/payment-plans/policy', { method: 'PUT', body: JSON.stringify(policy) });
+    if (res?.ok) {
+      setPolicy(res.policy);
+      setResolved(res.resolved || []);
+      setMsg('Payment plan policy saved. New quotes use these rates.');
+    } else {
+      setMsg(res?.error || 'Save failed');
+    }
+    setSaving(false);
+  }
+
+  function updateTier(i: number, patch: Record<string, unknown>) {
+    setPolicy((p: any) => {
+      const tiers = [...(p.tiers || [])];
+      tiers[i] = { ...tiers[i], ...patch };
+      return { ...p, tiers };
+    });
+  }
+
+  if (!policy) return null;
+
+  return (
+    <section className="mt-10 border border-ocean/10 bg-white p-6">
+      <h2 className="font-display text-2xl text-ocean">Advance payment discounts</h2>
+      <p className="mt-1 text-sm text-ocean/65">
+        Fair discount is the present value of paying earlier at the rate below. Offered can differ if you set an override.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <label className="text-sm text-ocean">
+          Discount rate (nominal % / year)
+          <input
+            className="field mt-1"
+            type="number"
+            min={0}
+            max={100}
+            step={0.1}
+            value={policy.discountRateAnnualPct}
+            onChange={(e) => setPolicy({ ...policy, discountRateAnnualPct: Number(e.target.value) })}
+          />
+        </label>
+        <label className="text-sm text-ocean">
+          Compounding / year
+          <input
+            className="field mt-1"
+            type="number"
+            min={1}
+            max={12}
+            value={policy.compoundingPerYear}
+            onChange={(e) => setPolicy({ ...policy, compoundingPerYear: Number(e.target.value) })}
+          />
+        </label>
+        <label className="flex items-end gap-2 text-sm text-ocean pb-2">
+          <input
+            type="checkbox"
+            checked={policy.enabled !== false}
+            onChange={(e) => setPolicy({ ...policy, enabled: e.target.checked })}
+          />
+          Enabled
+        </label>
+      </div>
+      <div className="mt-4 overflow-x-auto border border-ocean/10">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-ocean/10 bg-pearl text-xs uppercase tracking-wide text-ocean/60">
+            <tr>
+              <th className="px-3 py-2">Tier</th>
+              <th className="px-3 py-2">Upfront %</th>
+              <th className="px-3 py-2">Override %</th>
+              <th className="px-3 py-2">Fair</th>
+              <th className="px-3 py-2">Offered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(policy.tiers || []).map((t: any, i: number) => {
+              const r = resolved.find((x) => x.id === t.id);
+              return (
+                <tr key={t.id || i} className="border-b border-ocean/10">
+                  <td className="px-3 py-2">
+                    <input
+                      className="field"
+                      value={t.label}
+                      onChange={(e) => updateTier(i, { label: e.target.value })}
+                    />
+                  </td>
+                  <td className="px-3 py-2 w-24">
+                    <input
+                      className="field"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={t.upfrontPct}
+                      onChange={(e) => updateTier(i, { upfrontPct: Number(e.target.value) })}
+                    />
+                  </td>
+                  <td className="px-3 py-2 w-28">
+                    <input
+                      className="field"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      placeholder="PV"
+                      value={t.discountPct ?? ''}
+                      onChange={(e) =>
+                        updateTier(i, { discountPct: e.target.value === '' ? null : Number(e.target.value) })
+                      }
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-ocean/70">{r ? `${Number(r.fairDiscountPct).toFixed(2)}%` : '—'}</td>
+                  <td className="px-3 py-2 font-semibold text-ocean">
+                    {r ? `${Number(r.offeredDiscountPct).toFixed(2)}%` : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <Button type="button" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save payment policy'}
+        </Button>
+        {msg && <span className="text-sm text-ocean/65">{msg}</span>}
+      </div>
+    </section>
   );
 }

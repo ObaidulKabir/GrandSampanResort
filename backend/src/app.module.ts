@@ -18,6 +18,8 @@ import { TermsModule } from './terms/terms.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { MailModule } from './mail/mail.module';
 import { ReferralModule } from './referral/referral.module';
+import { PaymentPlansModule } from './payment-plans/payment-plans.module';
+import { AdvisorModule } from './advisor/advisor.module';
 
 @Module({
   imports: [
@@ -36,7 +38,9 @@ import { ReferralModule } from './referral/referral.module';
     TermsModule,
     PromotionsModule,
     MailModule,
-    ReferralModule
+    ReferralModule,
+    PaymentPlansModule,
+    AdvisorModule
   ],
   controllers: [AppController],
   providers: [AppService]

@@ -6,7 +6,8 @@ type Msg = { role: 'user' | 'bot'; text: string };
 function respond(input: string): string {
   const q = input.toLowerCase();
   if (q.includes('location')) return "Marine Drive Road, Rupayan Beach View Innani, Cox's Bazar.";
-  if (q.includes('plan') || q.includes('invest')) return 'Explore live plans at /invest — each plan page has a Buy option.';
+  if (q.includes('plan') || q.includes('invest'))
+    return 'Explore live plans at /invest, or use /invest/advisor to match a plan to the funds you have.';
   if (q.includes('contact') || q.includes('support')) return 'Contact: info@grandsampan.com • +880 17 0000 0000';
   if (q.includes('terms')) return 'See Terms & Conditions at /terms.';
   if (q.includes('faq')) return 'Open the FAQ link in the footer.';

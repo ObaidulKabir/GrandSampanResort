@@ -13,6 +13,9 @@ import { SuitesService } from "../suites/suites.service";
 import { PromotionsService } from "../promotions/promotions.service";
 import { MailService, BookingMailContext } from "../mail/mail.service";
 import { ReferralService } from "../referral/referral.service";
+import { PaymentPlansService } from "../payment-plans/payment-plans.service";
+import { applyDiscount, presentValue, monthlyDiscountFactor } from "../payment-plans/pv";
+import { generatePaymentSchedule, monthsFromAnchor } from "../payment-plans/schedule";
 import { prisma } from "../../prisma/client";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
@@ -80,10 +83,13 @@ export class BookingService {
   private suites = new SuitesService();
   private promotions = new PromotionsService();
   private mail = new MailService();
+  private paymentPlans = new PaymentPlansService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
 
-  constructor(@Optional() private readonly referral: ReferralService = new ReferralService()) {}
+  constructor(
+    @Optional() private readonly referral: ReferralService = new ReferralService(),
+  ) {}
 
   private depositAmountOf(booking: {
     amountTotal?: number | null;
@@ -442,10 +448,91 @@ export class BookingService {
    * Create a booking. Investment purchases MUST pass planId (FK to SharePlan).
    * Guest stay bookings omit planId.
    */
-  /** Remaining balance after booking + downpayment is always paid over 24 months. */
+  /** Remaining balance after booking + downpayment defaults to 24 months. */
   static readonly INSTALLMENT_MONTHS = 24;
   static readonly DEPOSIT_PCT = 0.1;
   static readonly DOWNPAYMENT_PCT = 0.2;
+
+  async quote(input: {
+    planId: string;
+    paymentTierId?: string | null;
+    installmentMonths?: number | null;
+    cadence?: 'monthly' | 'quarterly';
+    start?: string | null;
+  }) {
+    const planId = String(input.planId || '').trim();
+    if (!planId) return { ok: false as const, error: 'plan_required' };
+    const plan = await this.timeshares.get(planId);
+    if (!plan) return { ok: false as const, error: 'plan_not_found' };
+    const suite = plan.suiteId ? await this.suites.get(plan.suiteId) : null;
+    const promo = await this.promotions.discountForPlan(plan, (suite as any)?.type ?? null);
+    const listPrice = Math.round(Number(plan.price) || 0);
+    const afterPromo = Math.round(Number(promo ? promo.discountedPrice : listPrice) || 0);
+    const policy = await this.paymentPlans.getPolicy();
+    const cadence = input.cadence === 'quarterly' ? 'quarterly' : 'monthly';
+    const tenor = this.paymentPlans.pickTenor(policy, input.installmentMonths);
+    const resolved = this.paymentPlans.resolveTiers(policy, { installmentMonths: tenor, cadence });
+    const standard = this.paymentPlans.standardTier(policy);
+    const requested = this.paymentPlans.pickTier(policy, input.paymentTierId);
+    const tier = resolved.find((t) => t.id === requested.id) || resolved.find((t) => t.id === standard.id)!;
+    const advancePct = policy.enabled ? tier.offeredDiscountPct : 0;
+    const netPrice = applyDiscount(afterPromo, advancePct);
+    const savings = Math.max(0, afterPromo - netPrice);
+    const anchor = input.start ? new Date(input.start) : new Date();
+    const scheduleOpts: {
+      upfrontPct: number;
+      downpaymentPct: number;
+      downpaymentAfterMonths: number;
+      installmentMonths: number;
+      cadence: 'monthly' | 'quarterly';
+    } = {
+      upfrontPct: tier.upfrontPct,
+      downpaymentPct: policy.downpaymentPct,
+      downpaymentAfterMonths: policy.downpaymentAfterMonths,
+      installmentMonths: tenor,
+      cadence,
+    };
+    const schedule = generatePaymentSchedule(netPrice, anchor, scheduleOpts);
+    const v = monthlyDiscountFactor(policy.discountRateAnnualPct, policy.compoundingPerYear);
+    const pv = presentValue(
+      schedule.map((s) => ({ dueMonth: monthsFromAnchor(anchor, new Date(s.dueDate)), amount: s.amount })),
+      v,
+    );
+    return {
+      ok: true as const,
+      quote: {
+        planId,
+        suiteId: plan.suiteId || null,
+        listPrice,
+        promo: promo
+          ? { promoId: promo.promoId, promoName: promo.promoName, discountPct: promo.discountPct, discountedPrice: promo.discountedPrice }
+          : null,
+        afterPromo,
+        paymentTierId: tier.id,
+        tierLabel: tier.label,
+        upfrontPct: tier.upfrontPct,
+        fairDiscountPct: tier.fairDiscountPct,
+        advanceDiscountPct: advancePct,
+        discountSource: tier.source,
+        netPrice,
+        savings,
+        installmentMonths: tenor,
+        cadence,
+        discountRateAnnualPct: policy.discountRateAnnualPct,
+        presentValue: Math.round(pv),
+        schedule,
+        depositAmount: schedule.find((s) => s.type === 'deposit')?.amount ?? 0,
+        generatedAt: new Date().toISOString(),
+        assumptions: {
+          discountRateAnnualPct: policy.discountRateAnnualPct,
+          compoundingPerYear: policy.compoundingPerYear,
+          tenorPricing: policy.tenorPricing,
+          downpaymentPct: policy.downpaymentPct,
+          downpaymentAfterMonths: policy.downpaymentAfterMonths,
+        },
+      },
+    };
+  }
 
   async book(
     suiteId: string,
@@ -457,6 +544,8 @@ export class BookingService {
     kyc?: BookingKyc | null,
     deposit?: BookingDepositPayment | null,
     referralCodeRaw?: string | null,
+    paymentTierId?: string | null,
+    installmentMonths?: number | null,
   ) {
     const normalizedPlanId = planId?.trim() || undefined;
     const payCadence = cadence === 'quarterly' ? 'quarterly' : 'monthly';
@@ -478,6 +567,8 @@ export class BookingService {
         kyc,
         deposit,
         referralCodeRaw,
+        paymentTierId,
+        installmentMonths,
       );
     } catch (err: any) {
       this.logger.error(
@@ -504,6 +595,8 @@ export class BookingService {
     kyc?: BookingKyc | null,
     deposit?: BookingDepositPayment | null,
     referralCodeRaw?: string | null,
+    paymentTierId?: string | null,
+    installmentMonths?: number | null,
   ) {
       const suite = await this.suites.get(suiteId);
       if (!suite) return { ok: false as const, error: 'suite_not_found' };
@@ -540,20 +633,17 @@ export class BookingService {
         if (planStatus !== 'unsold') {
           return { ok: false as const, error: 'plan_not_available' };
         }
-        // Re-validate any live promotion server-side; never trust client-sent prices.
-        const discount = await this.promotions.discountForPlan(
-          plan,
-          (suite as any)?.type ?? null,
-        );
-        const total = Math.round(
-          Number(discount ? discount.discountedPrice : plan.price) || 0,
-        );
-        const schedule = this.generateSchedule(
-          total,
-          new Date(start),
-          BookingService.INSTALLMENT_MONTHS,
-          payCadence,
-        );
+        const priced = await this.quote({
+          planId: normalizedPlanId,
+          paymentTierId,
+          installmentMonths,
+          cadence: payCadence,
+          start,
+        });
+        if (!priced.ok) return { ok: false as const, error: priced.error };
+        const q = priced.quote;
+        const total = q.netPrice;
+        const schedule = q.schedule;
         const referral = await this.referral.resolveForBooking(
           referralCodeRaw,
           investorId || null,
@@ -570,6 +660,14 @@ export class BookingService {
           end,
           status: 'awaiting_payment',
           amountTotal: total,
+          listPrice: q.listPrice,
+          promoDiscountPct: q.promo?.discountPct,
+          promoName: q.promo?.promoName,
+          advanceDiscountPct: q.advanceDiscountPct,
+          paymentTierId: q.paymentTierId,
+          installmentMonths: q.installmentMonths,
+          cadence: q.cadence,
+          discountRateAnnualPct: q.discountRateAnnualPct,
           depositMethod: normalizedDeposit.depositMethod,
           depositReference: normalizedDeposit.depositReference,
           depositProofUrl: normalizedDeposit.depositProofUrl,
@@ -610,7 +708,15 @@ export class BookingService {
                 kycVerified: false,
                 referralCode: b.referralCode || null,
                 referredByUserId: b.referredByUserId || null,
-              },
+                listPrice: b.listPrice || null,
+                promoDiscountPct: b.promoDiscountPct ?? null,
+                promoName: b.promoName || null,
+                advanceDiscountPct: b.advanceDiscountPct ?? null,
+                paymentTierId: b.paymentTierId || null,
+                installmentMonths: b.installmentMonths || null,
+                cadence: b.cadence || null,
+                discountRateAnnualPct: b.discountRateAnnualPct ?? null,
+              } as any,
             }),
             this.prisma.paymentScheduleItem.createMany({
               data: schedule.map((s) => ({
@@ -726,63 +832,23 @@ export class BookingService {
   }
 
   /**
-   * Schedule: booking (10%) today → downpayment (20%) in 3 months →
-   * remaining 70% as monthly (24) or quarterly (8) installments over 24 months.
-   * Amounts are whole taka (Int) so Prisma/Postgres inserts succeed.
+   * Schedule: booking (upfront%) today → optional downpayment → remainder as
+   * monthly or quarterly installments. Amounts are whole taka (Int).
    */
-  private generateSchedule(
+  generateSchedule(
     total: number,
     anchor: Date,
     durationMonths: number,
     cadence: 'monthly' | 'quarterly',
+    opts?: { upfrontPct?: number; downpaymentPct?: number; downpaymentAfterMonths?: number },
   ) {
-    const totalInt = Math.max(0, Math.round(Number(total) || 0));
-    const months = Math.max(1, durationMonths || BookingService.INSTALLMENT_MONTHS);
-    const deposit = Math.round(totalInt * BookingService.DEPOSIT_PCT);
-    const down = Math.round(totalInt * BookingService.DOWNPAYMENT_PCT);
-    const remainder = Math.max(0, totalInt - deposit - down);
-    const items: PaymentScheduleItem[] = [];
-    items.push({
-      id: 'PS-' + Math.random().toString(36).slice(2, 8),
-      bookingId: 'tmp',
-      type: 'deposit',
-      dueDate: new Date(anchor).toISOString(),
-      amount: deposit,
-      status: 'due',
-      currency: 'BDT',
+    return generatePaymentSchedule(total, anchor, {
+      upfrontPct: opts?.upfrontPct ?? BookingService.DEPOSIT_PCT * 100,
+      downpaymentPct: opts?.downpaymentPct ?? BookingService.DOWNPAYMENT_PCT * 100,
+      downpaymentAfterMonths: opts?.downpaymentAfterMonths ?? 3,
+      installmentMonths: durationMonths || BookingService.INSTALLMENT_MONTHS,
+      cadence,
     });
-    const downDate = new Date(anchor);
-    downDate.setMonth(downDate.getMonth() + 3);
-    items.push({
-      id: 'PS-' + Math.random().toString(36).slice(2, 8),
-      bookingId: 'tmp',
-      type: 'downpayment',
-      dueDate: downDate.toISOString(),
-      amount: down,
-      status: 'due',
-      currency: 'BDT',
-    });
-    const stepMonths = cadence === 'monthly' ? 1 : 3;
-    const installments =
-      cadence === 'monthly' ? months : Math.ceil(months / 3);
-    const baseAmount = Math.floor(remainder / installments);
-    let sum = 0;
-    for (let i = 1; i <= installments; i++) {
-      const due = new Date(anchor);
-      due.setMonth(due.getMonth() + 3 + i * stepMonths);
-      const amt = i === installments ? remainder - sum : baseAmount;
-      sum += amt;
-      items.push({
-        id: 'PS-' + Math.random().toString(36).slice(2, 8),
-        bookingId: 'tmp',
-        type: 'installment',
-        dueDate: due.toISOString(),
-        amount: amt,
-        status: 'due',
-        currency: 'BDT',
-      });
-    }
-    return items;
   }
 
   async schedule(id: string) {
@@ -808,6 +874,8 @@ export class BookingService {
       });
       if (item?.type === "downpayment") {
         await this.referral.onDownpaymentPaid(bookingId);
+      } else if (item?.type === "deposit") {
+        await this.unlockTranche2IfNoDownpayment(bookingId);
       }
       return true;
     }
@@ -819,12 +887,33 @@ export class BookingService {
     b.schedule[idx] = { ...item, status: "paid", gatewayRef };
     if (item.type === "downpayment") {
       await this.referral.onDownpaymentPaid(bookingId);
+    } else if (item.type === "deposit") {
+      await this.unlockTranche2IfNoDownpayment(bookingId);
     }
     return true;
   }
 
   private isPendingAdminReview(status: string) {
     return status === "awaiting_payment" || status === "awaiting_kyc";
+  }
+
+  private async unlockTranche2IfNoDownpayment(bookingId: string) {
+    try {
+      if (this.prisma) {
+        const down = await this.prisma.paymentScheduleItem.findFirst({
+          where: { bookingId, type: "downpayment" },
+        });
+        if (down) return;
+        await this.referral.onDownpaymentPaid(bookingId);
+        return;
+      }
+      const b = await this.repo.findById(bookingId);
+      const hasDown = (b?.schedule || []).some((s) => s.type === "downpayment");
+      if (hasDown) return;
+      await this.referral.onDownpaymentPaid(bookingId);
+    } catch (err: any) {
+      this.logger.warn(`unlockTranche2IfNoDownpayment failed: ${err?.message || err}`);
+    }
   }
 
   private async earnReferralOnConfirm(booking: {
@@ -948,6 +1037,7 @@ export class BookingService {
       if (out.completed) {
         await this.earnReferralOnConfirm(booking);
       }
+      await this.unlockTranche2IfNoDownpayment(bookingId);
       await this.notifyAfterAdminAction(
         { ...booking, depositConfirmedAt: confirmedAt, status: nextStatus },
         out,
@@ -981,6 +1071,7 @@ export class BookingService {
       kycVerified: !!booking.kycVerified,
     };
     await this.notifyAfterAdminAction(booking, out, "deposit");
+    await this.unlockTranche2IfNoDownpayment(bookingId);
     return out;
   }
 

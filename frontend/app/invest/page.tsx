@@ -69,6 +69,7 @@ export default function InvestPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [suites, setSuites] = useState<Record<string, any>>({});
   const [assumptions, setAssumptions] = useState<ReturnAssumptions | null>(null);
+  const [payPolicy, setPayPolicy] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -90,10 +91,11 @@ export default function InvestPage() {
     setLoading(true);
     setError('');
     try {
-      const [plansJson, suitesJson, returnsJson] = await Promise.all([
+      const [plansJson, suitesJson, returnsJson, policyJson] = await Promise.all([
         api('/timeshares'),
         api('/suites'),
-        api('/settings/return-assumptions').catch(() => null)
+        api('/settings/return-assumptions').catch(() => null),
+        api('/payment-plans/policy').catch(() => null)
       ]);
       const items = Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? [];
       const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
@@ -107,6 +109,7 @@ export default function InvestPage() {
         })
       );
       if (returnsJson) setAssumptions(normalizeReturnAssumptions(returnsJson));
+      if (policyJson?.ok) setPayPolicy(policyJson);
     } catch {
       setError('Failed to load plans');
     }
@@ -238,6 +241,13 @@ export default function InvestPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl text-ocean">Invest in a Suite</h1>
+          <p className="mt-3 max-w-2xl text-ocean/70">
+            Choose a share plan, or{' '}
+            <Link href="/invest/advisor" className="font-semibold text-ocean underline">
+              find the best plan for your funds
+            </Link>
+            .
+          </p>
           <p className="mt-2 max-w-2xl text-ocean/75">
             Browse share plans by view, floor, price, or category. Available, reserved, and sold
             plans are shown by default — hide sold plans anytime to focus on what is still open.
@@ -508,7 +518,9 @@ export default function InvestPage() {
               )}
               {(() => {
                 const total = planTotal(p);
-                const bookingAmount = Math.round(total * 0.1);
+                const standardPct = Number(payPolicy?.resolved?.find((t: any) => t.id === 'standard')?.upfrontPct) || 10;
+                const bookingAmount = Math.round(total * (standardPct / 100));
+                const full = payPolicy?.resolved?.find((t: any) => t.upfrontPct >= 100);
                 return (
                   <div className="mt-5 space-y-3">
                     <div>
@@ -530,14 +542,19 @@ export default function InvestPage() {
                         {formatMoney(total)}
                       </p>
                     </div>
+                    {available && full?.offeredDiscountPct > 0 && (
+                      <span className="inline-flex w-fit items-center border border-gold bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ocean">
+                        Pay in full, save {Number(full.offeredDiscountPct).toFixed(1)}%
+                      </span>
+                    )}
                     {available ? (
                       <div className="border border-gold/50 bg-gold/10 px-3 py-3">
-                        <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Booking amount</p>
+                        <p className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today (standard)</p>
                         <p className="font-display mt-0.5 text-3xl font-bold text-ocean">
                           {formatMoney(bookingAmount)}
                         </p>
                         <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                          Pay only 10% today to reserve this plan
+                          Pay {standardPct}% today to reserve this plan
                         </p>
                       </div>
                     ) : (

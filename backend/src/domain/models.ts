@@ -65,6 +65,14 @@ export type Booking = {
   referralCode?: string;
   /** Referrer user id resolved from referralCode at purchase. */
   referredByUserId?: string;
+  listPrice?: number;
+  promoDiscountPct?: number;
+  promoName?: string;
+  advanceDiscountPct?: number;
+  paymentTierId?: string;
+  installmentMonths?: number;
+  cadence?: 'monthly' | 'quarterly' | string;
+  discountRateAnnualPct?: number;
   schedule?: PaymentScheduleItem[];
   currency?: 'BDT';
 };
