@@ -1,9 +1,8 @@
 'use client';
-import { usePathname } from 'next/navigation';
+
 import Footer from './Footer';
 
+/** Site chrome only — rendered from the buyer locale layout, never on /admin. */
 export default function SiteFooter() {
-  const pathname = usePathname() || '';
-  if (pathname.startsWith('/admin')) return null;
   return <Footer />;
 }

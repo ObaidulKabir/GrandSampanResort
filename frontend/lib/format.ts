@@ -1,5 +1,19 @@
 /** Bangladesh-style display helpers: dd/mm/yyyy dates and ##,##,###.## amounts. */
 
+export type FormatDigits = 'latin' | 'bengali';
+
+export type FormatOptions = {
+  /** Default latin (Western) digits — banking/invoices use these. */
+  digits?: FormatDigits;
+};
+
+const BENGALI_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+
+function toDigits(s: string, digits: FormatDigits = 'latin') {
+  if (digits !== 'bengali') return s;
+  return s.replace(/\d/g, (d) => BENGALI_DIGITS[Number(d)] || d);
+}
+
 function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
@@ -9,7 +23,7 @@ function pad2(n: number) {
  * Date-only ISO strings (YYYY-MM-DD) are parsed as calendar dates to avoid
  * timezone shifts that can move the day.
  */
-export function formatDate(input?: string | Date | null): string {
+export function formatDate(input?: string | Date | null, options?: FormatOptions): string {
   if (input == null || input === '') return '—';
   let day: number;
   let month: number;
@@ -26,18 +40,18 @@ export function formatDate(input?: string | Date | null): string {
     month = d.getMonth() + 1;
     year = d.getFullYear();
   }
-  return `${pad2(day)}/${pad2(month)}/${year}`;
+  return toDigits(`${pad2(day)}/${pad2(month)}/${year}`, options?.digits);
 }
 
 /**
  * Format a date-time as dd/mm/yyyy HH:mm (local timezone).
  * Prefer this for booking submission timestamps.
  */
-export function formatDateTime(input?: string | Date | null): string {
+export function formatDateTime(input?: string | Date | null, options?: FormatOptions): string {
   if (input == null || input === '') return '—';
   const d = input instanceof Date ? input : new Date(input);
   if (Number.isNaN(d.getTime())) return '—';
-  return `${formatDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return toDigits(`${formatDate(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`, options?.digits);
 }
 
 /** Integer part with Bangladesh / Indian grouping: 12,34,567 */
@@ -58,7 +72,7 @@ export function formatBdGrouped(intDigits: string): string {
 /**
  * Format a number as ##,##,###.## (always 2 decimal places unless decimals=0).
  */
-export function formatAmount(value?: number | null, decimals = 2): string {
+export function formatAmount(value?: number | null, decimals = 2, options?: FormatOptions): string {
   const n = Number(value);
   const safe = Number.isFinite(n) ? n : 0;
   const neg = safe < 0;
@@ -66,10 +80,10 @@ export function formatAmount(value?: number | null, decimals = 2): string {
   const [intPart, decPart] = fixed.split('.');
   const grouped = formatBdGrouped(intPart);
   const body = decimals > 0 ? `${grouped}.${decPart}` : grouped;
-  return neg ? `-${body}` : body;
+  return toDigits(neg ? `-${body}` : body, options?.digits);
 }
 
 /** Currency with ৳ prefix, e.g. ৳ 12,34,567.00 */
-export function formatMoney(value?: number | null, decimals = 2): string {
-  return `৳ ${formatAmount(value, decimals)}`;
+export function formatMoney(value?: number | null, decimals = 2, options?: FormatOptions): string {
+  return `৳ ${formatAmount(value, decimals, options)}`;
 }

@@ -23,52 +23,83 @@ function assertTermsContent(title: string, body: string) {
   }
 }
 
+/** Trim optional Bangla field; empty string → null. Undefined stays undefined (no change on update). */
+function normalizeBn(value?: string | null): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 const DEFAULT_TERMS: Omit<TermsParagraph, 'id' | 'createdAt' | 'updatedAt'>[] = [
   {
     title: '1. Definitions',
     body:
       '• “Guest” means a person staying at the resort.\n• “Investor” means a person who purchases a share plan or unit.\n• “Services” include accommodation, amenities, and related offerings.',
+    titleBn: '১. সংজ্ঞা',
+    bodyBn:
+      '• “অতিথি” বলতে রিসোর্টে অবস্থানকারী ব্যক্তিকে বোঝায়।\n• “বিনিয়োগকারী” বলতে শেয়ার প্ল্যান বা ইউনিট ক্রেতাকে বোঝায়।\n• “সেবা” অন্তর্ভুক্ত করে আবাসন, সুবিধা ও সংশ্লিষ্ট অফার।',
     order: 0
   },
   {
     title: '2. Bookings and Payments',
     body:
       '• All bookings are subject to availability and confirmation.\n• Deposits, downpayment, and installment schedules must be paid by due dates.\n• Failure to pay on time may result in suspension of entitlements until rectified.',
+    titleBn: '২. বুকিং ও পেমেন্ট',
+    bodyBn:
+      '• সব বুকিং উপলব্ধতা ও নিশ্চিতকরণের অধীন।\n• ডিপোজিট, ডাউনপেমেন্ট ও কিস্তি নির্ধারিত তারিখে পরিশোধ করতে হবে।\n• সময়মতো না দিলে অধিকার স্থগিত হতে পারে যতক্ষণ না সংশোধন হয়।',
     order: 1
   },
   {
     title: '3. Investor Entitlements',
     body:
       '• Investors receive usage days per month consistent with the selected plan.\n• Revenue share, if applicable, is calculated per policy and may be adjusted.\n• Transfer or resale is subject to company review and compliance.',
+    titleBn: '৩. বিনিয়োগকারীর অধিকার',
+    bodyBn:
+      '• নির্বাচিত প্ল্যান অনুযায়ী বিনিয়োগকারীরা প্রতি মাসে ব্যবহারের দিন পান।\n• প্রযোজ্য হলে রাজস্ব শেয়ার নীতি অনুযায়ী হিসাব হয় এবং সমন্বয়যোগ্য।\n• হস্তান্তর বা পুনঃবিক্রি কোম্পানির পর্যালোচনা ও কমপ্লায়েন্সের অধীন।',
     order: 2
   },
   {
     title: '4. Conduct and Safety',
     body:
       '• Guests and investors must follow resort rules and local regulations.\n• Damage to property may incur repair costs payable by the responsible party.\n• Safety guidelines for beach access and common areas must be respected.',
+    titleBn: '৪. আচরণ ও নিরাপত্তা',
+    bodyBn:
+      '• অতিথি ও বিনিয়োগকারীদের রিসোর্ট নিয়ম ও স্থানীয় আইন মানতে হবে।\n• সম্পত্তির ক্ষতি হলে দায়ী পক্ষ মেরামত খরচ বহন করতে পারে।\n• সৈকত ও সাধারণ এলাকার নিরাপত্তা নির্দেশিকা মেনে চলতে হবে।',
     order: 3
   },
   {
     title: '5. Cancellation and Refunds',
     body:
       '• Cancellations are processed per booking policy and plan terms.\n• Refund eligibility depends on notice period and service usage.',
+    titleBn: '৫. বাতিল ও ফেরত',
+    bodyBn:
+      '• বাতিল বুকিং নীতি ও প্ল্যান শর্ত অনুযায়ী প্রক্রিয়া হয়।\n• ফেরতের যোগ্যতা নোটিশ সময় ও সেবা ব্যবহারের ওপর নির্ভর করে।',
     order: 4
   },
   {
     title: '6. Privacy',
     body:
       '• Personal data is handled per privacy policy and applicable law.\n• Security measures are maintained to protect user information.',
+    titleBn: '৬. গোপনীয়তা',
+    bodyBn:
+      '• ব্যক্তিগত তথ্য গোপনীয়তা নীতি ও প্রযোজ্য আইন অনুযায়ী পরিচালিত হয়।\n• ব্যবহারকারীর তথ্য রক্ষায় নিরাপত্তা ব্যবস্থা বজায় রাখা হয়।',
     order: 5
   },
   {
     title: '7. Changes to Terms',
     body:
       'The company may update these terms periodically. Continued use of services indicates acceptance of changes.',
+    titleBn: '৭. শর্তাবলীর পরিবর্তন',
+    bodyBn:
+      'কোম্পানি সময়ে সময়ে এই শর্তাবলী হালনাগাদ করতে পারে। সেবা অব্যাহত ব্যবহার পরিবর্তন গ্রহণের ইঙ্গিত দেয়।',
     order: 6
   },
   {
     title: '8. Contact',
     body: 'For questions or support: info@grandsampan.com • +880 17 0000 0000',
+    titleBn: '৮. যোগাযোগ',
+    bodyBn: 'প্রশ্ন বা সাপোর্টের জন্য: info@grandsampan.com • +880 17 0000 0000',
     order: 7
   }
 ];
@@ -102,6 +133,8 @@ export class TermsService {
             id: genId(),
             title: item.title,
             body: item.body,
+            titleBn: item.titleBn ?? null,
+            bodyBn: item.bodyBn ?? null,
             order: item.order,
             createdAt: now,
             updatedAt: now
@@ -116,6 +149,8 @@ export class TermsService {
         id: genId(),
         title: item.title,
         body: item.body,
+        titleBn: item.titleBn ?? null,
+        bodyBn: item.bodyBn ?? null,
         order: item.order,
         createdAt: now,
         updatedAt: now
@@ -132,16 +167,37 @@ export class TermsService {
     return this.memory.slice().sort((a, b) => a.order - b.order || a.createdAt.getTime() - b.createdAt.getTime());
   }
 
-  async create(data: { title: string; body: string }): Promise<TermsParagraph> {
+  /** Public list: when locale is bn and Bn fields exist, surface them as title/body. */
+  async listLocalized(locale?: string): Promise<TermsParagraph[]> {
+    const items = await this.list();
+    const useBn = Boolean(locale && locale.toLowerCase().startsWith('bn'));
+    if (!useBn) return items;
+    return items.map((item) => ({
+      ...item,
+      title: item.titleBn?.trim() ? item.titleBn : item.title,
+      body: item.bodyBn?.trim() ? item.bodyBn : item.body
+    }));
+  }
+
+  async create(data: {
+    title: string;
+    body: string;
+    titleBn?: string | null;
+    bodyBn?: string | null;
+  }): Promise<TermsParagraph> {
     await this.ensureSeeded();
     assertTermsContent(data.title, data.body);
     const items = await this.list();
     const order = items.length ? Math.max(...items.map((i) => i.order)) + 1 : 0;
     const now = new Date();
+    const titleBn = normalizeBn(data.titleBn) ?? null;
+    const bodyBn = normalizeBn(data.bodyBn) ?? null;
     const record: TermsParagraph = {
       id: genId(),
       title: data.title.trim(),
       body: data.body.trim(),
+      titleBn,
+      bodyBn,
       order,
       createdAt: now,
       updatedAt: now
@@ -151,8 +207,19 @@ export class TermsService {
     return record;
   }
 
-  async update(id: string, data: { title?: string; body?: string }): Promise<TermsParagraph> {
+  async update(
+    id: string,
+    data: {
+      title?: string;
+      body?: string;
+      titleBn?: string | null;
+      bodyBn?: string | null;
+    }
+  ): Promise<TermsParagraph> {
     await this.ensureSeeded();
+    const nextTitleBn = normalizeBn(data.titleBn);
+    const nextBodyBn = normalizeBn(data.bodyBn);
+
     if (this.db) {
       const current = await this.db.termsParagraph.findUnique({ where: { id } });
       if (!current) throw new NotFoundException('terms_not_found');
@@ -163,7 +230,9 @@ export class TermsService {
         where: { id },
         data: {
           ...(data.title !== undefined ? { title: nextTitle } : {}),
-          ...(data.body !== undefined ? { body: nextBody } : {})
+          ...(data.body !== undefined ? { body: nextBody } : {}),
+          ...(nextTitleBn !== undefined ? { titleBn: nextTitleBn } : {}),
+          ...(nextBodyBn !== undefined ? { bodyBn: nextBodyBn } : {})
         }
       });
     }
@@ -176,6 +245,8 @@ export class TermsService {
       ...this.memory[idx],
       ...(data.title !== undefined ? { title: nextTitle } : {}),
       ...(data.body !== undefined ? { body: nextBody } : {}),
+      ...(nextTitleBn !== undefined ? { titleBn: nextTitleBn } : {}),
+      ...(nextBodyBn !== undefined ? { bodyBn: nextBodyBn } : {}),
       updatedAt: new Date()
     };
     return this.memory[idx];

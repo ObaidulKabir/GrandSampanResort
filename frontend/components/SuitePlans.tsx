@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
 import ImageLightbox from './ImageLightbox';
 
@@ -19,22 +20,23 @@ function firstUrl(items: MediaItem[]) {
 }
 
 export default function SuitePlans({ suiteId }: { suiteId: string }) {
+  const t = useTranslations('suitePlans');
   const [slots, setSlots] = useState<Slot[]>([
     {
       key: 'suite_plan',
-      title: 'Architectural plan',
-      subtitle: 'Unit floor plan — interior layout of this suite',
-      emptyHint: 'Architectural plan not uploaded yet for this unit.',
+      title: t('archTitle'),
+      subtitle: t('archSubtitle'),
+      emptyHint: t('archEmpty'),
       src: null,
-      alt: 'Architectural plan'
+      alt: t('archAlt')
     },
     {
       key: 'suite_keymap',
-      title: 'Key plan',
-      subtitle: 'Key map — location of this suite on the floor',
-      emptyHint: 'Key plan not uploaded yet for this unit.',
+      title: t('keyTitle'),
+      subtitle: t('keySubtitle'),
+      emptyHint: t('keyEmpty'),
       src: null,
-      alt: 'Key plan'
+      alt: t('keyAlt')
     }
   ]);
   const [loading, setLoading] = useState(true);
@@ -51,19 +53,19 @@ export default function SuitePlans({ suiteId }: { suiteId: string }) {
         setSlots([
           {
             key: 'suite_plan',
-            title: 'Architectural plan',
-            subtitle: 'Unit floor plan — interior layout of this suite',
-            emptyHint: 'Architectural plan not uploaded yet for this unit.',
+            title: t('archTitle'),
+            subtitle: t('archSubtitle'),
+            emptyHint: t('archEmpty'),
             src: planImg?.src || null,
-            alt: planImg?.alt || 'Architectural plan'
+            alt: planImg?.alt || t('archAlt')
           },
           {
             key: 'suite_keymap',
-            title: 'Key plan',
-            subtitle: 'Key map — location of this suite on the floor',
-            emptyHint: 'Key plan not uploaded yet for this unit.',
+            title: t('keyTitle'),
+            subtitle: t('keySubtitle'),
+            emptyHint: t('keyEmpty'),
             src: keyImg?.src || null,
-            alt: keyImg?.alt || 'Key plan'
+            alt: keyImg?.alt || t('keyAlt')
           }
         ]);
       })
@@ -73,15 +75,13 @@ export default function SuitePlans({ suiteId }: { suiteId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [suiteId]);
+  }, [suiteId, t]);
 
   return (
     <section className="mt-10">
-      <p className="text-sm font-semibold uppercase tracking-wide text-gold">Unit drawings</p>
-      <h2 className="font-display mt-1 text-2xl text-ocean">Architectural plan &amp; key plan</h2>
-      <p className="mt-1 text-sm text-ocean/70">
-        Review the suite layout and where it sits on the floor before you buy. Click an image to enlarge.
-      </p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-gold">{t('eyebrow')}</p>
+      <h2 className="font-display mt-1 text-2xl text-ocean">{t('title')}</h2>
+      <p className="mt-1 text-sm text-ocean/70">{t('intro')}</p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         {slots.map((slot) => {
           const ready = !!slot.src && !loading;
@@ -101,15 +101,13 @@ export default function SuitePlans({ suiteId }: { suiteId: string }) {
                         <circle cx="11" cy="11" r="7" />
                         <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
                       </svg>
-                      Enlarge
+                      {t('enlarge')}
                     </span>
                   </div>
                 </button>
               ) : (
                 <div className="flex h-72 items-center justify-center bg-pearl/50 px-6 text-center">
-                  <p className="text-sm text-ocean/55">
-                    {loading ? 'Loading drawing…' : slot.emptyHint}
-                  </p>
+                  <p className="text-sm text-ocean/55">{loading ? t('loading') : slot.emptyHint}</p>
                 </div>
               )}
               <div className="border-t border-ocean/10 px-4 py-3">

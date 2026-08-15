@@ -1,4 +1,4 @@
-import { CONCIERGE_QUICK, conciergeReply } from '../concierge';
+import { CONCIERGE_QUICK, conciergeMatch, conciergeReply, matchConciergeIntent } from '../concierge';
 
 describe('client concierge scenarios', () => {
   it('points a budget question at Help me choose, not a raw path', () => {
@@ -13,11 +13,17 @@ describe('client concierge scenarios', () => {
     expect(r.links?.[0].href).toBe('/invest');
   });
 
+  it('matches Bangla and Banglish keywords', () => {
+    expect(matchConciergeIntent('কক্সবাজার কোথায়', 'bn')).toBe('location');
+    expect(matchConciergeIntent('kisti dam koto', 'bn')).toBe('payment');
+    expect(conciergeMatch('kothay', 'bn').intent).toBe('location');
+  });
+
   it('quick replies cover choose / browse / reserve', () => {
-    const labels = CONCIERGE_QUICK.map((q) => q.label);
-    expect(labels).toEqual(['Help me choose', 'Browse suites', 'How to reserve']);
+    const keys = CONCIERGE_QUICK.map((q) => q.labelKey);
+    expect(keys).toEqual(['quickHelpChoose', 'quickBrowse', 'quickReserve']);
     for (const q of CONCIERGE_QUICK) {
-      const r = conciergeReply(q.prompt);
+      const r = conciergeReply(q.promptEn);
       expect(r.text.length).toBeGreaterThan(20);
     }
   });

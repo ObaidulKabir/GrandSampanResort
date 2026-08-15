@@ -173,18 +173,22 @@ model MediaAsset {
 }
 
 model FaqEntry {
-  id        String   @id
-  question  String
-  answer    String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id
+  question   String
+  answer     String
+  questionBn String?
+  answerBn   String?
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model TermsParagraph {
   id        String   @id
   title     String
   body      String
+  titleBn   String?
+  bodyBn    String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

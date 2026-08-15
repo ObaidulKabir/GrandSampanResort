@@ -93,6 +93,7 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
+      - run: npm run check:messages
       - run: npm run test
       - name: Production build
         run: npm run build
@@ -107,10 +108,13 @@ jobs:
       - name: Build frontend image
         run: docker build -t gs-frontend:ci ./frontend
   # ─── Deploy to Production ────────────────────────────────────────
+  # Only on pushes to main — never on pull_request (avoids deploying feature branches).
   deploy:
     name: Deploy to production
     runs-on: ubuntu-latest
     environment: production
+    needs: [backend, frontend, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Update Code on Server

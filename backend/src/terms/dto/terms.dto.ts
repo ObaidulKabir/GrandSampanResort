@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 export class CreateTermsDto {
   @IsString()
@@ -10,6 +10,20 @@ export class CreateTermsDto {
   @MinLength(1)
   @MaxLength(40000)
   body!: string;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  titleBn?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
+  @IsString()
+  @MinLength(1)
+  @MaxLength(40000)
+  bodyBn?: string | null;
 }
 
 export class UpdateTermsDto {
@@ -24,6 +38,20 @@ export class UpdateTermsDto {
   @MinLength(1)
   @MaxLength(40000)
   body?: string;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  titleBn?: string | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v != null && String(v).trim() !== '')
+  @IsString()
+  @MinLength(1)
+  @MaxLength(40000)
+  bodyBn?: string | null;
 }
 
 export class MoveTermsDto {

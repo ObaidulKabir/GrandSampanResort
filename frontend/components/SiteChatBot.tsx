@@ -1,9 +1,7 @@
 'use client';
-import { usePathname } from 'next/navigation';
 import ChatBot from '@/components/ChatBot';
 
+/** Site chrome only — rendered from the buyer locale layout, never on /admin. */
 export default function SiteChatBot() {
-  const path = usePathname() || '';
-  if (path.startsWith('/admin')) return null;
   return <ChatBot />;
 }

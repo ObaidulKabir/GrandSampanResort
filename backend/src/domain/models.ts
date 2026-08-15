@@ -145,6 +145,8 @@ export type FaqEntry = {
   id: string;
   question: string;
   answer: string;
+  questionBn?: string | null;
+  answerBn?: string | null;
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -154,6 +156,8 @@ export type TermsParagraph = {
   id: string;
   title: string;
   body: string;
+  titleBn?: string | null;
+  bodyBn?: string | null;
   order: number;
   createdAt: Date;
   updatedAt: Date;

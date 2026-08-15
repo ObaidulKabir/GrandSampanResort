@@ -10,25 +10,29 @@ export function monthlyOutlay(s: {
   return remaining / payments;
 }
 
-export function badgesFor(list: Array<{ netPrice?: number; depositAmount?: number; installmentMonths?: number; cadence?: string }>) {
-  const badges = list.map(() => '');
+export type AdvisorBadgeKey = 'bestFit' | 'payLess' | 'smallerMonthly' | '';
+
+export function badgesFor(
+  list: Array<{ netPrice?: number; depositAmount?: number; installmentMonths?: number; cadence?: string }>
+): AdvisorBadgeKey[] {
+  const badges: AdvisorBadgeKey[] = list.map(() => '');
   if (!list.length) return badges;
-  badges[0] = 'Best fit';
+  badges[0] = 'bestFit';
   let minMonthly = 0;
   let minPrice = 0;
   list.forEach((s, i) => {
     if (monthlyOutlay(s) < monthlyOutlay(list[minMonthly])) minMonthly = i;
     if (Number(s.netPrice) < Number(list[minPrice].netPrice)) minPrice = i;
   });
-  if (minPrice !== 0) badges[minPrice] = 'Pay less overall';
-  if (minMonthly !== 0 && !badges[minMonthly]) badges[minMonthly] = 'Smaller monthly';
+  if (minPrice !== 0) badges[minPrice] = 'payLess';
+  if (minMonthly !== 0 && !badges[minMonthly]) badges[minMonthly] = 'smallerMonthly';
   else if (minMonthly !== 0 && badges[minMonthly]) {
     let next = -1;
     list.forEach((s, i) => {
       if (i === 0 || i === minMonthly) return;
       if (next < 0 || monthlyOutlay(s) < monthlyOutlay(list[next])) next = i;
     });
-    if (next > 0 && !badges[next]) badges[next] = 'Smaller monthly';
+    if (next > 0 && !badges[next]) badges[next] = 'smallerMonthly';
   }
   return badges;
 }

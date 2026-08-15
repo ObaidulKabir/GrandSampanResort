@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "FaqEntry" ADD COLUMN IF NOT EXISTS "questionBn" TEXT;
+ALTER TABLE "FaqEntry" ADD COLUMN IF NOT EXISTS "answerBn" TEXT;
+
+-- AlterTable
+ALTER TABLE "TermsParagraph" ADD COLUMN IF NOT EXISTS "titleBn" TEXT;
+ALTER TABLE "TermsParagraph" ADD COLUMN IF NOT EXISTS "bodyBn" TEXT;
