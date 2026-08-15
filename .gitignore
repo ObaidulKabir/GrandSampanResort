@@ -10,5 +10,7 @@ tmp/
 backend/uploads/
 .trae/
 .vscode/
+*.tsbuildinfo
+secrete.txt
 
 !.env.example

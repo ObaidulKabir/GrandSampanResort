@@ -1,3 +1,7 @@
+const createNextIntlPlugin = require('next-intl/plugin');
+
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+
 /** @type {import('next').NextConfig} */
 function uploadsProxyTarget() {
   const raw =
@@ -54,4 +58,4 @@ const nextConfig = {
     ]
   }
 };
-module.exports = nextConfig;
+module.exports = withNextIntl(nextConfig);

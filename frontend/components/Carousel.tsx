@@ -1,6 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 type Slide = {
   src: string;
@@ -19,6 +20,7 @@ export default function Carousel({
   auto?: boolean;
   intervalMs?: number;
 }) {
+  const t = useTranslations('carousel');
   const [idx, setIdx] = useState(0);
 
   function next() {
@@ -30,12 +32,12 @@ export default function Carousel({
 
   useEffect(() => {
     if (!auto || slides.length <= 1) return;
-    const t = setInterval(next, intervalMs);
-    return () => clearInterval(t);
+    const timer = setInterval(next, intervalMs);
+    return () => clearInterval(timer);
   }, [auto, intervalMs, slides.length]);
 
   if (!slides.length) {
-    return <div className="border border-ocean/10 p-4 text-ocean/70">No images available</div>;
+    return <div className="border border-ocean/10 p-4 text-ocean/70">{t('empty')}</div>;
   }
 
   return (
@@ -64,14 +66,14 @@ export default function Carousel({
           <button
             key={i}
             type="button"
-            aria-label={`Show slide ${i + 1}`}
+            aria-label={t('showSlide', { n: i + 1 })}
             onClick={() => setIdx(i)}
             className={`h-2.5 rounded-full transition-all ${i === idx ? 'w-6 bg-gold' : 'w-3 bg-white/50 hover:bg-white/80'}`}
           />
         ))}
       </div>
       <button
-        aria-label="Previous"
+        aria-label={t('previous')}
         onClick={prev}
         className="absolute inset-y-0 left-0 flex w-11 items-center justify-center text-white/80 transition hover:text-gold"
       >
@@ -80,7 +82,7 @@ export default function Carousel({
         </svg>
       </button>
       <button
-        aria-label="Next"
+        aria-label={t('next')}
         onClick={next}
         className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-white/80 transition hover:text-gold"
       >

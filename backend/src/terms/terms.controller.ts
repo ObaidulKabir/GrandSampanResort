@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, ValidationPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+  ValidationPipe
+} from '@nestjs/common';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CreateTermsDto, MoveTermsDto, UpdateTermsDto } from './dto/terms.dto';
@@ -9,8 +21,8 @@ export class TermsController {
   constructor(private readonly service: TermsService) {}
 
   @Get()
-  async list() {
-    const items = await this.service.list();
+  async list(@Query('locale') locale?: string) {
+    const items = await this.service.listLocalized(locale);
     return { ok: true, items };
   }
 

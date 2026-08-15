@@ -8,6 +8,6 @@ describe('Help me choose result labels', () => {
       { netPrice: 1000000, depositAmount: 100000, installmentMonths: 36, cadence: 'monthly' }
     ];
     expect(monthlyOutlay(list[1])).toBe(0);
-    expect(badgesFor(list)).toEqual(['Best fit', 'Pay less overall', 'Smaller monthly']);
+    expect(badgesFor(list)).toEqual(['bestFit', 'payLess', 'smallerMonthly']);
   });
 });

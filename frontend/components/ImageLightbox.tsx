@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 export default function ImageLightbox({
   src,
@@ -10,6 +11,8 @@ export default function ImageLightbox({
   alt: string;
   onClose: () => void;
 }) {
+  const t = useTranslations('imageLightbox');
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -32,7 +35,7 @@ export default function ImageLightbox({
     >
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t('close')}
         onClick={onClose}
         className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-white hover:bg-white/10 md:right-4"
       >

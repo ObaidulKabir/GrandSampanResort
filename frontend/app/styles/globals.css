@@ -26,6 +26,17 @@ body {
   font-family: 'Playfair Display', Georgia, serif;
 }
 
+/* Bangla: taller ascenders/conjuncts need more line height; Playfair has no Bengali glyphs. */
+html[lang='bn'] body {
+  font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Manrope', system-ui, sans-serif;
+  line-height: 1.65;
+}
+
+html[lang='bn'] .font-display {
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Playfair Display', Georgia, serif;
+  line-height: 1.35;
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;

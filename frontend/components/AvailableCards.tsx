@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { suitePhoto } from '@/lib/photos';
 import { fetchMedia, resolveMediaUrl } from '@/lib/media';
@@ -24,7 +25,6 @@ function pickShowcaseSuites(list: Suite[]): Suite[] {
     const candidates = list.filter(
       (s) => normalizeType(s.type) === normalizeType(wanted) && !used.has(s.id)
     );
-    // Prefer a sea-view example when available for that tier.
     const match =
       candidates.find((s) => String(s.view).toLowerCase() === 'sea') || candidates[0];
     if (match) {
@@ -36,6 +36,7 @@ function pickShowcaseSuites(list: Suite[]): Suite[] {
 }
 
 export default function AvailableCards() {
+  const t = useTranslations('availableCards');
   const [suites, setSuites] = useState<Suite[]>([]);
   const [availability, setAvailability] = useState<Record<string, boolean>>({});
   const [suitePhotos, setSuitePhotos] = useState<Record<string, string>>({});
@@ -101,7 +102,7 @@ export default function AvailableCards() {
             <div className="relative h-44 w-full overflow-hidden">
               <Image
                 src={photoFor(s.type).src}
-                alt={`${s.type} suite`}
+                alt={t('suiteAlt', { type: s.type })}
                 fill
                 sizes="(min-width: 768px) 33vw, 100vw"
                 unoptimized={photoFor(s.type).unoptimized}
@@ -112,24 +113,22 @@ export default function AvailableCards() {
                   ok ? 'border-gold bg-gold/90 text-ocean' : 'border-white/40 bg-ocean/80 text-white'
                 }`}
               >
-                {ok ? 'Available' : 'Fully booked'}
+                {ok ? t('available') : t('fullyBooked')}
               </span>
             </div>
             <div className="p-5">
               <div className="font-display text-lg text-ocean">
-                {s.type} &middot; {s.view} view
+                {t('typeView', { type: s.type, view: s.view })}
               </div>
               <div className="mt-1 text-sm text-ocean/70">
-                Floor {s.floor} &middot; {s.size} sq ft
+                {t('floorSize', { floor: s.floor, size: s.size })}
               </div>
-              <p className="mt-3 text-sm text-ocean/70">
-                {ok ? 'Open dates in the next 30 days.' : 'No open dates in the next 30 days.'}
-              </p>
+              <p className="mt-3 text-sm text-ocean/70">{ok ? t('openDates') : t('noOpenDates')}</p>
               <Link
                 href="/invest"
                 className="mt-4 inline-flex text-sm font-semibold text-ocean underline decoration-gold underline-offset-4 hover:text-gold"
               >
-                View investment plans
+                {t('viewPlans')}
               </Link>
             </div>
           </article>
@@ -137,12 +136,12 @@ export default function AvailableCards() {
       })}
       {suites.length === 0 && !loading && (
         <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
-          No units to display
+          {t('empty')}
         </div>
       )}
       {loading && (
         <div className="border border-ocean/10 p-4 text-ocean/70 sm:col-span-2 md:col-span-3">
-          Loading availability...
+          {t('loading')}
         </div>
       )}
     </div>

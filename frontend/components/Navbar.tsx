@@ -1,20 +1,14 @@
 'use client';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useAppStore } from '@/store/appStore';
 import { captureReferralFromSearch } from '@/lib/referral';
-
-const navLinks = [
-  { href: '/invest', label: 'Invest' },
-  { href: '/suites', label: 'Suites' },
-  { href: '/design-layout', label: 'Design & Layout' },
-  { href: '/booking', label: 'Book a Stay' },
-  { href: '/investor', label: 'Dashboard' }
-];
+import LocaleSwitcher from '@/components/LocaleSwitcher';
 
 export default function Navbar() {
+  const t = useTranslations('nav');
   const pathname = usePathname() || '';
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -24,7 +18,15 @@ export default function Navbar() {
   const hydrate = useAppStore((s) => s.hydrate);
   const logout = useAppStore((s) => s.logout);
   const signedIn = hydrated && !!token && !!user;
-  const displayName = (user?.name || user?.email || 'Account').trim();
+  const displayName = (user?.name || user?.email || t('account')).trim();
+
+  const navLinks = [
+    { href: '/invest' as const, label: t('invest') },
+    { href: '/suites' as const, label: t('suites') },
+    { href: '/design-layout' as const, label: t('designLayout') },
+    { href: '/booking' as const, label: t('bookStay') },
+    { href: '/investor' as const, label: t('dashboard') }
+  ];
 
   useEffect(() => {
     hydrate();
@@ -58,27 +60,26 @@ export default function Navbar() {
     router.push('/');
   }
 
-  if (pathname.startsWith('/admin')) return null;
-
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gold/20 bg-pearl/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 md:py-4">
         <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3" onClick={() => setOpen(false)}>
           <span className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
-            <Image src="/images/logo.png" alt="Grand Sampan Resort" fill sizes="40px" className="object-contain" />
+            <Image src="/images/logo.png" alt={t('logoAlt')} fill sizes="40px" className="object-contain" />
           </span>
           <span className="font-display truncate text-base font-bold text-ocean sm:text-lg md:text-xl">
-            <span className="sm:hidden">Grand Sampan</span>
-            <span className="hidden sm:inline">Unitech Grand Sampan Resort</span>
+            <span className="sm:hidden">{t('brandShort')}</span>
+            <span className="hidden sm:inline">{t('brandFull')}</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-ocean md:flex">
+        <nav className="hidden items-center gap-5 text-sm font-medium text-ocean md:flex">
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} className="transition-colors hover:text-gold">
               {l.label}
             </Link>
           ))}
+          <LocaleSwitcher compact />
           {signedIn ? (
             <>
               <span className="max-w-[10rem] truncate text-ocean/80" title={displayName}>
@@ -89,7 +90,7 @@ export default function Navbar() {
                 onClick={onLogout}
                 className="rounded-md border border-ocean/20 px-3 py-1.5 text-ocean transition hover:border-gold hover:text-gold"
               >
-                Log out
+                {t('logOut')}
               </button>
             </>
           ) : (
@@ -97,26 +98,29 @@ export default function Navbar() {
               href="/auth/login"
               className="rounded-md border border-ocean/20 px-3 py-1.5 text-ocean transition hover:border-gold hover:text-gold"
             >
-              Sign In
+              {t('signIn')}
             </Link>
           )}
         </nav>
 
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-ocean/20 text-ocean md:hidden"
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span className="sr-only">{open ? 'Close' : 'Menu'}</span>
-          <span className="flex h-4 w-5 flex-col justify-between" aria-hidden>
-            <span className={`h-0.5 w-full bg-ocean transition ${open ? 'translate-y-1.5 rotate-45' : ''}`} />
-            <span className={`h-0.5 w-full bg-ocean transition ${open ? 'opacity-0' : ''}`} />
-            <span className={`h-0.5 w-full bg-ocean transition ${open ? '-translate-y-1.5 -rotate-45' : ''}`} />
-          </span>
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          <LocaleSwitcher compact />
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-ocean/20 text-ocean"
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? t('closeMenu') : t('openMenu')}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span className="sr-only">{open ? t('close') : t('menu')}</span>
+            <span className="flex h-4 w-5 flex-col justify-between" aria-hidden>
+              <span className={`h-0.5 w-full bg-ocean transition ${open ? 'translate-y-1.5 rotate-45' : ''}`} />
+              <span className={`h-0.5 w-full bg-ocean transition ${open ? 'opacity-0' : ''}`} />
+              <span className={`h-0.5 w-full bg-ocean transition ${open ? '-translate-y-1.5 -rotate-45' : ''}`} />
+            </span>
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -149,7 +153,7 @@ export default function Navbar() {
                     className="block w-full rounded-md px-3 py-3.5 text-left text-base text-ocean hover:bg-ocean/5"
                     onClick={onLogout}
                   >
-                    Log out
+                    {t('logOut')}
                   </button>
                 </li>
               </>
@@ -160,7 +164,7 @@ export default function Navbar() {
                   className="block rounded-md px-3 py-3.5 text-base text-ocean hover:bg-ocean/5"
                   onClick={() => setOpen(false)}
                 >
-                  Sign In
+                  {t('signIn')}
                 </Link>
               </li>
             )}
