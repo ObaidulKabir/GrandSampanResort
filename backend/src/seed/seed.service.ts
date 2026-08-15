@@ -100,6 +100,8 @@ export class SeedService {
         contact: '+88017XXXXXXXX',
         email: 'rahim@example.com',
         picUrl: '',
+        profession: 'Businessman',
+        city: 'Chattogram',
         nomineeName: 'Sultana Rahman',
         nomineeNid: '1987000123',
         nomineePicUrl: ''
@@ -126,6 +128,8 @@ export class SeedService {
         contact: client.contact,
         email: client.email,
         picUrl: client.picUrl || '/uploads/media/seed-pic.jpg',
+        profession: client.profession,
+        city: client.city,
         nomineeName: client.nomineeName,
         nomineeNid: client.nomineeNid,
         nomineePicUrl: client.nomineePicUrl || '/uploads/media/seed-nominee.jpg'

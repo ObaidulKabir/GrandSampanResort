@@ -20,6 +20,13 @@ export type SharePlan = {
   planStatus?: 'Unsold' | 'Reserved' | 'Booked' | 'Resale' | 'Transferred';
   planType?: 'FULL' | 'DPM';
   timeFraction?: number;
+  /** Public snapshot of the verified buyer when this plan is booked. */
+  owner?: {
+    name: string;
+    city: string;
+    profession: string;
+    picUrl: string | null;
+  } | null;
 };
 
 export type Investor = {
@@ -87,6 +94,8 @@ export type BookingKyc = {
   contact: string;
   email: string;
   picUrl: string;
+  profession: string;
+  city: string;
   nomineeName: string;
   nomineeNid: string;
   nomineePicUrl: string;
@@ -114,6 +123,8 @@ export type Client = {
   contact: string;
   email: string;
   picUrl: string;
+  profession: string;
+  city: string;
   nomineeName: string;
   nomineeNid: string;
   nomineePicUrl: string;

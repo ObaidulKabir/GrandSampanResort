@@ -6,9 +6,10 @@ import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
+import KycEditor from '@/components/KycEditor';
 
 type Me = { id: string; name?: string; email: string; kyc?: boolean };
-type Holding = { booking: any; suite: any; plan: any };
+type Holding = { booking: any; suite: any; plan: any; client?: any };
 type Summary = { booking: any; paidTotal: number; outstanding: number; nextDue: any; handoverDate: string };
 type ScheduleItem = { id: string; bookingId: string; type: string; dueDate: string; amount: number; status: string };
 
@@ -347,6 +348,29 @@ export default function InvestorPage() {
                     </div>
                   ))}
                 </div>
+                {h.client && h.booking.status !== 'cancelled' && (
+                  <div className="mt-5 border-t border-ocean/10 pt-4">
+                    <h3 className="text-sm font-semibold text-ocean">Your details on this plan</h3>
+                    <p className="mt-1 text-xs text-ocean/65">
+                      Name, profession, city, and photo appear on the catalog after this share is booked.
+                      You can add or update them here.
+                    </p>
+                    <div className="mt-3">
+                      <KycEditor
+                        bookingId={h.booking.id}
+                        client={h.client}
+                        variant="owner"
+                        onSaved={(next) =>
+                          setHoldings((prev) =>
+                            prev.map((row) =>
+                              row.booking.id === h.booking.id ? { ...row, client: next } : row
+                            )
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
               </article>
             );
           })}

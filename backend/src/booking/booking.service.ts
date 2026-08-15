@@ -19,6 +19,7 @@ import { applyDiscount, presentValue, monthlyDiscountFactor } from "../payment-p
 import { generatePaymentSchedule, monthsFromAnchor } from "../payment-plans/schedule";
 import { signQuoteToken, verifyQuoteToken } from "./quote-token";
 import { prisma } from "../../prisma/client";
+import { ClientsService } from "../clients/clients.service";
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   const aS = new Date(aStart).getTime();
@@ -38,9 +39,19 @@ const KYC_FIELDS: (keyof BookingKyc)[] = [
   "contact",
   "email",
   "picUrl",
+  "profession",
+  "city",
   "nomineeName",
   "nomineeNid",
   "nomineePicUrl",
+];
+
+/** Catalog-facing fields an owner may update on their own booking. */
+const OWNER_KYC_FIELDS: (keyof BookingKyc)[] = [
+  "name",
+  "profession",
+  "city",
+  "picUrl",
 ];
 
 function normalizeKyc(kyc?: Partial<BookingKyc> | null): BookingKyc | null {
@@ -86,6 +97,7 @@ export class BookingService {
   private promotions = new PromotionsService();
   private mail = new MailService();
   private paymentPlans = new PaymentPlansService();
+  private clients = new ClientsService();
   private locks = new Set<string>();
   private prisma = process.env.DATABASE_URL ? prisma : null;
 
@@ -1166,6 +1178,42 @@ export class BookingService {
     await this.notifyAfterAdminAction(booking, out, "deposit");
     await this.unlockTranche2IfNoDownpayment(bookingId);
     return out;
+  }
+
+  /** Owner or admin fills/updates KYC on an existing booking (e.g. profession, city). */
+  async updateKyc(
+    bookingId: string,
+    patch: Partial<BookingKyc>,
+    actor: { id: string; role: string },
+  ) {
+    const isAdmin = actor.role === "admin";
+    const booking = this.prisma
+      ? await this.prisma.booking.findUnique({ where: { id: bookingId } })
+      : await this.repo.findById(bookingId);
+    if (!booking) return { ok: false as const, error: "not_found" };
+    if (String(booking.status || "") === "cancelled") {
+      return { ok: false as const, error: "cancelled" };
+    }
+    if (!isAdmin && String(booking.investorId || "") !== actor.id) {
+      return { ok: false as const, error: "forbidden" };
+    }
+    if (!booking.clientId) return { ok: false as const, error: "kyc_missing" };
+
+    const allowed = isAdmin ? KYC_FIELDS : OWNER_KYC_FIELDS;
+    const data: Partial<BookingKyc> = {};
+    for (const key of allowed) {
+      if (patch[key] === undefined || patch[key] === null) continue;
+      data[key] = String(patch[key]).trim();
+    }
+    if (!Object.keys(data).length) return { ok: false as const, error: "empty" };
+
+    try {
+      const client = await this.clients.update(booking.clientId, data);
+      if (!client) return { ok: false as const, error: "kyc_missing" };
+      return { ok: true as const, client };
+    } catch {
+      return { ok: false as const, error: "kyc_missing" };
+    }
   }
 
   /** Admin marks per-booking KYC as valid. Completes booking if deposit already confirmed. */

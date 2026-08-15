@@ -13,7 +13,7 @@ const CANDIDATES = [
 
 type Json = any;
 
-async function getJson(url: string, init?: RequestInit): Promise<{ status: number; body: Json }> {
+async function getJson(url: string, init?: RequestInit): Promise<{ status: number; ok: boolean; body: Json }> {
   const res = await fetch(url, {
     ...init,
     headers: { 'content-type': 'application/json', ...(init?.headers || {}) }
@@ -24,7 +24,7 @@ async function getJson(url: string, init?: RequestInit): Promise<{ status: numbe
   } catch {
     body = null;
   }
-  return { status: res.status, body };
+  return { status: res.status, ok: res.ok, body };
 }
 
 function assert(cond: any, msg: string): asserts cond {
@@ -56,6 +56,13 @@ async function main() {
       (p: any) => String(p.planStatus || 'Unsold').toLowerCase() === 'unsold'
     );
     assert(plans.length > 0, 'need at least one unsold plan');
+    const booked = (Array.isArray(plansRes.body) ? plansRes.body : plansRes.body?.plans || []).filter((p: any) => {
+      const s = String(p.planStatus || '').toLowerCase();
+      return s === 'booked' || s === 'sold';
+    });
+    for (const p of booked.filter((x: any) => x.owner?.name)) {
+      assert(!('nid' in p.owner) && !('contact' in p.owner) && !('email' in p.owner), `${p.id} leaked private KYC`);
+    }
     console.log(`2) Catalog reachable: ${plans.length} unsold plan(s). Cheapest ${plans.sort((a: any, b: any) => Number(a.price) - Number(b.price))[0]?.name}`);
     console.log('\nLive quote/advisor not deployed on this host. Unit client-journeys still cover the money path.');
     return;
@@ -65,16 +72,36 @@ async function main() {
   console.log(`1) Payment options: ${tiers.map((t: any) => `${t.id} (${t.upfrontPct}% today)`).join(', ')}`);
 
   const plansRes = await getJson(`${base}/timeshares`);
-  const plans = (Array.isArray(plansRes.body) ? plansRes.body : plansRes.body?.plans || []).filter(
-    (p: any) => String(p.planStatus || 'Unsold').toLowerCase() === 'unsold'
-  );
+  const allPlans = Array.isArray(plansRes.body) ? plansRes.body : plansRes.body?.plans || [];
+  const plans = allPlans.filter((p: any) => {
+    const unsold = String(p.planStatus || 'Unsold').toLowerCase() === 'unsold';
+    const testId = /^T-(JEST|SP)/i.test(String(p.id || ''));
+    return unsold && !testId;
+  });
+  const booked = allPlans.filter((p: any) => {
+    const s = String(p.planStatus || '').toLowerCase();
+    return s === 'booked' || s === 'sold';
+  });
   assert(plans.length > 0, 'need at least one unsold plan');
   const plan = [...plans].sort((a: any, b: any) => Number(a.price) - Number(b.price))[0];
   console.log(`2) Cheapest unsold plan: ${plan.id} ${plan.name} @ ৳${Number(plan.price).toLocaleString()}`);
 
+  if (booked.length) {
+    const withOwner = booked.filter((p: any) => p.owner?.name);
+    console.log(`   Booked plans: ${booked.length} · with public owner: ${withOwner.length}`);
+    for (const p of withOwner) {
+      assert(!('nid' in p.owner), `${p.id} leaked nid`);
+      assert(!('contact' in p.owner), `${p.id} leaked contact`);
+      assert(!('email' in p.owner), `${p.id} leaked email`);
+      assert(!('address' in p.owner), `${p.id} leaked address`);
+    }
+  } else {
+    console.log('   No booked plans on this host yet (owner card not live-checked).');
+  }
+
   const quotes: Record<string, any> = {};
   for (const tier of tiers) {
-    const { status, body } = await getJson(`${base}/booking/quote`, {
+    const { status, ok, body } = await getJson(`${base}/booking/quote`, {
       method: 'POST',
       body: JSON.stringify({
         planId: plan.id,
@@ -84,7 +111,7 @@ async function main() {
         start: '2026-03-01T00:00:00.000Z'
       })
     });
-    assert(status === 200 && body?.ok, `quote ${tier.id} failed: ${JSON.stringify(body)}`);
+    assert(ok && body?.ok, `quote ${tier.id} failed (${status}): ${JSON.stringify(body)}`);
     quotes[tier.id] = body.quote;
     const q = body.quote;
     const later = (q.schedule || []).filter((s: any) => s.type !== 'deposit').reduce((s: number, i: any) => s + i.amount, 0);
@@ -105,7 +132,7 @@ async function main() {
   ];
 
   for (const p of personas) {
-    const { status, body } = await getJson(`${base}/advisor/suggest`, {
+    const { status, ok, body } = await getJson(`${base}/advisor/suggest`, {
       method: 'POST',
       body: JSON.stringify({
         availableNow: p.availableNow,
@@ -113,7 +140,7 @@ async function main() {
         horizonMonths: p.horizonMonths
       })
     });
-    assert(status === 200 && body?.ok, `advisor failed for ${p.name}: ${JSON.stringify(body)}`);
+    assert(ok && body?.ok, `advisor failed for ${p.name} (${status}): ${JSON.stringify(body)}`);
     const top = (body.suggestions || [])[0];
     console.log(`4) ${p.name}`);
     console.log(`   cash ৳${p.availableNow.toLocaleString()} / ৳${p.monthlyCapacity.toLocaleString()} a month`);

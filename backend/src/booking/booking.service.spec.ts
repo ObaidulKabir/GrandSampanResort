@@ -13,7 +13,9 @@ const sampleKyc = {
   permanentAddress: 'Permanent address',
   contact: '01700000000',
   email: 'buyer@example.com',
-  picUrl: '/uploads/media/pic.jpg',
+        picUrl: '/uploads/media/pic.jpg',
+  profession: 'Engineer',
+  city: 'Dhaka',
   nomineeName: 'Nominee',
   nomineeNid: '0987654321',
   nomineePicUrl: '/uploads/media/nominee.jpg'
@@ -170,6 +172,51 @@ describe('BookingService', () => {
     const summary = await svc.summary(res.booking.id);
     expect(summary?.booking?.status).toBe('confirmed');
     expect(summary?.booking?.kycVerified).toBe(true);
+    expect(summary?.client?.profession).toBe('Engineer');
+    expect(summary?.client?.city).toBe('Dhaka');
+
+    const ownerUpdate = await svc.updateKyc(
+      res.booking.id,
+      { profession: 'Doctor', city: 'Khulna', nid: 'SHOULD-NOT-STICK' },
+      { id: investorId, role: 'investor' }
+    );
+    expect(ownerUpdate.ok).toBe(true);
+    if (ownerUpdate.ok) {
+      expect(ownerUpdate.client.profession).toBe('Doctor');
+      expect(ownerUpdate.client.city).toBe('Khulna');
+      expect((ownerUpdate.client as any).nid).toBe(sampleKyc.nid);
+    }
+
+    const forbidden = await svc.updateKyc(
+      res.booking.id,
+      { profession: 'Spy' },
+      { id: unverifiedId, role: 'investor' }
+    );
+    expect(forbidden.ok).toBe(false);
+    if (!forbidden.ok) expect(forbidden.error).toBe('forbidden');
+
+    const adminUpdate = await svc.updateKyc(
+      res.booking.id,
+      { city: 'Sylhet', fatherName: 'Admin Father' },
+      { id: 'admin-user', role: 'admin' }
+    );
+    expect(adminUpdate.ok).toBe(true);
+    if (adminUpdate.ok) {
+      expect(adminUpdate.client.city).toBe('Sylhet');
+      expect(adminUpdate.client.fatherName).toBe('Admin Father');
+    }
+
+    const bookedPlan = await plans.get(planId);
+    expect((bookedPlan as any)?.owner).toEqual(
+      expect.objectContaining({
+        name: 'Test Buyer',
+        profession: 'Doctor',
+        city: 'Sylhet'
+      })
+    );
+    expect((bookedPlan as any)?.owner).not.toHaveProperty('nid');
+    expect((bookedPlan as any)?.owner).not.toHaveProperty('contact');
+    expect((bookedPlan as any)?.owner).not.toHaveProperty('email');
 
     await plans.update(planId, { planStatus: 'Unsold' } as any);
     const quarterly = await svc.book(

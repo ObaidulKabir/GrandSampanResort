@@ -1,14 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsDateString,
-  IsEmail,
-  IsIn,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  ValidateNested
-} from 'class-validator';
+import { IsDateString, IsEmail, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
 
 export class AvailabilityQueryDto {
   @IsNotEmpty()
@@ -48,6 +39,12 @@ export class BookingKycDto {
   @IsNotEmpty()
   @IsString()
   picUrl!: string;
+  @IsNotEmpty()
+  @IsString()
+  profession!: string;
+  @IsNotEmpty()
+  @IsString()
+  city!: string;
   @IsNotEmpty()
   @IsString()
   nomineeName!: string;
@@ -109,4 +106,51 @@ export class CreateBookingDto {
   @IsOptional()
   @IsString()
   quoteToken?: string;
+}
+
+/** Partial KYC update after booking (admin: all fields; owner: public catalog fields). */
+export class UpdateBookingKycDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+  @IsOptional()
+  @IsString()
+  fatherName?: string;
+  @IsOptional()
+  @IsString()
+  nid?: string;
+  @IsOptional()
+  @IsString()
+  dob?: string;
+  @IsOptional()
+  @IsString()
+  address?: string;
+  @IsOptional()
+  @IsString()
+  permanentAddress?: string;
+  @IsOptional()
+  @IsString()
+  contact?: string;
+  @IsOptional()
+  @ValidateIf((_, v) => String(v || '').trim().length > 0)
+  @IsEmail()
+  email?: string;
+  @IsOptional()
+  @IsString()
+  picUrl?: string;
+  @IsOptional()
+  @IsString()
+  profession?: string;
+  @IsOptional()
+  @IsString()
+  city?: string;
+  @IsOptional()
+  @IsString()
+  nomineeName?: string;
+  @IsOptional()
+  @IsString()
+  nomineeNid?: string;
+  @IsOptional()
+  @IsString()
+  nomineePicUrl?: string;
 }

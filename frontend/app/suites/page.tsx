@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import ImageLightbox from '@/components/ImageLightbox';
+import PlanOwner from '@/components/PlanOwner';
 import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
 
 type Suite = {
@@ -24,6 +25,7 @@ type SharePlan = {
   daysPerMonth?: number;
   price?: number;
   discountedPrice?: number;
+  owner?: { name: string; city?: string; profession?: string; picUrl?: string | null } | null;
 };
 
 function planStatusKey(p: SharePlan) {
@@ -50,8 +52,8 @@ function planTotal(p: SharePlan) {
 function planStatusMeta(p: SharePlan) {
   if (isSoldPlan(p)) {
     return {
-      label: 'Sold',
-      chip: 'border-ocean/20 bg-ocean/10 text-ocean/60'
+      label: 'Booked',
+      chip: 'border-ocean bg-ocean text-white'
     };
   }
   if (isReservedPlan(p)) {
@@ -281,6 +283,11 @@ export default function SuitesPage() {
                               {' '}
                               · {daysLabel(p.daysPerMonth)} · {formatMoney(planTotal(p))}
                             </span>
+                            {!available && p.owner && (
+                              <p className="mt-0.5 text-xs">
+                                <PlanOwner owner={p.owner} compact />
+                              </p>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <span
@@ -288,14 +295,21 @@ export default function SuitesPage() {
                             >
                               {status.label}
                             </span>
-                            {available && (
+                            {available ? (
                               <Link
                                 href={`/pricing/plans/${encodeURIComponent(p.id)}`}
                                 className="text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
                               >
                                 Buy
                               </Link>
-                            )}
+                            ) : isSoldPlan(p) ? (
+                              <Link
+                                href={`/pricing/plans/${encodeURIComponent(p.id)}`}
+                                className="text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
+                              >
+                                See who
+                              </Link>
+                            ) : null}
                           </div>
                         </li>
                       );

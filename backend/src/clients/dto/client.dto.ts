@@ -23,6 +23,12 @@ export class CreateClientDto {
   email!: string;
   @IsString()
   picUrl!: string;
+  @IsOptional()
+  @IsString()
+  profession?: string;
+  @IsOptional()
+  @IsString()
+  city?: string;
   @IsString()
   nomineeName!: string;
   @IsString()
@@ -59,6 +65,12 @@ export class UpdateClientDto {
   @IsOptional()
   @IsString()
   picUrl?: string;
+  @IsOptional()
+  @IsString()
+  profession?: string;
+  @IsOptional()
+  @IsString()
+  city?: string;
   @IsOptional()
   @IsString()
   nomineeName?: string;

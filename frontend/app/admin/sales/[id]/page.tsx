@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 import Button from '@/components/Button';
+import KycEditor from '@/components/KycEditor';
 
 type ScheduleItem = {
   id: string;
@@ -581,44 +582,19 @@ export default function AdminBookingDetailPage({ params }: { params: { id: strin
               {!client ? (
                 <p className="mt-4 text-sm text-ocean/65">No KYC submitted for this booking.</p>
               ) : (
-                <div className="mt-4 space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    {client.picUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={resolveMediaUrl(client.picUrl)}
-                        alt="Buyer photograph"
-                        className="h-24 w-24 border border-ocean/15 object-cover"
-                      />
-                    )}
-                    {client.nomineePicUrl && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={resolveMediaUrl(client.nomineePicUrl)}
-                        alt="Nominee photograph"
-                        className="h-24 w-24 border border-ocean/15 object-cover"
-                      />
-                    )}
-                  </div>
-                  <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                    {[
-                      ['Name', client.name],
-                      ['Father / husband', client.fatherName],
-                      ['NID', client.nid],
-                      ['Date of birth', client.dob],
-                      ['Contact', client.contact],
-                      ['Email', client.email],
-                      ['Present address', client.address],
-                      ['Permanent address', client.permanentAddress],
-                      ['Nominee', client.nomineeName],
-                      ['Nominee NID', client.nomineeNid]
-                    ].map(([label, value]) => (
-                      <div key={label} className="border-b border-ocean/10 pb-2">
-                        <dt className="text-xs uppercase tracking-wide text-ocean/55">{label}</dt>
-                        <dd className="mt-0.5 text-ocean">{value || '—'}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                <div className="mt-4">
+                  <p className="mb-3 text-sm text-ocean/70">
+                    Add or correct identity details here — including profession and city, which appear on
+                    booked catalog cards. NID and address stay private.
+                  </p>
+                  <KycEditor
+                    bookingId={bookingId}
+                    client={client}
+                    variant="admin"
+                    onSaved={(next) =>
+                      setSummary((prev: any) => (prev ? { ...prev, client: next } : prev))
+                    }
+                  />
                 </div>
               )}
             </div>

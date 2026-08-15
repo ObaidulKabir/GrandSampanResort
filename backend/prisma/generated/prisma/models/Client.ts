@@ -35,6 +35,8 @@ export type ClientMinAggregateOutputType = {
   contact: string | null
   email: string | null
   picUrl: string | null
+  profession: string | null
+  city: string | null
   nomineeName: string | null
   nomineeNid: string | null
   nomineePicUrl: string | null
@@ -51,6 +53,8 @@ export type ClientMaxAggregateOutputType = {
   contact: string | null
   email: string | null
   picUrl: string | null
+  profession: string | null
+  city: string | null
   nomineeName: string | null
   nomineeNid: string | null
   nomineePicUrl: string | null
@@ -67,6 +71,8 @@ export type ClientCountAggregateOutputType = {
   contact: number
   email: number
   picUrl: number
+  profession: number
+  city: number
   nomineeName: number
   nomineeNid: number
   nomineePicUrl: number
@@ -85,6 +91,8 @@ export type ClientMinAggregateInputType = {
   contact?: true
   email?: true
   picUrl?: true
+  profession?: true
+  city?: true
   nomineeName?: true
   nomineeNid?: true
   nomineePicUrl?: true
@@ -101,6 +109,8 @@ export type ClientMaxAggregateInputType = {
   contact?: true
   email?: true
   picUrl?: true
+  profession?: true
+  city?: true
   nomineeName?: true
   nomineeNid?: true
   nomineePicUrl?: true
@@ -117,6 +127,8 @@ export type ClientCountAggregateInputType = {
   contact?: true
   email?: true
   picUrl?: true
+  profession?: true
+  city?: true
   nomineeName?: true
   nomineeNid?: true
   nomineePicUrl?: true
@@ -206,6 +218,8 @@ export type ClientGroupByOutputType = {
   contact: string
   email: string
   picUrl: string
+  profession: string
+  city: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -243,6 +257,8 @@ export type ClientWhereInput = {
   contact?: Prisma.StringFilter<"Client"> | string
   email?: Prisma.StringFilter<"Client"> | string
   picUrl?: Prisma.StringFilter<"Client"> | string
+  profession?: Prisma.StringFilter<"Client"> | string
+  city?: Prisma.StringFilter<"Client"> | string
   nomineeName?: Prisma.StringFilter<"Client"> | string
   nomineeNid?: Prisma.StringFilter<"Client"> | string
   nomineePicUrl?: Prisma.StringFilter<"Client"> | string
@@ -260,6 +276,8 @@ export type ClientOrderByWithRelationInput = {
   contact?: Prisma.SortOrder
   email?: Prisma.SortOrder
   picUrl?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  city?: Prisma.SortOrder
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
@@ -280,6 +298,8 @@ export type ClientWhereUniqueInput = Prisma.AtLeast<{
   contact?: Prisma.StringFilter<"Client"> | string
   email?: Prisma.StringFilter<"Client"> | string
   picUrl?: Prisma.StringFilter<"Client"> | string
+  profession?: Prisma.StringFilter<"Client"> | string
+  city?: Prisma.StringFilter<"Client"> | string
   nomineeName?: Prisma.StringFilter<"Client"> | string
   nomineeNid?: Prisma.StringFilter<"Client"> | string
   nomineePicUrl?: Prisma.StringFilter<"Client"> | string
@@ -297,6 +317,8 @@ export type ClientOrderByWithAggregationInput = {
   contact?: Prisma.SortOrder
   email?: Prisma.SortOrder
   picUrl?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  city?: Prisma.SortOrder
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
@@ -319,6 +341,8 @@ export type ClientScalarWhereWithAggregatesInput = {
   contact?: Prisma.StringWithAggregatesFilter<"Client"> | string
   email?: Prisma.StringWithAggregatesFilter<"Client"> | string
   picUrl?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  profession?: Prisma.StringWithAggregatesFilter<"Client"> | string
+  city?: Prisma.StringWithAggregatesFilter<"Client"> | string
   nomineeName?: Prisma.StringWithAggregatesFilter<"Client"> | string
   nomineeNid?: Prisma.StringWithAggregatesFilter<"Client"> | string
   nomineePicUrl?: Prisma.StringWithAggregatesFilter<"Client"> | string
@@ -335,6 +359,8 @@ export type ClientCreateInput = {
   contact: string
   email: string
   picUrl: string
+  profession?: string
+  city?: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -352,6 +378,8 @@ export type ClientUncheckedCreateInput = {
   contact: string
   email: string
   picUrl: string
+  profession?: string
+  city?: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -369,6 +397,8 @@ export type ClientUpdateInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -386,6 +416,8 @@ export type ClientUncheckedUpdateInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -403,6 +435,8 @@ export type ClientCreateManyInput = {
   contact: string
   email: string
   picUrl: string
+  profession?: string
+  city?: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -419,6 +453,8 @@ export type ClientUpdateManyMutationInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -435,6 +471,8 @@ export type ClientUncheckedUpdateManyInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -456,6 +494,8 @@ export type ClientCountOrderByAggregateInput = {
   contact?: Prisma.SortOrder
   email?: Prisma.SortOrder
   picUrl?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  city?: Prisma.SortOrder
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
@@ -472,6 +512,8 @@ export type ClientMaxOrderByAggregateInput = {
   contact?: Prisma.SortOrder
   email?: Prisma.SortOrder
   picUrl?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  city?: Prisma.SortOrder
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
@@ -488,6 +530,8 @@ export type ClientMinOrderByAggregateInput = {
   contact?: Prisma.SortOrder
   email?: Prisma.SortOrder
   picUrl?: Prisma.SortOrder
+  profession?: Prisma.SortOrder
+  city?: Prisma.SortOrder
   nomineeName?: Prisma.SortOrder
   nomineeNid?: Prisma.SortOrder
   nomineePicUrl?: Prisma.SortOrder
@@ -520,6 +564,8 @@ export type ClientCreateWithoutBookingsInput = {
   contact: string
   email: string
   picUrl: string
+  profession?: string
+  city?: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -536,6 +582,8 @@ export type ClientUncheckedCreateWithoutBookingsInput = {
   contact: string
   email: string
   picUrl: string
+  profession?: string
+  city?: string
   nomineeName: string
   nomineeNid: string
   nomineePicUrl: string
@@ -568,6 +616,8 @@ export type ClientUpdateWithoutBookingsInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -584,6 +634,8 @@ export type ClientUncheckedUpdateWithoutBookingsInput = {
   contact?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   picUrl?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeName?: Prisma.StringFieldUpdateOperationsInput | string
   nomineeNid?: Prisma.StringFieldUpdateOperationsInput | string
   nomineePicUrl?: Prisma.StringFieldUpdateOperationsInput | string
@@ -631,6 +683,8 @@ export type ClientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   contact?: boolean
   email?: boolean
   picUrl?: boolean
+  profession?: boolean
+  city?: boolean
   nomineeName?: boolean
   nomineeNid?: boolean
   nomineePicUrl?: boolean
@@ -649,6 +703,8 @@ export type ClientSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   contact?: boolean
   email?: boolean
   picUrl?: boolean
+  profession?: boolean
+  city?: boolean
   nomineeName?: boolean
   nomineeNid?: boolean
   nomineePicUrl?: boolean
@@ -665,6 +721,8 @@ export type ClientSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   contact?: boolean
   email?: boolean
   picUrl?: boolean
+  profession?: boolean
+  city?: boolean
   nomineeName?: boolean
   nomineeNid?: boolean
   nomineePicUrl?: boolean
@@ -681,12 +739,14 @@ export type ClientSelectScalar = {
   contact?: boolean
   email?: boolean
   picUrl?: boolean
+  profession?: boolean
+  city?: boolean
   nomineeName?: boolean
   nomineeNid?: boolean
   nomineePicUrl?: boolean
 }
 
-export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "fatherName" | "nid" | "dob" | "address" | "permanentAddress" | "contact" | "email" | "picUrl" | "nomineeName" | "nomineeNid" | "nomineePicUrl", ExtArgs["result"]["client"]>
+export type ClientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "fatherName" | "nid" | "dob" | "address" | "permanentAddress" | "contact" | "email" | "picUrl" | "profession" | "city" | "nomineeName" | "nomineeNid" | "nomineePicUrl", ExtArgs["result"]["client"]>
 export type ClientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   bookings?: boolean | Prisma.Client$bookingsArgs<ExtArgs>
   _count?: boolean | Prisma.ClientCountOutputTypeDefaultArgs<ExtArgs>
@@ -710,6 +770,8 @@ export type $ClientPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     contact: string
     email: string
     picUrl: string
+    profession: string
+    city: string
     nomineeName: string
     nomineeNid: string
     nomineePicUrl: string
@@ -1147,6 +1209,8 @@ export interface ClientFieldRefs {
   readonly contact: Prisma.FieldRef<"Client", 'String'>
   readonly email: Prisma.FieldRef<"Client", 'String'>
   readonly picUrl: Prisma.FieldRef<"Client", 'String'>
+  readonly profession: Prisma.FieldRef<"Client", 'String'>
+  readonly city: Prisma.FieldRef<"Client", 'String'>
   readonly nomineeName: Prisma.FieldRef<"Client", 'String'>
   readonly nomineeNid: Prisma.FieldRef<"Client", 'String'>
   readonly nomineePicUrl: Prisma.FieldRef<"Client", 'String'>

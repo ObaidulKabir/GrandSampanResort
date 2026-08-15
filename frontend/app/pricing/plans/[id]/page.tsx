@@ -10,6 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
+import PlanOwner from '@/components/PlanOwner';
 import SuitePlans from '@/components/SuitePlans';
 import {
   captureReferralFromSearch,
@@ -34,6 +35,7 @@ type Plan = {
   discountedPrice?: number;
   promoName?: string;
   promoEndsAt?: string;
+  owner?: { name: string; city?: string; profession?: string; picUrl?: string | null } | null;
 };
 type Suite = { id: string; type: string; view: string; floor: number; size: number };
 type Rule = { start: string; end: string; price: number };
@@ -48,6 +50,8 @@ type KycForm = {
   contact: string;
   email: string;
   picUrl: string;
+  profession: string;
+  city: string;
   nomineeName: string;
   nomineeNid: string;
   nomineePicUrl: string;
@@ -63,6 +67,8 @@ const emptyKyc = (): KycForm => ({
   contact: '',
   email: '',
   picUrl: '',
+  profession: '',
+  city: '',
   nomineeName: '',
   nomineeNid: '',
   nomineePicUrl: ''
@@ -78,6 +84,8 @@ const KYC_FIELD_LABELS: Record<keyof KycForm, string> = {
   contact: 'Contact number',
   email: 'Email',
   picUrl: 'Buyer photograph',
+  profession: 'Profession',
+  city: 'City / district',
   nomineeName: 'Nominee name',
   nomineeNid: 'Nominee NID',
   nomineePicUrl: 'Nominee photograph'
@@ -398,22 +406,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           if (p.suiteId) {
             const sRes = await api(`/suites/${p.suiteId}`);
             setSuite(sRes?.suite || sRes || null);
-            const available = allPlans
-              .filter(
-                (x: Plan) =>
-                  x.suiteId === p.suiteId &&
-                  (x.planStatus || 'Unsold').toLowerCase() === 'unsold'
-              )
+            const onSuite = allPlans
+              .filter((x: Plan) => x.suiteId === p.suiteId)
               .sort(
                 (a: Plan, b: Plan) =>
                   Number(a.daysPerMonth || 0) - Number(b.daysPerMonth || 0) ||
                   String(a.id).localeCompare(String(b.id), undefined, { numeric: true })
               );
-            // Keep the current selection visible even if status just flipped.
-            if (!available.some((x: Plan) => x.id === p.id)) {
-              available.unshift(p);
+            if (!onSuite.some((x: Plan) => x.id === p.id)) {
+              onSuite.unshift(p);
             }
-            setUnitPlans(available);
+            setUnitPlans(onSuite);
           } else {
             setUnitPlans([p]);
           }
@@ -568,6 +571,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             contact: kyc.contact.trim(),
             email: kyc.email.trim(),
             picUrl: kyc.picUrl.trim(),
+            profession: kyc.profession.trim(),
+            city: kyc.city.trim(),
             nomineeName: kyc.nomineeName.trim(),
             nomineeNid: kyc.nomineeNid.trim(),
             nomineePicUrl: kyc.nomineePicUrl.trim()
@@ -666,6 +671,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const scheduleIsCustom = paymentTierId !== 'full' && (installmentMonths !== defaultTenor || cadence !== 'monthly');
 
   const available = (plan?.planStatus || 'Unsold').toLowerCase() === 'unsold';
+  const reserved = (plan?.planStatus || '').toLowerCase() === 'reserved';
+  const booked = !available && !reserved;
 
   if (confirmation) {
     return (
@@ -740,16 +747,38 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 onChange={(e) => selectUnitPlan(e.target.value)}
                 className="field mt-1"
               >
-                {unitPlans.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name || 'Share'} · {option.daysPerMonth} days/mo
-                  </option>
-                ))}
+                {unitPlans.map((option) => {
+                  const st = String(option.planStatus || 'Unsold').toLowerCase();
+                  const tag =
+                    st === 'unsold' ? 'Available' : st === 'reserved' ? 'Reserved' : 'Booked';
+                  const who = option.owner?.name ? ` · ${option.owner.name}` : '';
+                  return (
+                    <option key={option.id} value={option.id}>
+                      {option.name || 'Share'} · {option.daysPerMonth} days/mo · {tag}
+                      {who}
+                    </option>
+                  );
+                })}
               </select>
             </label>
           )}
           {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
           {status && <div className="mt-4 rounded-md border border-ocean/15 bg-ocean/5 p-3 text-ocean">{status}</div>}
+
+          {booked && (
+            <div className="mt-6 border border-ocean/15 bg-pearl px-4 py-4">
+              {plan?.owner ? (
+                <PlanOwner owner={plan.owner} statusLabel="Booked by" />
+              ) : (
+                <p className="text-sm text-ocean/75">This share has already been booked.</p>
+              )}
+            </div>
+          )}
+          {reserved && (
+            <div className="mt-6 border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ocean">
+              This share is reserved while a booking is being completed.
+            </div>
+          )}
 
           {discounted && (
             <div className="mt-4 border border-gold bg-gold/10 px-4 py-3 text-ocean">
@@ -760,8 +789,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
           <section className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="border border-ocean/15 bg-white p-4">
-              <div className="text-xs font-semibold uppercase tracking-wide text-ocean/60">Total price</div>
-              {discounted ? (
+              <div className="text-xs font-semibold uppercase tracking-wide text-ocean/60">
+                {available ? 'Total price' : 'Sold at'}
+              </div>
+              {discounted && available ? (
                 <>
                   <div className="text-sm text-ocean/50 line-through">{formatMoney(plan?.price || 0)}</div>
                   <div className="font-display text-2xl font-semibold text-ocean">{formatMoney(effectivePrice)}</div>
@@ -772,13 +803,23 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 </div>
               )}
             </div>
-            <div className="border border-gold/50 bg-gold/10 p-4 sm:col-span-1">
-              <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today</div>
-              <div className="font-display mt-1 text-3xl font-bold text-ocean">{formatMoney(depositPreview)}</div>
-              <p className="mt-1 text-[11px] font-medium text-ocean/65">
-                {quote?.upfrontPct ?? 10}% with the option selected on the right
-              </p>
-            </div>
+            {available ? (
+              <div className="border border-gold/50 bg-gold/10 p-4 sm:col-span-1">
+                <div className="text-xs font-bold uppercase tracking-wide text-ocean/70">Due today</div>
+                <div className="font-display mt-1 text-3xl font-bold text-ocean">{formatMoney(depositPreview)}</div>
+                <p className="mt-1 text-[11px] font-medium text-ocean/65">
+                  {quote?.upfrontPct ?? 10}% with the option selected on the right
+                </p>
+              </div>
+            ) : (
+              <div className="border border-ocean/20 bg-ocean p-4 text-white">
+                <div className="text-xs font-bold uppercase tracking-wide text-white/70">Status</div>
+                <div className="font-display mt-1 text-3xl font-bold">{booked ? 'Booked' : 'Reserved'}</div>
+                <p className="mt-1 text-[11px] font-medium text-white/75">
+                  {booked ? 'This share is no longer for sale' : 'Held while a booking completes'}
+                </p>
+              </div>
+            )}
             {[
               ['Entitlement', `${plan?.daysPerMonth || 0} days/mo`],
               ['Suite', suite?.id || plan?.suiteId || '—']
@@ -810,6 +851,68 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         </div>
 
         <aside className="border border-gold/40 bg-white p-6 lg:sticky lg:top-24 lg:self-start">
+          {!available ? (
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wide text-gold">
+                {booked ? 'Already booked' : 'Reserved'}
+              </p>
+              <h2 className="font-display mt-1 text-2xl text-ocean">
+                {booked ? 'This share is taken' : 'Booking in progress'}
+              </h2>
+              <div className="mt-4 border border-ocean/10 bg-pearl px-3 py-3">
+                {booked && plan?.owner ? (
+                  <PlanOwner owner={plan.owner} statusLabel="Booked by" />
+                ) : booked ? (
+                  <p className="text-sm text-ocean/75">This share has already been booked.</p>
+                ) : (
+                  <p className="text-sm text-ocean/75">
+                    Held while another buyer completes payment and identity checks.
+                  </p>
+                )}
+              </div>
+              {booked && (
+                <p className="mt-3 text-sm text-ocean/65">Sold at {formatMoney(plan?.price || 0)}</p>
+              )}
+              {unitPlans.some(
+                (x) => x.id !== planId && String(x.planStatus || 'Unsold').toLowerCase() === 'unsold'
+              ) ? (
+                <div className="mt-5">
+                  <p className="text-sm font-semibold text-ocean">Other shares still available on this suite</p>
+                  <ul className="mt-2 space-y-2">
+                    {unitPlans
+                      .filter(
+                        (x) =>
+                          x.id !== planId &&
+                          String(x.planStatus || 'Unsold').toLowerCase() === 'unsold'
+                      )
+                      .map((x) => (
+                        <li key={x.id}>
+                          <Link
+                            href={`/pricing/plans/${x.id}`}
+                            className="block border border-ocean/15 px-3 py-2 text-sm text-ocean hover:border-gold/50"
+                          >
+                            <span className="font-semibold">{x.name || 'Share'}</span>
+                            <span className="text-ocean/65">
+                              {' '}
+                              · {x.daysPerMonth} days/mo · {formatMoney(x.price || 0)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ) : (
+                <Link href="/invest" className="mt-5 inline-block">
+                  <Button>Browse available shares</Button>
+                </Link>
+              )}
+              <p className="mt-4 text-xs text-ocean/55">
+                Name, profession, and city are shown so you can see who already invested. NID, phone, and
+                address stay private.
+              </p>
+            </div>
+          ) : (
+            <>
           <h2 className="font-display text-2xl text-ocean">Reserve this suite</h2>
           <p className="mt-2 text-sm text-ocean/75">
             Pick how much to pay today, add your details, then send deposit proof. We confirm the booking
@@ -947,19 +1050,100 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <div id="booking-kyc" className="mt-6 border-t border-ocean/10 pt-5">
             <p className="text-sm font-semibold text-ocean">2. Your details</p>
             <p className="mt-1 text-xs text-ocean/65">
-              We need identity details for the person this plan is booked for. Every field and both
-              photographs are required.
+              Fill this for the person the share is booked for. After booking, other buyers see your
+              photo, name, profession, and city — so they can tell who already invested. NID, phone,
+              and full address stay private.
             </p>
-            <div className="mt-3 grid gap-3">
-              <label className="block text-sm text-ocean">
-                Full name
-                <input
-                  value={kyc.name}
-                  onChange={(e) => updateKyc('name', e.target.value)}
-                  className="field mt-1"
-                  autoComplete="name"
-                />
-              </label>
+
+            <div className="mt-4 border border-ocean/10 bg-pearl px-3 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-ocean/55">
+                Shown on this plan after booking
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[5.5rem_1fr]">
+                <label className="block text-sm text-ocean">
+                  <span className="sr-only">Photograph</span>
+                  <div className="relative">
+                    {kyc.picUrl || picPreview.pic ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={kyc.picUrl ? resolveMediaUrl(kyc.picUrl) : picPreview.pic!}
+                        alt="Your photograph"
+                        className="h-20 w-20 border border-ocean/15 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center border border-dashed border-ocean/25 bg-white text-center text-[10px] leading-tight text-ocean/50">
+                        Photo
+                        <br />
+                        required
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
+                      className="mt-2 block w-full text-[10px] text-ocean/80"
+                      disabled={!!uploadingPic}
+                      onChange={(e) => {
+                        const selected = e.target.files?.[0] || null;
+                        void uploadKycPhoto('pic', selected);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                  {uploadingPic === 'pic' && (
+                    <span className="mt-1 block text-xs font-medium text-ocean/70">Uploading…</span>
+                  )}
+                  {picError.pic && <span className="mt-1 block text-xs text-red-700">{picError.pic}</span>}
+                </label>
+                <div className="grid gap-3">
+                  <label className="block text-sm text-ocean">
+                    Full name
+                    <input
+                      value={kyc.name}
+                      onChange={(e) => updateKyc('name', e.target.value)}
+                      className="field mt-1"
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label className="block text-sm text-ocean">
+                    Profession
+                    <input
+                      value={kyc.profession}
+                      onChange={(e) => updateKyc('profession', e.target.value)}
+                      className="field mt-1"
+                      placeholder="e.g. Businessman, Doctor, Teacher"
+                    />
+                  </label>
+                  <label className="block text-sm text-ocean">
+                    City / district
+                    <input
+                      value={kyc.city}
+                      onChange={(e) => updateKyc('city', e.target.value)}
+                      className="field mt-1"
+                      placeholder="e.g. Dhaka, Chattogram"
+                    />
+                  </label>
+                </div>
+              </div>
+              {(kyc.name.trim() || kyc.profession.trim() || kyc.city.trim()) && (
+                <div className="mt-3 border-t border-ocean/10 pt-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-ocean/50">Preview</p>
+                  <PlanOwner
+                    owner={{
+                      name: kyc.name.trim() || 'Your name',
+                      profession: kyc.profession.trim(),
+                      city: kyc.city.trim(),
+                      picUrl: kyc.picUrl || picPreview.pic || null
+                    }}
+                    statusLabel="Booked by"
+                  />
+                </div>
+              )}
+            </div>
+
+            <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-ocean/55">
+              Private — only our team sees this
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className="block text-sm text-ocean">
                 Father / husband name
                 <input
@@ -986,24 +1170,6 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 />
               </label>
               <label className="block text-sm text-ocean">
-                Present address
-                <textarea
-                  value={kyc.address}
-                  onChange={(e) => updateKyc('address', e.target.value)}
-                  className="field mt-1 min-h-[4.5rem]"
-                  rows={2}
-                />
-              </label>
-              <label className="block text-sm text-ocean">
-                Permanent address
-                <textarea
-                  value={kyc.permanentAddress}
-                  onChange={(e) => updateKyc('permanentAddress', e.target.value)}
-                  className="field mt-1 min-h-[4.5rem]"
-                  rows={2}
-                />
-              </label>
-              <label className="block text-sm text-ocean">
                 Contact number
                 <input
                   value={kyc.contact}
@@ -1012,7 +1178,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   autoComplete="tel"
                 />
               </label>
-              <label className="block text-sm text-ocean">
+              <label className="block text-sm text-ocean sm:col-span-2">
                 Email
                 <input
                   type="email"
@@ -1022,39 +1188,23 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   autoComplete="email"
                 />
               </label>
-              <label className="block text-sm text-ocean">
-                Photograph <span className="text-ocean/50">(required)</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
-                  className="mt-1 block w-full text-xs text-ocean/80"
-                  disabled={!!uploadingPic}
-                  onChange={(e) => {
-                    const selected = e.target.files?.[0] || null;
-                    void uploadKycPhoto('pic', selected);
-                    e.target.value = '';
-                  }}
+              <label className="block text-sm text-ocean sm:col-span-2">
+                Present address
+                <textarea
+                  value={kyc.address}
+                  onChange={(e) => updateKyc('address', e.target.value)}
+                  className="field mt-1 min-h-[4.5rem]"
+                  rows={2}
                 />
-                {uploadingPic === 'pic' && (
-                  <span className="mt-1 block text-xs font-medium text-ocean/70">Uploading photo…</span>
-                )}
-                {picError.pic && <span className="mt-1 block text-xs text-red-700">{picError.pic}</span>}
-                {(kyc.picUrl || picPreview.pic) && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={kyc.picUrl ? resolveMediaUrl(kyc.picUrl) : picPreview.pic!}
-                    alt="Buyer photograph"
-                    className="mt-2 h-20 w-20 object-cover border border-ocean/15"
-                  />
-                )}
-                {kyc.picUrl ? (
-                  <span className="mt-1 block text-xs text-ocean/60">Uploaded</span>
-                ) : (
-                  !uploadingPic &&
-                  !picError.pic && (
-                    <span className="mt-1 block text-xs text-gold">Choose a photo — it uploads automatically</span>
-                  )
-                )}
+              </label>
+              <label className="block text-sm text-ocean sm:col-span-2">
+                Permanent address
+                <textarea
+                  value={kyc.permanentAddress}
+                  onChange={(e) => updateKyc('permanentAddress', e.target.value)}
+                  className="field mt-1 min-h-[4.5rem]"
+                  rows={2}
+                />
               </label>
               <label className="block text-sm text-ocean">
                 Nominee name
@@ -1072,8 +1222,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   className="field mt-1"
                 />
               </label>
-              <label className="block text-sm text-ocean">
-                Nominee photograph <span className="text-ocean/50">(required)</span>
+              <label className="block text-sm text-ocean sm:col-span-2">
+                Nominee photograph <span className="text-ocean/50">(required, stays private)</span>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
@@ -1094,7 +1244,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   <img
                     src={kyc.nomineePicUrl ? resolveMediaUrl(kyc.nomineePicUrl) : picPreview.nominee!}
                     alt="Nominee photograph"
-                    className="mt-2 h-20 w-20 object-cover border border-ocean/15"
+                    className="mt-2 h-20 w-20 border border-ocean/15 object-cover"
                   />
                 )}
                 {kyc.nomineePicUrl ? (
@@ -1312,6 +1462,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               Contact sales
             </a>
           </div>
+            </>
+          )}
         </aside>
       </div>
 

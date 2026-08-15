@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { TimesharesRepository } from "./timeshares.repository";
 import { SharePlan } from "../domain/models";
 import { prisma } from "../../prisma/client";
+import { toPublicOwner } from "../clients/public-owner";
 
 @Injectable()
 export class TimesharesService {
@@ -10,7 +11,7 @@ export class TimesharesService {
   async list() {
     if (this.prisma) {
       const items = await this.prisma.sharePlan.findMany();
-      return items.map((p) => this.withFraction(p as any));
+      return this.attachOwners(items.map((p) => this.withFraction(p as any)));
     }
     return this.repo
       .findAll()
@@ -21,7 +22,7 @@ export class TimesharesService {
       const items = await this.prisma.sharePlan.findMany({
         where: { suiteId },
       });
-      return items.map((p) => this.withFraction(p as any));
+      return this.attachOwners(items.map((p) => this.withFraction(p as any)));
     }
     return this.repo
       .findBySuiteId(suiteId)
@@ -30,7 +31,9 @@ export class TimesharesService {
   async get(id: string) {
     if (this.prisma) {
       const p = await this.prisma.sharePlan.findUnique({ where: { id } });
-      return p ? this.withFraction(p as any) : null;
+      if (!p) return null;
+      const [withOwner] = await this.attachOwners([this.withFraction(p as any)]);
+      return withOwner;
     }
     return this.repo
       .findById(id)
@@ -238,5 +241,31 @@ export class TimesharesService {
         ? 1
         : Math.round(((p.daysPerMonth ?? 0) / 30) * 1000) / 1000);
     return { ...p, timeFraction: frac };
+  }
+
+  private async attachOwners(plans: SharePlan[]): Promise<SharePlan[]> {
+    if (!this.prisma || !plans.length) return plans;
+    const bookedIds = plans
+      .filter((p) => {
+        const s = String(p.planStatus || '').toLowerCase();
+        return s === 'booked' || s === 'sold';
+      })
+      .map((p) => p.id);
+    if (!bookedIds.length) return plans.map((p) => ({ ...p, owner: p.owner ?? null }));
+    const rows = await this.prisma.booking.findMany({
+      where: {
+        planId: { in: bookedIds },
+        status: { notIn: ['cancelled'] },
+        clientId: { not: null }
+      },
+      include: { client: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    const ownerByPlan = new Map<string, ReturnType<typeof toPublicOwner>>();
+    for (const row of rows) {
+      if (!row.planId || ownerByPlan.has(row.planId)) continue;
+      ownerByPlan.set(row.planId, toPublicOwner(row.client));
+    }
+    return plans.map((p) => ({ ...p, owner: ownerByPlan.get(p.id) || null }));
   }
 }

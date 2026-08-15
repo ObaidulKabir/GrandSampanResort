@@ -20,8 +20,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  referralIncentivePct: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  referralIncentivePct: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -38,6 +48,7 @@ export type UserMinAggregateOutputType = {
   role: string | null
   referralCode: string | null
   referredById: string | null
+  referralIncentivePct: number | null
   createdAt: Date | null
 }
 
@@ -55,6 +66,7 @@ export type UserMaxAggregateOutputType = {
   role: string | null
   referralCode: string | null
   referredById: string | null
+  referralIncentivePct: number | null
   createdAt: Date | null
 }
 
@@ -72,10 +84,19 @@ export type UserCountAggregateOutputType = {
   role: number
   referralCode: number
   referredById: number
+  referralIncentivePct: number
   createdAt: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  referralIncentivePct?: true
+}
+
+export type UserSumAggregateInputType = {
+  referralIncentivePct?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -91,6 +112,7 @@ export type UserMinAggregateInputType = {
   role?: true
   referralCode?: true
   referredById?: true
+  referralIncentivePct?: true
   createdAt?: true
 }
 
@@ -108,6 +130,7 @@ export type UserMaxAggregateInputType = {
   role?: true
   referralCode?: true
   referredById?: true
+  referralIncentivePct?: true
   createdAt?: true
 }
 
@@ -125,6 +148,7 @@ export type UserCountAggregateInputType = {
   role?: true
   referralCode?: true
   referredById?: true
+  referralIncentivePct?: true
   createdAt?: true
   _all?: true
 }
@@ -167,6 +191,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -197,6 +233,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -215,8 +253,11 @@ export type UserGroupByOutputType = {
   role: string
   referralCode: string | null
   referredById: string | null
+  referralIncentivePct: number | null
   createdAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -253,6 +294,7 @@ export type UserWhereInput = {
   role?: Prisma.StringFilter<"User"> | string
   referralCode?: Prisma.StringNullableFilter<"User"> | string | null
   referredById?: Prisma.StringNullableFilter<"User"> | string | null
+  referralIncentivePct?: Prisma.FloatNullableFilter<"User"> | number | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   referralRewards?: Prisma.ReferralRewardListRelationFilter
 }
@@ -271,6 +313,7 @@ export type UserOrderByWithRelationInput = {
   role?: Prisma.SortOrder
   referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
   referredById?: Prisma.SortOrderInput | Prisma.SortOrder
+  referralIncentivePct?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   referralRewards?: Prisma.ReferralRewardOrderByRelationAggregateInput
 }
@@ -292,6 +335,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   passwordResetExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   role?: Prisma.StringFilter<"User"> | string
   referredById?: Prisma.StringNullableFilter<"User"> | string | null
+  referralIncentivePct?: Prisma.FloatNullableFilter<"User"> | number | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   referralRewards?: Prisma.ReferralRewardListRelationFilter
 }, "id" | "email" | "referralCode">
@@ -310,10 +354,13 @@ export type UserOrderByWithAggregationInput = {
   role?: Prisma.SortOrder
   referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
   referredById?: Prisma.SortOrderInput | Prisma.SortOrder
+  referralIncentivePct?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -333,6 +380,7 @@ export type UserScalarWhereWithAggregatesInput = {
   role?: Prisma.StringWithAggregatesFilter<"User"> | string
   referralCode?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   referredById?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  referralIncentivePct?: Prisma.FloatNullableWithAggregatesFilter<"User"> | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
 }
 
@@ -350,6 +398,7 @@ export type UserCreateInput = {
   role?: string
   referralCode?: string | null
   referredById?: string | null
+  referralIncentivePct?: number | null
   createdAt?: Date | string
   referralRewards?: Prisma.ReferralRewardCreateNestedManyWithoutReferrerInput
 }
@@ -368,6 +417,7 @@ export type UserUncheckedCreateInput = {
   role?: string
   referralCode?: string | null
   referredById?: string | null
+  referralIncentivePct?: number | null
   createdAt?: Date | string
   referralRewards?: Prisma.ReferralRewardUncheckedCreateNestedManyWithoutReferrerInput
 }
@@ -386,6 +436,7 @@ export type UserUpdateInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralRewards?: Prisma.ReferralRewardUpdateManyWithoutReferrerNestedInput
 }
@@ -404,6 +455,7 @@ export type UserUncheckedUpdateInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralRewards?: Prisma.ReferralRewardUncheckedUpdateManyWithoutReferrerNestedInput
 }
@@ -422,6 +474,7 @@ export type UserCreateManyInput = {
   role?: string
   referralCode?: string | null
   referredById?: string | null
+  referralIncentivePct?: number | null
   createdAt?: Date | string
 }
 
@@ -439,6 +492,7 @@ export type UserUpdateManyMutationInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -456,6 +510,7 @@ export type UserUncheckedUpdateManyInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -473,7 +528,12 @@ export type UserCountOrderByAggregateInput = {
   role?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredById?: Prisma.SortOrder
+  referralIncentivePct?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  referralIncentivePct?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -490,6 +550,7 @@ export type UserMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredById?: Prisma.SortOrder
+  referralIncentivePct?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -507,7 +568,12 @@ export type UserMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredById?: Prisma.SortOrder
+  referralIncentivePct?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  referralIncentivePct?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -543,6 +609,7 @@ export type UserCreateWithoutReferralRewardsInput = {
   role?: string
   referralCode?: string | null
   referredById?: string | null
+  referralIncentivePct?: number | null
   createdAt?: Date | string
 }
 
@@ -560,6 +627,7 @@ export type UserUncheckedCreateWithoutReferralRewardsInput = {
   role?: string
   referralCode?: string | null
   referredById?: string | null
+  referralIncentivePct?: number | null
   createdAt?: Date | string
 }
 
@@ -593,6 +661,7 @@ export type UserUpdateWithoutReferralRewardsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -610,6 +679,7 @@ export type UserUncheckedUpdateWithoutReferralRewardsInput = {
   role?: Prisma.StringFieldUpdateOperationsInput | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  referralIncentivePct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -658,6 +728,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   role?: boolean
   referralCode?: boolean
   referredById?: boolean
+  referralIncentivePct?: boolean
   createdAt?: boolean
   referralRewards?: boolean | Prisma.User$referralRewardsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -677,6 +748,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   referralCode?: boolean
   referredById?: boolean
+  referralIncentivePct?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
 
@@ -694,6 +766,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   role?: boolean
   referralCode?: boolean
   referredById?: boolean
+  referralIncentivePct?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["user"]>
 
@@ -711,10 +784,11 @@ export type UserSelectScalar = {
   role?: boolean
   referralCode?: boolean
   referredById?: boolean
+  referralIncentivePct?: boolean
   createdAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "kyc" | "emailVerified" | "emailVerifyToken" | "emailVerifyExpires" | "passwordResetToken" | "passwordResetExpires" | "role" | "referralCode" | "referredById" | "createdAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "kyc" | "emailVerified" | "emailVerifyToken" | "emailVerifyExpires" | "passwordResetToken" | "passwordResetExpires" | "role" | "referralCode" | "referredById" | "referralIncentivePct" | "createdAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   referralRewards?: boolean | Prisma.User$referralRewardsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -750,6 +824,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
      * User who referred this account at registration (optional).
      */
     referredById: string | null
+    /**
+     * Optional per-referrer commission override (% of sale). Null = use global policy.
+     */
+    referralIncentivePct: number | null
     createdAt: Date
   }, ExtArgs["result"]["user"]>
   composites: {}
@@ -1188,6 +1266,7 @@ export interface UserFieldRefs {
   readonly role: Prisma.FieldRef<"User", 'String'>
   readonly referralCode: Prisma.FieldRef<"User", 'String'>
   readonly referredById: Prisma.FieldRef<"User", 'String'>
+  readonly referralIncentivePct: Prisma.FieldRef<"User", 'Float'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     

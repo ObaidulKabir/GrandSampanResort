@@ -1393,7 +1393,15 @@ export const BookingScalarFieldEnum = {
   cancelledAt: 'cancelledAt',
   createdAt: 'createdAt',
   referralCode: 'referralCode',
-  referredByUserId: 'referredByUserId'
+  referredByUserId: 'referredByUserId',
+  listPrice: 'listPrice',
+  promoDiscountPct: 'promoDiscountPct',
+  promoName: 'promoName',
+  advanceDiscountPct: 'advanceDiscountPct',
+  paymentTierId: 'paymentTierId',
+  installmentMonths: 'installmentMonths',
+  cadence: 'cadence',
+  discountRateAnnualPct: 'discountRateAnnualPct'
 } as const
 
 export type BookingScalarFieldEnum = (typeof BookingScalarFieldEnum)[keyof typeof BookingScalarFieldEnum]
@@ -1423,6 +1431,8 @@ export const ClientScalarFieldEnum = {
   contact: 'contact',
   email: 'email',
   picUrl: 'picUrl',
+  profession: 'profession',
+  city: 'city',
   nomineeName: 'nomineeName',
   nomineeNid: 'nomineeNid',
   nomineePicUrl: 'nomineePicUrl'
@@ -1445,6 +1455,7 @@ export const UserScalarFieldEnum = {
   role: 'role',
   referralCode: 'referralCode',
   referredById: 'referredById',
+  referralIncentivePct: 'referralIncentivePct',
   createdAt: 'createdAt'
 } as const
 

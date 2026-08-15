@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Query, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Query, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { ValidationPipe } from '@nestjs/common';
-import { AvailabilityQueryDto, CreateBookingDto } from './dto/booking.dto';
+import { AvailabilityQueryDto, CreateBookingDto, UpdateBookingKycDto } from './dto/booking.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { IsIn, IsInt, IsOptional, IsString } from 'class-validator';
@@ -72,6 +72,20 @@ export class BookingController {
       body.installmentMonths,
       body.quoteToken
     );
+  }
+
+  @Put(':id/kyc')
+  @UseGuards(RolesGuard)
+  @Roles('investor', 'admin')
+  async updateKyc(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true, transform: true })) body: UpdateBookingKycDto,
+    @Req() req: { user?: { sub?: string; role?: string } }
+  ) {
+    return this.service.updateKyc(id, body, {
+      id: String(req.user?.sub || ''),
+      role: String(req.user?.role || '')
+    });
   }
 
   @Post(':id/confirm-deposit')

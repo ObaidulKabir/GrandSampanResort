@@ -104,6 +104,8 @@ model Client {
   contact          String
   email            String
   picUrl           String
+  profession       String   @default("")
+  city             String   @default("")
   nomineeName      String
   nomineeNid       String
   nomineePicUrl    String

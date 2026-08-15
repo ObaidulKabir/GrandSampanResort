@@ -28,10 +28,20 @@ export type AggregateBooking = {
 
 export type BookingAvgAggregateOutputType = {
   amountTotal: number | null
+  listPrice: number | null
+  promoDiscountPct: number | null
+  advanceDiscountPct: number | null
+  installmentMonths: number | null
+  discountRateAnnualPct: number | null
 }
 
 export type BookingSumAggregateOutputType = {
   amountTotal: number | null
+  listPrice: number | null
+  promoDiscountPct: number | null
+  advanceDiscountPct: number | null
+  installmentMonths: number | null
+  discountRateAnnualPct: number | null
 }
 
 export type BookingMinAggregateOutputType = {
@@ -57,6 +67,14 @@ export type BookingMinAggregateOutputType = {
   createdAt: Date | null
   referralCode: string | null
   referredByUserId: string | null
+  listPrice: number | null
+  promoDiscountPct: number | null
+  promoName: string | null
+  advanceDiscountPct: number | null
+  paymentTierId: string | null
+  installmentMonths: number | null
+  cadence: string | null
+  discountRateAnnualPct: number | null
 }
 
 export type BookingMaxAggregateOutputType = {
@@ -82,6 +100,14 @@ export type BookingMaxAggregateOutputType = {
   createdAt: Date | null
   referralCode: string | null
   referredByUserId: string | null
+  listPrice: number | null
+  promoDiscountPct: number | null
+  promoName: string | null
+  advanceDiscountPct: number | null
+  paymentTierId: string | null
+  installmentMonths: number | null
+  cadence: string | null
+  discountRateAnnualPct: number | null
 }
 
 export type BookingCountAggregateOutputType = {
@@ -107,16 +133,34 @@ export type BookingCountAggregateOutputType = {
   createdAt: number
   referralCode: number
   referredByUserId: number
+  listPrice: number
+  promoDiscountPct: number
+  promoName: number
+  advanceDiscountPct: number
+  paymentTierId: number
+  installmentMonths: number
+  cadence: number
+  discountRateAnnualPct: number
   _all: number
 }
 
 
 export type BookingAvgAggregateInputType = {
   amountTotal?: true
+  listPrice?: true
+  promoDiscountPct?: true
+  advanceDiscountPct?: true
+  installmentMonths?: true
+  discountRateAnnualPct?: true
 }
 
 export type BookingSumAggregateInputType = {
   amountTotal?: true
+  listPrice?: true
+  promoDiscountPct?: true
+  advanceDiscountPct?: true
+  installmentMonths?: true
+  discountRateAnnualPct?: true
 }
 
 export type BookingMinAggregateInputType = {
@@ -142,6 +186,14 @@ export type BookingMinAggregateInputType = {
   createdAt?: true
   referralCode?: true
   referredByUserId?: true
+  listPrice?: true
+  promoDiscountPct?: true
+  promoName?: true
+  advanceDiscountPct?: true
+  paymentTierId?: true
+  installmentMonths?: true
+  cadence?: true
+  discountRateAnnualPct?: true
 }
 
 export type BookingMaxAggregateInputType = {
@@ -167,6 +219,14 @@ export type BookingMaxAggregateInputType = {
   createdAt?: true
   referralCode?: true
   referredByUserId?: true
+  listPrice?: true
+  promoDiscountPct?: true
+  promoName?: true
+  advanceDiscountPct?: true
+  paymentTierId?: true
+  installmentMonths?: true
+  cadence?: true
+  discountRateAnnualPct?: true
 }
 
 export type BookingCountAggregateInputType = {
@@ -192,6 +252,14 @@ export type BookingCountAggregateInputType = {
   createdAt?: true
   referralCode?: true
   referredByUserId?: true
+  listPrice?: true
+  promoDiscountPct?: true
+  promoName?: true
+  advanceDiscountPct?: true
+  paymentTierId?: true
+  installmentMonths?: true
+  cadence?: true
+  discountRateAnnualPct?: true
   _all?: true
 }
 
@@ -304,6 +372,14 @@ export type BookingGroupByOutputType = {
   createdAt: Date
   referralCode: string | null
   referredByUserId: string | null
+  listPrice: number | null
+  promoDiscountPct: number | null
+  promoName: string | null
+  advanceDiscountPct: number | null
+  paymentTierId: string | null
+  installmentMonths: number | null
+  cadence: string | null
+  discountRateAnnualPct: number | null
   _count: BookingCountAggregateOutputType | null
   _avg: BookingAvgAggregateOutputType | null
   _sum: BookingSumAggregateOutputType | null
@@ -352,6 +428,14 @@ export type BookingWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
   referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  listPrice?: Prisma.IntNullableFilter<"Booking"> | number | null
+  promoDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  promoName?: Prisma.StringNullableFilter<"Booking"> | string | null
+  advanceDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  paymentTierId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  installmentMonths?: Prisma.IntNullableFilter<"Booking"> | number | null
+  cadence?: Prisma.StringNullableFilter<"Booking"> | string | null
+  discountRateAnnualPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -381,6 +465,14 @@ export type BookingOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
   referredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  listPrice?: Prisma.SortOrderInput | Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrderInput | Prisma.SortOrder
+  promoName?: Prisma.SortOrderInput | Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrderInput | Prisma.SortOrder
+  paymentTierId?: Prisma.SortOrderInput | Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrderInput | Prisma.SortOrder
+  cadence?: Prisma.SortOrderInput | Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrderInput | Prisma.SortOrder
   schedule?: Prisma.PaymentScheduleItemOrderByRelationAggregateInput
   plan?: Prisma.SharePlanOrderByWithRelationInput
   client?: Prisma.ClientOrderByWithRelationInput
@@ -413,6 +505,14 @@ export type BookingWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
   referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  listPrice?: Prisma.IntNullableFilter<"Booking"> | number | null
+  promoDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  promoName?: Prisma.StringNullableFilter<"Booking"> | string | null
+  advanceDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  paymentTierId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  installmentMonths?: Prisma.IntNullableFilter<"Booking"> | number | null
+  cadence?: Prisma.StringNullableFilter<"Booking"> | string | null
+  discountRateAnnualPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
   schedule?: Prisma.PaymentScheduleItemListRelationFilter
   plan?: Prisma.XOR<Prisma.SharePlanNullableScalarRelationFilter, Prisma.SharePlanWhereInput> | null
   client?: Prisma.XOR<Prisma.ClientNullableScalarRelationFilter, Prisma.ClientWhereInput> | null
@@ -442,6 +542,14 @@ export type BookingOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   referralCode?: Prisma.SortOrderInput | Prisma.SortOrder
   referredByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  listPrice?: Prisma.SortOrderInput | Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrderInput | Prisma.SortOrder
+  promoName?: Prisma.SortOrderInput | Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrderInput | Prisma.SortOrder
+  paymentTierId?: Prisma.SortOrderInput | Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrderInput | Prisma.SortOrder
+  cadence?: Prisma.SortOrderInput | Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.BookingCountOrderByAggregateInput
   _avg?: Prisma.BookingAvgOrderByAggregateInput
   _max?: Prisma.BookingMaxOrderByAggregateInput
@@ -475,6 +583,14 @@ export type BookingScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Booking"> | Date | string
   referralCode?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
   referredByUserId?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  listPrice?: Prisma.IntNullableWithAggregatesFilter<"Booking"> | number | null
+  promoDiscountPct?: Prisma.FloatNullableWithAggregatesFilter<"Booking"> | number | null
+  promoName?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  advanceDiscountPct?: Prisma.FloatNullableWithAggregatesFilter<"Booking"> | number | null
+  paymentTierId?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  installmentMonths?: Prisma.IntNullableWithAggregatesFilter<"Booking"> | number | null
+  cadence?: Prisma.StringNullableWithAggregatesFilter<"Booking"> | string | null
+  discountRateAnnualPct?: Prisma.FloatNullableWithAggregatesFilter<"Booking"> | number | null
 }
 
 export type BookingCreateInput = {
@@ -498,6 +614,14 @@ export type BookingCreateInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
@@ -527,6 +651,14 @@ export type BookingUncheckedCreateInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
   referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
@@ -552,6 +684,14 @@ export type BookingUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
@@ -581,6 +721,14 @@ export type BookingUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
   referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
@@ -608,6 +756,14 @@ export type BookingCreateManyInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
 }
 
 export type BookingUpdateManyMutationInput = {
@@ -631,6 +787,14 @@ export type BookingUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type BookingUncheckedUpdateManyInput = {
@@ -656,6 +820,14 @@ export type BookingUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type BookingListRelationFilter = {
@@ -691,10 +863,23 @@ export type BookingCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredByUserId?: Prisma.SortOrder
+  listPrice?: Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrder
+  promoName?: Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrder
+  paymentTierId?: Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrder
+  cadence?: Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrder
 }
 
 export type BookingAvgOrderByAggregateInput = {
   amountTotal?: Prisma.SortOrder
+  listPrice?: Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrder
 }
 
 export type BookingMaxOrderByAggregateInput = {
@@ -720,6 +905,14 @@ export type BookingMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredByUserId?: Prisma.SortOrder
+  listPrice?: Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrder
+  promoName?: Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrder
+  paymentTierId?: Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrder
+  cadence?: Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrder
 }
 
 export type BookingMinOrderByAggregateInput = {
@@ -745,10 +938,23 @@ export type BookingMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   referralCode?: Prisma.SortOrder
   referredByUserId?: Prisma.SortOrder
+  listPrice?: Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrder
+  promoName?: Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrder
+  paymentTierId?: Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrder
+  cadence?: Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrder
 }
 
 export type BookingSumOrderByAggregateInput = {
   amountTotal?: Prisma.SortOrder
+  listPrice?: Prisma.SortOrder
+  promoDiscountPct?: Prisma.SortOrder
+  advanceDiscountPct?: Prisma.SortOrder
+  installmentMonths?: Prisma.SortOrder
+  discountRateAnnualPct?: Prisma.SortOrder
 }
 
 export type BookingScalarRelationFilter = {
@@ -909,6 +1115,14 @@ export type BookingCreateWithoutPlanInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
   referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
@@ -936,6 +1150,14 @@ export type BookingUncheckedCreateWithoutPlanInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
   referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
@@ -992,6 +1214,14 @@ export type BookingScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Booking"> | Date | string
   referralCode?: Prisma.StringNullableFilter<"Booking"> | string | null
   referredByUserId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  listPrice?: Prisma.IntNullableFilter<"Booking"> | number | null
+  promoDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  promoName?: Prisma.StringNullableFilter<"Booking"> | string | null
+  advanceDiscountPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
+  paymentTierId?: Prisma.StringNullableFilter<"Booking"> | string | null
+  installmentMonths?: Prisma.IntNullableFilter<"Booking"> | number | null
+  cadence?: Prisma.StringNullableFilter<"Booking"> | string | null
+  discountRateAnnualPct?: Prisma.FloatNullableFilter<"Booking"> | number | null
 }
 
 export type BookingCreateWithoutScheduleInput = {
@@ -1015,6 +1245,14 @@ export type BookingCreateWithoutScheduleInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
   referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
@@ -1043,6 +1281,14 @@ export type BookingUncheckedCreateWithoutScheduleInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
 
@@ -1083,6 +1329,14 @@ export type BookingUpdateWithoutScheduleInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
   referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
@@ -1111,6 +1365,14 @@ export type BookingUncheckedUpdateWithoutScheduleInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
 
@@ -1135,6 +1397,14 @@ export type BookingCreateWithoutClientInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   referralReward?: Prisma.ReferralRewardCreateNestedOneWithoutBookingInput
@@ -1162,6 +1432,14 @@ export type BookingUncheckedCreateWithoutClientInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
   referralReward?: Prisma.ReferralRewardUncheckedCreateNestedOneWithoutBookingInput
 }
@@ -1213,6 +1491,14 @@ export type BookingCreateWithoutReferralRewardInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemCreateNestedManyWithoutBookingInput
   plan?: Prisma.SharePlanCreateNestedOneWithoutBookingsInput
   client?: Prisma.ClientCreateNestedOneWithoutBookingsInput
@@ -1241,6 +1527,14 @@ export type BookingUncheckedCreateWithoutReferralRewardInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedCreateNestedManyWithoutBookingInput
 }
 
@@ -1281,6 +1575,14 @@ export type BookingUpdateWithoutReferralRewardInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
@@ -1309,6 +1611,14 @@ export type BookingUncheckedUpdateWithoutReferralRewardInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
 }
 
@@ -1334,6 +1644,14 @@ export type BookingCreateManyPlanInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
 }
 
 export type BookingUpdateWithoutPlanInput = {
@@ -1357,6 +1675,14 @@ export type BookingUpdateWithoutPlanInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   client?: Prisma.ClientUpdateOneWithoutBookingsNestedInput
   referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
@@ -1384,6 +1710,14 @@ export type BookingUncheckedUpdateWithoutPlanInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
   referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
@@ -1410,6 +1744,14 @@ export type BookingUncheckedUpdateManyWithoutPlanInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 export type BookingCreateManyClientInput = {
@@ -1434,6 +1776,14 @@ export type BookingCreateManyClientInput = {
   createdAt?: Date | string
   referralCode?: string | null
   referredByUserId?: string | null
+  listPrice?: number | null
+  promoDiscountPct?: number | null
+  promoName?: string | null
+  advanceDiscountPct?: number | null
+  paymentTierId?: string | null
+  installmentMonths?: number | null
+  cadence?: string | null
+  discountRateAnnualPct?: number | null
 }
 
 export type BookingUpdateWithoutClientInput = {
@@ -1457,6 +1807,14 @@ export type BookingUpdateWithoutClientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUpdateManyWithoutBookingNestedInput
   plan?: Prisma.SharePlanUpdateOneWithoutBookingsNestedInput
   referralReward?: Prisma.ReferralRewardUpdateOneWithoutBookingNestedInput
@@ -1484,6 +1842,14 @@ export type BookingUncheckedUpdateWithoutClientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   schedule?: Prisma.PaymentScheduleItemUncheckedUpdateManyWithoutBookingNestedInput
   referralReward?: Prisma.ReferralRewardUncheckedUpdateOneWithoutBookingNestedInput
 }
@@ -1510,6 +1876,14 @@ export type BookingUncheckedUpdateManyWithoutClientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   referralCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   referredByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  listPrice?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  promoDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  promoName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  advanceDiscountPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  paymentTierId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  installmentMonths?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  cadence?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  discountRateAnnualPct?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
 }
 
 
@@ -1566,6 +1940,14 @@ export type BookingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   createdAt?: boolean
   referralCode?: boolean
   referredByUserId?: boolean
+  listPrice?: boolean
+  promoDiscountPct?: boolean
+  promoName?: boolean
+  advanceDiscountPct?: boolean
+  paymentTierId?: boolean
+  installmentMonths?: boolean
+  cadence?: boolean
+  discountRateAnnualPct?: boolean
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
@@ -1596,6 +1978,14 @@ export type BookingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   createdAt?: boolean
   referralCode?: boolean
   referredByUserId?: boolean
+  listPrice?: boolean
+  promoDiscountPct?: boolean
+  promoName?: boolean
+  advanceDiscountPct?: boolean
+  paymentTierId?: boolean
+  installmentMonths?: boolean
+  cadence?: boolean
+  discountRateAnnualPct?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1623,6 +2013,14 @@ export type BookingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   createdAt?: boolean
   referralCode?: boolean
   referredByUserId?: boolean
+  listPrice?: boolean
+  promoDiscountPct?: boolean
+  promoName?: boolean
+  advanceDiscountPct?: boolean
+  paymentTierId?: boolean
+  installmentMonths?: boolean
+  cadence?: boolean
+  discountRateAnnualPct?: boolean
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
   client?: boolean | Prisma.Booking$clientArgs<ExtArgs>
 }, ExtArgs["result"]["booking"]>
@@ -1650,9 +2048,17 @@ export type BookingSelectScalar = {
   createdAt?: boolean
   referralCode?: boolean
   referredByUserId?: boolean
+  listPrice?: boolean
+  promoDiscountPct?: boolean
+  promoName?: boolean
+  advanceDiscountPct?: boolean
+  paymentTierId?: boolean
+  installmentMonths?: boolean
+  cadence?: boolean
+  discountRateAnnualPct?: boolean
 }
 
-export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt" | "depositConfirmedAt" | "kycVerified" | "kycVerifiedAt" | "cancellationReason" | "cancelledAt" | "createdAt" | "referralCode" | "referredByUserId", ExtArgs["result"]["booking"]>
+export type BookingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "suiteId" | "planId" | "investorId" | "clientId" | "start" | "end" | "status" | "amountTotal" | "depositMethod" | "depositReference" | "depositProofUrl" | "depositNote" | "depositSubmittedAt" | "depositConfirmedAt" | "kycVerified" | "kycVerifiedAt" | "cancellationReason" | "cancelledAt" | "createdAt" | "referralCode" | "referredByUserId" | "listPrice" | "promoDiscountPct" | "promoName" | "advanceDiscountPct" | "paymentTierId" | "installmentMonths" | "cadence" | "discountRateAnnualPct", ExtArgs["result"]["booking"]>
 export type BookingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   schedule?: boolean | Prisma.Booking$scheduleArgs<ExtArgs>
   plan?: boolean | Prisma.Booking$planArgs<ExtArgs>
@@ -1727,6 +2133,17 @@ export type $BookingPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
      * Referrer user id resolved from referralCode at purchase.
      */
     referredByUserId: string | null
+    /**
+     * List price before promo / advance discounts (investment bookings).
+     */
+    listPrice: number | null
+    promoDiscountPct: number | null
+    promoName: string | null
+    advanceDiscountPct: number | null
+    paymentTierId: string | null
+    installmentMonths: number | null
+    cadence: string | null
+    discountRateAnnualPct: number | null
   }, ExtArgs["result"]["booking"]>
   composites: {}
 }
@@ -2176,6 +2593,14 @@ export interface BookingFieldRefs {
   readonly createdAt: Prisma.FieldRef<"Booking", 'DateTime'>
   readonly referralCode: Prisma.FieldRef<"Booking", 'String'>
   readonly referredByUserId: Prisma.FieldRef<"Booking", 'String'>
+  readonly listPrice: Prisma.FieldRef<"Booking", 'Int'>
+  readonly promoDiscountPct: Prisma.FieldRef<"Booking", 'Float'>
+  readonly promoName: Prisma.FieldRef<"Booking", 'String'>
+  readonly advanceDiscountPct: Prisma.FieldRef<"Booking", 'Float'>
+  readonly paymentTierId: Prisma.FieldRef<"Booking", 'String'>
+  readonly installmentMonths: Prisma.FieldRef<"Booking", 'Int'>
+  readonly cadence: Prisma.FieldRef<"Booking", 'String'>
+  readonly discountRateAnnualPct: Prisma.FieldRef<"Booking", 'Float'>
 }
     
 
