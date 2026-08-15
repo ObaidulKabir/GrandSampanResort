@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
-import PvTierVisualizer, { TIERS_META } from './PvTierVisualizer';
+import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
 import KycStepForm, { type KycData } from './KycStepForm';
 
 type SharePlan = {
@@ -66,6 +66,8 @@ export default function InvestmentCheckoutModal({
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
+  const [resolvedTiers, setResolvedTiers] = useState<PaymentTierInfo[]>([]);
+  const [discountRateAnnualPct, setDiscountRateAnnualPct] = useState<number | undefined>(undefined);
 
   // Pre-fill email/name from logged in user if available
   useEffect(() => {
@@ -77,6 +79,19 @@ export default function InvestmentCheckoutModal({
       }));
     }
   }, [user]);
+
+  // Fetch admin-configured payment policy (discount rate + resolved tiers)
+  useEffect(() => {
+    if (!isOpen) return;
+    api('/payment-plans/policy')
+      .then((res: any) => {
+        if (res?.ok && res.resolved) {
+          setResolvedTiers(buildTiersFromPolicy(res.resolved));
+          setDiscountRateAnnualPct(res.policy?.discountRateAnnualPct);
+        }
+      })
+      .catch(() => {}); // tiers remain empty until loaded
+  }, [isOpen]);
 
   // Fetch signed PV Quote whenever plan or selected tier changes
   const fetchQuote = async (tierId: string = selectedTierId) => {
@@ -95,22 +110,23 @@ export default function InvestmentCheckoutModal({
       if (res && res.amountTotal) {
         setQuoteData(res);
       } else {
-        // Fallback calculations if server endpoint returns error
-        const tier = TIERS_META.find((t) => t.id === tierId) || TIERS_META[0];
-        const net = Math.round(plan.price * (1 - tier.discountPct / 100));
+        // Fallback: use the resolved tier data from the admin policy
+        const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
+        const disc = tier?.discountPct ?? 0;
         setQuoteData({
           listPrice: plan.price,
-          advanceDiscountPct: tier.discountPct,
-          amountTotal: net,
+          advanceDiscountPct: disc,
+          amountTotal: Math.round(plan.price * (1 - disc / 100)),
           tierId,
         });
       }
     } catch {
-      const tier = TIERS_META.find((t) => t.id === tierId) || TIERS_META[0];
+      const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
+      const disc = tier?.discountPct ?? 0;
       setQuoteData({
         listPrice: plan.price,
-        advanceDiscountPct: tier.discountPct,
-        amountTotal: Math.round(plan.price * (1 - tier.discountPct / 100)),
+        advanceDiscountPct: disc,
+        amountTotal: Math.round(plan.price * (1 - disc / 100)),
         tierId,
       });
     }
@@ -118,16 +134,17 @@ export default function InvestmentCheckoutModal({
   };
 
   useEffect(() => {
-    if (isOpen && plan) {
+    if (isOpen && plan && resolvedTiers.length) {
       fetchQuote(selectedTierId);
     }
-  }, [isOpen, plan, selectedTierId]);
+  }, [isOpen, plan, selectedTierId, resolvedTiers]);
 
   if (!isOpen || !plan) return null;
 
-  const currentTier = TIERS_META.find((t) => t.id === selectedTierId) || TIERS_META[0];
-  const netPrice = quoteData?.amountTotal ?? Math.round(plan.price * (1 - currentTier.discountPct / 100));
-  const dueTodayAmount = Math.round(netPrice * (currentTier.dueTodayPct / 100));
+  const currentTier = resolvedTiers.find((t) => t.id === selectedTierId) || resolvedTiers[0];
+  const disc = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
+  const netPrice = quoteData?.amountTotal ?? Math.round(plan.price * (1 - disc / 100));
+  const dueTodayAmount = Math.round(netPrice * ((currentTier?.dueTodayPct ?? 10) / 100));
 
   const validateKyc = () => {
     const k = kycData;
@@ -270,7 +287,7 @@ export default function InvestmentCheckoutModal({
                 </div>
                 <div className="flex justify-between border-b border-ocean/10 pb-2 text-xs">
                   <span className="text-ocean/60">Selected Tier</span>
-                  <span className="font-bold text-ocean">{currentTier.label}</span>
+                  <span className="font-bold text-ocean">{currentTier?.label ?? 'Standard'}</span>
                 </div>
                 <div className="flex justify-between border-b border-ocean/10 pb-2 text-xs">
                   <span className="text-ocean/60">Total Net Price</span>
@@ -300,6 +317,8 @@ export default function InvestmentCheckoutModal({
                   quoteData={quoteData}
                   loadingQuote={loadingQuote}
                   onRefreshQuote={() => fetchQuote(selectedTierId)}
+                  resolvedTiers={resolvedTiers}
+                  discountRateAnnualPct={discountRateAnnualPct}
                 />
               )}
 
@@ -350,7 +369,7 @@ export default function InvestmentCheckoutModal({
                         <h4 className="font-display text-xl text-ocean">{plan.name}</h4>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs text-ocean/50 font-mono">Tier: {currentTier.label}</span>
+                        <span className="text-xs text-ocean/50 font-mono">Tier: {currentTier?.label ?? 'Standard'}</span>
                       </div>
                     </div>
 

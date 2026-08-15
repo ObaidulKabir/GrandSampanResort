@@ -12,39 +12,26 @@ export type PaymentTierInfo = {
   badge?: string;
 };
 
-export const TIERS_META: PaymentTierInfo[] = [
-  {
-    id: 'standard',
-    label: 'Standard Installment',
-    dueTodayPct: 10,
-    discountPct: 0,
-    description: '10% deposit today + 20% downpayment in 3 months + 24 monthly installments.',
-  },
-  {
-    id: 'booking_plus_down',
-    label: '30% Advance Down',
-    dueTodayPct: 30,
-    discountPct: 0.42,
-    description: 'Pay 30% today (merged deposit & downpayment). First installment at Month 4.',
-    badge: 'Popular',
-  },
-  {
-    id: 'half',
-    label: '50% Half Upfront',
-    dueTodayPct: 50,
-    discountPct: 2.41,
-    description: 'Pay 50% upfront. Balance split across remaining monthly installments.',
-    badge: 'Best Value',
-  },
-  {
-    id: 'full',
-    label: '100% Full Upfront',
-    dueTodayPct: 100,
-    discountPct: 7.07,
-    description: 'Pay 100% today for maximum actuarial present-value discount.',
-    badge: 'Max Discount',
-  },
-];
+/** Fallback display metadata — discount values here are ONLY used if the backend policy is unavailable. */
+const TIER_DISPLAY: Record<string, { description: string; badge?: string }> = {
+  standard: { description: '10% deposit today + downpayment in 3 months + monthly installments.' },
+  booking_plus_down: { description: 'Merged deposit & downpayment today. First installment at Month 4.', badge: 'Popular' },
+  half: { description: 'Pay 50% upfront. Balance split across remaining monthly installments.', badge: 'Best Value' },
+  full: { description: 'Pay 100% today for maximum actuarial present-value discount.', badge: 'Max Discount' },
+};
+
+/** Build tier display info from resolved backend policy data. */
+export function buildTiersFromPolicy(resolved: any[]): PaymentTierInfo[] {
+  if (!resolved?.length) return [];
+  return resolved.map((t: any) => ({
+    id: t.id,
+    label: t.label || t.id,
+    dueTodayPct: Number(t.upfrontPct) || 10,
+    discountPct: Number(t.offeredDiscountPct) || 0,
+    description: TIER_DISPLAY[t.id]?.description || `Pay ${t.upfrontPct}% upfront.`,
+    badge: TIER_DISPLAY[t.id]?.badge,
+  }));
+}
 
 type ScheduleItem = {
   type: string;
@@ -73,6 +60,10 @@ type Props = {
   quoteData?: QuoteData | null;
   loadingQuote?: boolean;
   onRefreshQuote?: () => void;
+  /** Resolved tiers from GET /api/payment-plans/policy — uses admin-configured discount rate. */
+  resolvedTiers?: PaymentTierInfo[];
+  /** Admin-configured discount rate (for display). */
+  discountRateAnnualPct?: number;
 };
 
 export default function PvTierVisualizer({
@@ -82,9 +73,15 @@ export default function PvTierVisualizer({
   quoteData,
   loadingQuote,
   onRefreshQuote,
+  resolvedTiers,
+  discountRateAnnualPct,
 }: Props) {
   const [showSchedule, setShowSchedule] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  const tiers: PaymentTierInfo[] = resolvedTiers?.length
+    ? resolvedTiers
+    : []; // No fallback — tiers must come from the backend policy
 
   // Quote lock countdown timer
   useEffect(() => {
@@ -113,13 +110,28 @@ export default function PvTierVisualizer({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const currentTier = TIERS_META.find((t) => t.id === selectedTierId) || TIERS_META[0];
-  const discountPct = quoteData?.advanceDiscountPct ?? currentTier.discountPct;
+  const currentTier = tiers.find((t) => t.id === selectedTierId) || tiers[0];
+  const discountPct = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
   const netPrice = quoteData?.amountTotal ?? Math.round(listPrice * (1 - discountPct / 100));
   const savings = Math.max(0, listPrice - netPrice);
 
+  if (!tiers.length) {
+    return (
+      <div className="rounded-lg border border-ocean/10 bg-pearl p-6 text-center text-sm text-ocean/60">
+        Loading payment tiers from admin policy...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Discount Rate Banner */}
+      {discountRateAnnualPct != null && (
+        <div className="text-[11px] text-ocean/50 text-right">
+          Discount rate: <span className="font-semibold text-ocean/70">{discountRateAnnualPct}% p.a.</span> (admin-configured)
+        </div>
+      )}
+
       {/* Quote Lock Countdown Header */}
       {quoteData?.quoteToken && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/10 p-3.5 text-ocean">
@@ -161,7 +173,7 @@ export default function PvTierVisualizer({
 
       {/* Payment Tiers Grid */}
       <div className="grid gap-3.5 sm:grid-cols-2">
-        {TIERS_META.map((tier) => {
+        {tiers.map((tier) => {
           const isSelected = selectedTierId === tier.id;
           const tierNetPrice = Math.round(listPrice * (1 - tier.discountPct / 100));
           const tierSavings = listPrice - tierNetPrice;
@@ -214,7 +226,7 @@ export default function PvTierVisualizer({
                 </div>
                 {tier.discountPct > 0 ? (
                   <div className={`font-semibold ${isSelected ? 'text-gold' : 'text-emerald-700'}`}>
-                    Save {formatMoney(tierSavings)} ({tier.discountPct}%)
+                    Save {formatMoney(tierSavings)} ({Number(tier.discountPct.toFixed(2))}%)
                   </div>
                 ) : (
                   <div className={`${isSelected ? 'text-white/60' : 'text-ocean/50'}`}>No discount</div>
@@ -230,7 +242,7 @@ export default function PvTierVisualizer({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ocean/10 pb-4">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-ocean/50">Selected Plan Summary</span>
-            <h3 className="font-display text-xl text-ocean">{currentTier.label}</h3>
+            <h3 className="font-display text-xl text-ocean">{currentTier?.label}</h3>
           </div>
           <div className="text-right">
             <span className="text-xs text-ocean/60">Final Net Price</span>
