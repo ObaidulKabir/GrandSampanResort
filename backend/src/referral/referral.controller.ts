@@ -34,6 +34,26 @@ export class ReferralController {
     return { ok: true, policy };
   }
 
+  @Get('admin/referrers')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async adminReferrers() {
+    const referrers = await this.referral.listReferrers();
+    return { ok: true, referrers };
+  }
+
+  @Put('admin/referrers/:id/rate')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  async setReferrerRate(@Param('id') id: string, @Body() body: any) {
+    const raw = body?.incentivePct;
+    const pct =
+      raw === null || raw === undefined || raw === ''
+        ? null
+        : Number(raw);
+    return this.referral.setReferrerIncentivePct(id, pct);
+  }
+
   @Get('me')
   @UseGuards(RolesGuard)
   @Roles('investor', 'admin', 'broker')

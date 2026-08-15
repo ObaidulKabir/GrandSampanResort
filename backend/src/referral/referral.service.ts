@@ -45,6 +45,8 @@ export class ReferralService {
   private memoryReferredBy = new Map<string, string>(); // userId -> referrerId
   private memoryPolicy: ReferralPolicy | null = null;
 
+  private memoryIncentivePct = new Map<string, number>(); // userId -> pct
+
   private get db() {
     return process.env.DATABASE_URL ? prisma : null;
   }
@@ -116,6 +118,137 @@ export class ReferralService {
       this.memoryPolicy = next;
     }
     return next;
+  }
+
+  /** Global default, or per-referrer override when set. */
+  async effectiveIncentivePct(referrerId?: string | null) {
+    const policy = await this.getPolicy();
+    if (!referrerId) return policy.incentivePct;
+    if (this.db) {
+      // Cast: local prisma generate can lag behind schema; field exists after migrate.
+      const user = await (this.db.user as any).findUnique({
+        where: { id: referrerId },
+        select: { referralIncentivePct: true }
+      });
+      const override = user?.referralIncentivePct;
+      if (override != null && Number.isFinite(Number(override))) {
+        return Math.max(0, Math.min(100, Number(override)));
+      }
+      return policy.incentivePct;
+    }
+    if (this.memoryIncentivePct.has(referrerId)) {
+      return this.memoryIncentivePct.get(referrerId)!;
+    }
+    return policy.incentivePct;
+  }
+
+  async listReferrers() {
+    const policy = await this.getPolicy();
+    if (this.db) {
+      const users = await (this.db.user as any).findMany({
+        where: {
+          OR: [
+            { referralCode: { not: null } },
+            { referralIncentivePct: { not: null } },
+            { role: 'broker' }
+          ]
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          referralCode: true,
+          referralIncentivePct: true
+        },
+        orderBy: { name: 'asc' }
+      });
+      return (users as any[]).map((u) => {
+        const custom =
+          u.referralIncentivePct != null && Number.isFinite(Number(u.referralIncentivePct))
+            ? Math.max(0, Math.min(100, Number(u.referralIncentivePct)))
+            : null;
+        return {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          referralCode: u.referralCode,
+          referralIncentivePct: custom,
+          effectiveIncentivePct: custom ?? policy.incentivePct,
+          usingDefault: custom == null
+        };
+      });
+    }
+    const ids = new Set<string>([
+      ...this.memoryCodes.keys(),
+      ...this.memoryIncentivePct.keys()
+    ]);
+    return Array.from(ids).map((id) => {
+      const custom = this.memoryIncentivePct.has(id) ? this.memoryIncentivePct.get(id)! : null;
+      return {
+        id,
+        name: id,
+        email: '',
+        role: 'investor',
+        referralCode: this.memoryCodes.get(id) || null,
+        referralIncentivePct: custom,
+        effectiveIncentivePct: custom ?? policy.incentivePct,
+        usingDefault: custom == null
+      };
+    });
+  }
+
+  async setReferrerIncentivePct(userId: string, pctRaw: number | null | undefined) {
+    if (!userId) return { ok: false as const, error: 'user_required' };
+    const clear = pctRaw === null || pctRaw === undefined;
+    let pct: number | null = null;
+    if (!clear) {
+      if (!Number.isFinite(Number(pctRaw))) return { ok: false as const, error: 'invalid_pct' };
+      pct = Math.max(0, Math.min(100, Number(pctRaw)));
+    }
+    if (this.db) {
+      const user = await this.db.user.findUnique({ where: { id: userId } });
+      if (!user) return { ok: false as const, error: 'not_found' };
+      const updated = await (this.db.user as any).update({
+        where: { id: userId },
+        data: { referralIncentivePct: pct }
+      });
+      const policy = await this.getPolicy();
+      const custom =
+        updated.referralIncentivePct != null
+          ? Number(updated.referralIncentivePct)
+          : null;
+      return {
+        ok: true as const,
+        referrer: {
+          id: updated.id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          referralCode: updated.referralCode,
+          referralIncentivePct: custom,
+          effectiveIncentivePct: custom ?? policy.incentivePct,
+          usingDefault: custom == null
+        }
+      };
+    }
+    if (pct == null) this.memoryIncentivePct.delete(userId);
+    else this.memoryIncentivePct.set(userId, pct);
+    const policy = await this.getPolicy();
+    return {
+      ok: true as const,
+      referrer: {
+        id: userId,
+        name: userId,
+        email: '',
+        role: 'investor',
+        referralCode: this.memoryCodes.get(userId) || null,
+        referralIncentivePct: pct,
+        effectiveIncentivePct: pct ?? policy.incentivePct,
+        usingDefault: pct == null
+      }
+    };
   }
 
   async ensureCode(userId: string, nameHint?: string) {
@@ -195,6 +328,7 @@ export class ReferralService {
 
   async summaryForUser(userId: string) {
     const policy = await this.getPolicy();
+    const effectiveIncentivePct = await this.effectiveIncentivePct(userId);
     const code = await this.ensureCode(userId);
     const link = code ? `${this.siteUrl()}/invest?ref=${encodeURIComponent(code)}` : null;
     const rewards = await this.listForReferrer(userId);
@@ -219,7 +353,9 @@ export class ReferralService {
     );
     return {
       ok: true as const,
-      policy,
+      policy: { ...policy, incentivePct: effectiveIncentivePct },
+      defaultPolicy: policy,
+      effectiveIncentivePct,
       code,
       link,
       totals,
@@ -295,7 +431,8 @@ export class ReferralService {
       const saleAmount = Math.max(0, Math.round(Number(booking.amountTotal) || 0));
       if (!saleAmount) return { ok: false as const, error: 'no_sale_amount' };
 
-      const totalIncentive = Math.round((saleAmount * policy.incentivePct) / 100);
+      const ratePct = await this.effectiveIncentivePct(referrerId);
+      const totalIncentive = Math.round((saleAmount * ratePct) / 100);
       const tranche1Amount = Math.round((totalIncentive * policy.tranche1Pct) / 100);
       const tranche2Amount = Math.max(0, totalIncentive - tranche1Amount);
       const now = new Date();
@@ -324,7 +461,7 @@ export class ReferralService {
             bookingId: booking.id,
             buyerId: booking.investorId || null,
             saleAmount,
-            ratePct: policy.incentivePct,
+            ratePct,
             totalIncentive,
             tranche1Amount,
             tranche1Status: 'earned',
@@ -352,7 +489,7 @@ export class ReferralService {
         bookingId: booking.id,
         buyerId: booking.investorId || null,
         saleAmount,
-        ratePct: policy.incentivePct,
+        ratePct,
         totalIncentive,
         tranche1Amount,
         tranche1Status: 'earned',

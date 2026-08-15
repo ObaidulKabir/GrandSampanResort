@@ -118,6 +118,8 @@ model User {
   referralCode String?  @unique
   /// User who referred this account at registration (optional).
   referredById String?
+  /// Optional per-referrer commission override (% of sale). Null = use global policy.
+  referralIncentivePct Float?
   createdAt    DateTime @default(now())
   referralRewards ReferralReward[] @relation("ReferrerRewards")
 }
