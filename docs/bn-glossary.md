@@ -4,6 +4,7 @@ Use these terms consistently across `messages/bn.json` and admin-authored FAQ/Te
 
 | English | Bangla | Notes |
 | --- | --- | --- |
+| Available (for purchase) | ক্রয়যোগ্য | Share/unit status — not calendar availability |
 | Invest | বিনিয়োগ | Verb/noun for ownership purchase |
 | Reserve | রিজার্ভ / সংরক্ষণ | Prefer রিজার্ভ for CTAs |
 | Suite | স্যুট | Keep transliteration |
