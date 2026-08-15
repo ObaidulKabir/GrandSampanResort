@@ -17,7 +17,7 @@ export default function TermsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Legal</p>
       <h1 className="font-display mt-1 text-4xl text-ocean">Terms &amp; Conditions</h1>
       <p className="mt-4 text-ocean/80">

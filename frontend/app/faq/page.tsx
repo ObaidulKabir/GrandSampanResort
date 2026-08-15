@@ -17,9 +17,9 @@ export default function FAQPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Support</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Frequently Asked Questions</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Frequently Asked Questions</h1>
       <p className="mt-3 max-w-2xl text-ocean/75">
         Answers to common questions about ownership, payments, and the resort.
       </p>

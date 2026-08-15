@@ -92,10 +92,10 @@ export default function BookingPage() {
   if (confirmation) {
     const suite = suites.find((s) => s.id === suiteId);
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 md:py-24">
+      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-24">
         <div className="border border-gold/40 bg-white p-8 md:p-10">
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Booking confirmed</p>
-          <h1 className="font-display mt-2 text-4xl text-ocean">See you at the beach</h1>
+          <h1 className="font-display mt-2 text-3xl text-ocean md:text-4xl">See you at the beach</h1>
           <p className="mt-3 text-ocean/75">
             {suite ? `${suite.type} suite ${suite.id}` : `Suite ${suiteId}`} ·{' '}
             {start && formatDate(start)} → {end && formatDate(end)}
@@ -112,12 +112,13 @@ export default function BookingPage() {
               <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(confirmation.amount)}</div>
             </div>
           </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/investor">
-              <Button>View my bookings</Button>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/investor" className="sm:inline-flex">
+              <Button className="w-full sm:w-auto">View my bookings</Button>
             </Link>
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setConfirmation(null);
                 setAvailability('unknown');
@@ -134,9 +135,9 @@ export default function BookingPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Reserve your stay</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Book a Stay</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Book a Stay</h1>
       <p className="mt-3 max-w-2xl text-ocean/75">
         Short beachfront stays at Grand Sampan. Looking for ownership instead?{' '}
         <Link className="font-semibold underline" href="/invest">
@@ -147,7 +148,7 @@ export default function BookingPage() {
 
       {error && <div className="mt-5 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <div className="mt-6 space-y-5 border border-ocean/10 bg-white p-6 md:p-8">
+      <div className="mt-6 space-y-5 border border-ocean/10 bg-white p-4 sm:p-6 md:p-8">
         <div className="grid gap-5 md:grid-cols-3">
           <label className="block text-sm font-medium text-ocean">
             Suite
@@ -191,11 +192,11 @@ export default function BookingPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3 border-t border-ocean/10 pt-5">
-          <Button variant="outline" onClick={checkAvailability} disabled={availability === 'checking'}>
+        <div className="flex flex-col gap-3 border-t border-ocean/10 pt-5 sm:flex-row sm:flex-wrap">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={checkAvailability} disabled={availability === 'checking'}>
             {availability === 'checking' ? 'Checking...' : 'Check availability'}
           </Button>
-          <Button onClick={createBooking} disabled={submitting}>
+          <Button className="w-full sm:w-auto" onClick={createBooking} disabled={submitting}>
             {submitting ? 'Booking...' : 'Confirm booking'}
           </Button>
         </div>

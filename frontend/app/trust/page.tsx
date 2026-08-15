@@ -1,6 +1,6 @@
 export default function TrustPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-16">
       <h1 className="font-['Playfair Display'] text-4xl text-ocean">Trust & Credibility</h1>
       <ul className="mt-6 space-y-2 text-ocean/80">
         <li>Legal disclaimer</li>

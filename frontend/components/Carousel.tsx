@@ -66,14 +66,14 @@ export default function Carousel({
             type="button"
             aria-label={`Show slide ${i + 1}`}
             onClick={() => setIdx(i)}
-            className={`h-1.5 rounded-full transition-all ${i === idx ? 'w-6 bg-gold' : 'w-3 bg-white/50 hover:bg-white/80'}`}
+            className={`h-2.5 rounded-full transition-all ${i === idx ? 'w-6 bg-gold' : 'w-3 bg-white/50 hover:bg-white/80'}`}
           />
         ))}
       </div>
       <button
         aria-label="Previous"
         onClick={prev}
-        className="absolute inset-y-0 left-0 flex items-center px-2 text-white/80 transition hover:text-gold"
+        className="absolute inset-y-0 left-0 flex w-11 items-center justify-center text-white/80 transition hover:text-gold"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M15 18l-6-6 6-6" />
@@ -82,7 +82,7 @@ export default function Carousel({
       <button
         aria-label="Next"
         onClick={next}
-        className="absolute inset-y-0 right-0 flex items-center px-2 text-white/80 transition hover:text-gold"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-white/80 transition hover:text-gold"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M9 6l6 6-6 6" />

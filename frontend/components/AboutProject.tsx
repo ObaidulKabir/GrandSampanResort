@@ -28,7 +28,7 @@ export default function AboutProject() {
   return (
     <section className="mx-auto max-w-4xl">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">About</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">About Project</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">About Project</h1>
       <p className="mt-4 text-ocean/80">
         Unitech Grand Sampan Resort is a boutique beachfront development located along Marine Drive, Innani,
         situated in the secured area of &apos;Rupayan Beach View Project&apos;. Designed for serene oceanfront

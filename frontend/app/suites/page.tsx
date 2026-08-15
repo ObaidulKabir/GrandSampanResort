@@ -99,7 +99,7 @@ function DrawingSlot({
 }) {
   if (!image) {
     return (
-      <div className="flex h-40 items-center justify-center border border-dashed border-ocean/20 bg-pearl/40 px-3 text-center">
+      <div className="flex h-32 items-center justify-center border border-dashed border-ocean/20 bg-pearl/40 px-3 text-center sm:h-40">
         <p className="text-xs text-ocean/50">{title} not uploaded yet</p>
       </div>
     );
@@ -111,10 +111,10 @@ function DrawingSlot({
       className="group w-full text-left"
       title={`Enlarge ${title}`}
     >
-      <div className="relative h-40 w-full overflow-hidden border border-ocean/10 bg-pearl/40 p-2 transition group-hover:border-gold/50">
+      <div className="relative h-32 w-full overflow-hidden border border-ocean/10 bg-pearl/40 p-2 transition group-hover:border-gold/50 sm:h-40">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={image.src} alt={image.alt || title} className="h-full w-full object-contain" />
-        <span className="pointer-events-none absolute bottom-2 right-2 border border-ocean/15 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-ocean opacity-0 transition group-hover:opacity-100">
+        <span className="pointer-events-none absolute bottom-2 right-2 border border-ocean/15 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-ocean sm:opacity-0 sm:transition sm:group-hover:opacity-100">
           Enlarge
         </span>
       </div>
@@ -212,9 +212,9 @@ export default function SuitesPage() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-16">
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Suites</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Suites</h1>
       <p className="mt-2 max-w-2xl text-ocean/75">
         Browse each unit with its share plans, architectural plan, and key map. Click a drawing to
         enlarge.
@@ -298,14 +298,14 @@ export default function SuitesPage() {
                             {available ? (
                               <Link
                                 href={`/pricing/plans/${encodeURIComponent(p.id)}`}
-                                className="text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
+                                className="inline-flex min-h-9 items-center text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
                               >
                                 Buy
                               </Link>
                             ) : isSoldPlan(p) ? (
                               <Link
                                 href={`/pricing/plans/${encodeURIComponent(p.id)}`}
-                                className="text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
+                                className="inline-flex min-h-9 items-center text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
                               >
                                 See who
                               </Link>

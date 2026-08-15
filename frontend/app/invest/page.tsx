@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
@@ -30,6 +30,188 @@ const emptyFilters: Filters = {
   priceMin: '',
   priceMax: ''
 };
+
+type FilterOptions = {
+  views: string[];
+  categories: string[];
+  floors: number[];
+  days: number[];
+};
+
+function humanView(v?: string) {
+  const s = (v || '').toLowerCase();
+  if (s.includes('sea')) return 'Sea View';
+  if (s.includes('hill')) return 'Hill View';
+  return v || '—';
+}
+
+function FieldWrap({ label, children }: { label?: string; children: ReactNode }) {
+  if (!label) return children;
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ocean/50">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function FilterChip({ children, onRemove }: { children: ReactNode; onRemove: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="inline-flex shrink-0 items-center gap-1 border border-ocean/15 bg-pearl px-2 py-1 text-xs font-semibold text-ocean"
+    >
+      {children}
+      <span aria-hidden className="text-ocean/45">
+        ×
+      </span>
+    </button>
+  );
+}
+
+function CatalogFilters({
+  filters,
+  setFilter,
+  filterOptions,
+  isAdmin,
+  adminStatus,
+  setAdminStatus,
+  availableCount,
+  reservedCount,
+  soldOnlyCount,
+  fieldClass,
+  labeled,
+  showSearch
+}: {
+  filters: Filters;
+  setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void;
+  filterOptions: FilterOptions;
+  isAdmin: boolean;
+  adminStatus: AdminStatusFilter;
+  setAdminStatus: (v: AdminStatusFilter) => void;
+  availableCount: number;
+  reservedCount: number;
+  soldOnlyCount: number;
+  fieldClass: string;
+  labeled?: boolean;
+  showSearch?: boolean;
+}) {
+  return (
+    <div className={labeled ? 'space-y-3' : 'flex flex-wrap items-center gap-x-3 gap-y-3'}>
+      {showSearch && (
+        <FieldWrap label={labeled ? 'Search' : undefined}>
+          <input
+            value={filters.q}
+            onChange={(e) => setFilter('q', e.target.value)}
+            className={labeled ? fieldClass : `${fieldClass} min-w-[10rem] flex-1 !w-auto shrink`}
+            placeholder="Search plan, suite…"
+            aria-label="Search plans"
+          />
+        </FieldWrap>
+      )}
+      <FieldWrap label={labeled ? 'View' : undefined}>
+        <select
+          value={filters.view}
+          onChange={(e) => setFilter('view', e.target.value)}
+          className={labeled ? fieldClass : `${fieldClass} !w-[8.5rem]`}
+          aria-label="View"
+        >
+          <option value="">All views</option>
+          {filterOptions.views.map((v) => (
+            <option key={v} value={v}>
+              {humanView(v)}
+            </option>
+          ))}
+        </select>
+      </FieldWrap>
+      <FieldWrap label={labeled ? 'Suite type' : undefined}>
+        <select
+          value={filters.category}
+          onChange={(e) => setFilter('category', e.target.value)}
+          className={labeled ? fieldClass : `${fieldClass} !w-[8.5rem]`}
+          aria-label="Category"
+        >
+          <option value="">All types</option>
+          {filterOptions.categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </FieldWrap>
+      <FieldWrap label={labeled ? 'Floor' : undefined}>
+        <select
+          value={filters.floor}
+          onChange={(e) => setFilter('floor', e.target.value)}
+          className={labeled ? fieldClass : `${fieldClass} !w-[7rem]`}
+          aria-label="Floor"
+        >
+          <option value="">All floors</option>
+          {filterOptions.floors.map((f) => (
+            <option key={f} value={String(f)}>
+              Floor {f}
+            </option>
+          ))}
+        </select>
+      </FieldWrap>
+      <FieldWrap label={labeled ? 'Days per month' : undefined}>
+        <select
+          value={filters.days}
+          onChange={(e) => setFilter('days', e.target.value)}
+          className={labeled ? fieldClass : `${fieldClass} !w-[7.5rem]`}
+          aria-label="Days per month"
+        >
+          <option value="">All days</option>
+          {filterOptions.days.map((d) => (
+            <option key={d} value={String(d)}>
+              {d >= 30 ? 'Full month' : `${d} days`}
+            </option>
+          ))}
+        </select>
+      </FieldWrap>
+      <div className={labeled ? 'grid grid-cols-2 gap-3' : 'contents'}>
+        <FieldWrap label={labeled ? 'Min price' : undefined}>
+          <input
+            type="number"
+            min={0}
+            value={filters.priceMin}
+            onChange={(e) => setFilter('priceMin', e.target.value)}
+            className={labeled ? fieldClass : `${fieldClass} !w-[7.5rem]`}
+            placeholder="Min ৳"
+            aria-label="Minimum price"
+          />
+        </FieldWrap>
+        <FieldWrap label={labeled ? 'Max price' : undefined}>
+          <input
+            type="number"
+            min={0}
+            value={filters.priceMax}
+            onChange={(e) => setFilter('priceMax', e.target.value)}
+            className={labeled ? fieldClass : `${fieldClass} !w-[7.5rem]`}
+            placeholder="Max ৳"
+            aria-label="Maximum price"
+          />
+        </FieldWrap>
+      </div>
+      {isAdmin && (
+        <FieldWrap label={labeled ? 'Status' : undefined}>
+          <select
+            value={adminStatus}
+            onChange={(e) => setAdminStatus(e.target.value as AdminStatusFilter)}
+            className={labeled ? fieldClass : `${fieldClass} !w-[9rem]`}
+            aria-label="Admin status"
+          >
+            <option value="">All statuses</option>
+            <option value="unsold">Unsold ({availableCount})</option>
+            <option value="reserved">Reserved ({reservedCount})</option>
+            <option value="sold">Booked ({soldOnlyCount})</option>
+          </select>
+        </FieldWrap>
+      )}
+    </div>
+  );
+}
 
 function planTotal(p: any) {
   return typeof p.discountedPrice === 'number' ? Number(p.discountedPrice) : Number(p.price || 0);
@@ -76,6 +258,8 @@ export default function InvestPage() {
   const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
   const [showSold, setShowSold] = useState(true);
   const [adminStatus, setAdminStatus] = useState<AdminStatusFilter>('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const sheetTitleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     hydrate();
@@ -123,6 +307,30 @@ export default function InvestPage() {
     if (typeof window === 'undefined') return;
     const q = new URLSearchParams(window.location.search).get('q');
     if (q) setFilters((f) => ({ ...f, q }));
+  }, []);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    sheetTitleRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFiltersOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [filtersOpen]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const onChange = () => {
+      if (mq.matches) setFiltersOpen(false);
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
   }, []);
 
   const filterOptions = useMemo(() => {
@@ -212,6 +420,11 @@ export default function InvestPage() {
     return base + (isAdmin && adminStatus ? 1 : 0);
   }, [filters, isAdmin, adminStatus]);
 
+  const sheetFilterCount = useMemo(() => {
+    const base = Object.entries(filters).filter(([k, v]) => k !== 'q' && String(v).trim() !== '').length;
+    return base + (isAdmin && adminStatus ? 1 : 0);
+  }, [filters, isAdmin, adminStatus]);
+
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
@@ -221,17 +434,85 @@ export default function InvestPage() {
     if (isAdmin) setAdminStatus('');
   }
 
-  function humanView(v?: string) {
-    const s = (v || '').toLowerCase();
-    if (s.includes('sea')) return 'Sea View';
-    if (s.includes('hill')) return 'Hill View';
-    return v || '—';
-  }
-
   const compactField = 'field h-11 py-2.5 text-sm leading-normal !w-auto shrink-0';
+  const sheetField = 'field h-11 py-2.5 text-sm leading-normal';
+  const filterFieldProps = {
+    filters,
+    setFilter,
+    filterOptions,
+    isAdmin,
+    adminStatus,
+    setAdminStatus,
+    availableCount,
+    reservedCount,
+    soldOnlyCount
+  };
+  const activeChips = [
+    filters.view ? { key: 'view', label: humanView(filters.view), clear: () => setFilter('view', '') } : null,
+    filters.category ? { key: 'category', label: filters.category, clear: () => setFilter('category', '') } : null,
+    filters.floor ? { key: 'floor', label: `Floor ${filters.floor}`, clear: () => setFilter('floor', '') } : null,
+    filters.days
+      ? {
+          key: 'days',
+          label: Number(filters.days) >= 30 ? 'Full month' : `${filters.days} days`,
+          clear: () => setFilter('days', '')
+        }
+      : null,
+    filters.priceMin ? { key: 'priceMin', label: `Min ${filters.priceMin}`, clear: () => setFilter('priceMin', '') } : null,
+    filters.priceMax ? { key: 'priceMax', label: `Max ${filters.priceMax}`, clear: () => setFilter('priceMax', '') } : null,
+    isAdmin && adminStatus
+      ? {
+          key: 'status',
+          label: adminStatus === 'sold' ? 'Booked' : adminStatus === 'reserved' ? 'Reserved' : 'Unsold',
+          clear: () => setAdminStatus('')
+        }
+      : null
+  ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
+
+  const resultSummary = (
+    <p>
+      <span className="font-semibold text-ocean">{filtered.length}</span> shown
+      <span className="text-ocean/40"> · </span>
+      {availableCount} available
+      {(showSold || (isAdmin && !!adminStatus)) && (
+        <>
+          <span className="text-ocean/40"> · </span>
+          {soldCount} booked/reserved
+        </>
+      )}
+      {activeFilterCount > 0 && (
+        <>
+          <span className="text-ocean/40"> · </span>
+          {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}
+        </>
+      )}
+    </p>
+  );
+
+  const resultActions = (
+    <div className="flex flex-wrap items-center gap-x-3">
+      {!(isAdmin && adminStatus) && (
+        <button type="button" className="font-semibold text-ocean hover:text-gold" onClick={() => setShowSold((v) => !v)}>
+          {showSold ? 'Hide booked' : 'Show booked'}
+        </button>
+      )}
+      <button
+        type="button"
+        className="font-semibold text-ocean hover:text-gold"
+        onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
+      >
+        Price {priceSort === 'asc' ? '↑' : '↓'}
+      </button>
+      {activeFilterCount > 0 && (
+        <button type="button" className="font-semibold text-ocean hover:text-gold" onClick={clearFilters}>
+          Clear
+        </button>
+      )}
+    </div>
+  );
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-8 md:py-10">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 md:py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-3xl text-ocean md:text-4xl">Invest in a Suite</h1>
@@ -239,9 +520,9 @@ export default function InvestPage() {
             Reserve from 10% today. Booked cards show who already invested — name, profession, and city.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/invest/advisor">
-            <Button>Help me choose</Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+          <Link href="/invest/advisor" className="sm:inline-flex">
+            <Button className="w-full sm:w-auto">Help me choose</Button>
           </Link>
           <Button variant="ghost" onClick={load} className="px-3 py-2">
             {loading ? 'Refreshing…' : 'Refresh'}
@@ -251,138 +532,141 @@ export default function InvestPage() {
 
       {error && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <section className="sticky top-[4.75rem] z-40 mt-5 overflow-visible border border-ocean/10 bg-white/95 px-4 py-4 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-          <input
-            value={filters.q}
-            onChange={(e) => setFilter('q', e.target.value)}
-            className={`${compactField} min-w-[10rem] flex-1 !w-auto shrink`}
-            placeholder="Search plan, suite…"
-            aria-label="Search plans"
-          />
-          <select
-            value={filters.view}
-            onChange={(e) => setFilter('view', e.target.value)}
-            className={`${compactField} !w-[8.5rem]`}
-            aria-label="View"
-          >
-            <option value="">All views</option>
-            {filterOptions.views.map((v) => (
-              <option key={v} value={v}>
-                {humanView(v)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.category}
-            onChange={(e) => setFilter('category', e.target.value)}
-            className={`${compactField} !w-[8.5rem]`}
-            aria-label="Category"
-          >
-            <option value="">All types</option>
-            {filterOptions.categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.floor}
-            onChange={(e) => setFilter('floor', e.target.value)}
-            className={`${compactField} !w-[7rem]`}
-            aria-label="Floor"
-          >
-            <option value="">All floors</option>
-            {filterOptions.floors.map((f) => (
-              <option key={f} value={String(f)}>
-                Floor {f}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.days}
-            onChange={(e) => setFilter('days', e.target.value)}
-            className={`${compactField} !w-[7.5rem]`}
-            aria-label="Days per month"
-          >
-            <option value="">All days</option>
-            {filterOptions.days.map((d) => (
-              <option key={d} value={String(d)}>
-                {d >= 30 ? 'Full month' : `${d} days`}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min={0}
-            value={filters.priceMin}
-            onChange={(e) => setFilter('priceMin', e.target.value)}
-            className={`${compactField} !w-[7.5rem]`}
-            placeholder="Min ৳"
-            aria-label="Minimum price"
-          />
-          <input
-            type="number"
-            min={0}
-            value={filters.priceMax}
-            onChange={(e) => setFilter('priceMax', e.target.value)}
-            className={`${compactField} !w-[7.5rem]`}
-            placeholder="Max ৳"
-            aria-label="Maximum price"
-          />
-          {isAdmin && (
-            <select
-              value={adminStatus}
-              onChange={(e) => setAdminStatus(e.target.value as AdminStatusFilter)}
-              className={`${compactField} !w-[9rem]`}
-              aria-label="Admin status"
-            >
-              <option value="">All statuses</option>
-              <option value="unsold">Unsold ({availableCount})</option>
-              <option value="reserved">Reserved ({reservedCount})</option>
-              <option value="sold">Booked ({soldOnlyCount})</option>
-            </select>
-          )}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-ocean/70">
-          <p>
-            <span className="font-semibold text-ocean">{filtered.length}</span> shown
-            <span className="text-ocean/40"> · </span>
-            {availableCount} available
-            {(showSold || (isAdmin && !!adminStatus)) && (
-              <>
-                <span className="text-ocean/40"> · </span>
-                {soldCount} booked/reserved
-              </>
-            )}
-            {activeFilterCount > 0 && (
-              <>
-                <span className="text-ocean/40"> · </span>
-                {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}
-              </>
-            )}
-          </p>
-          <div className="flex flex-wrap items-center gap-x-3">
-            {!(isAdmin && adminStatus) && (
-              <button type="button" className="font-semibold text-ocean hover:text-gold" onClick={() => setShowSold((v) => !v)}>
-                {showSold ? 'Hide booked' : 'Show booked'}
-              </button>
-            )}
-            <button
-              type="button"
-              className="font-semibold text-ocean hover:text-gold"
-              onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
-            >
-              Price {priceSort === 'asc' ? '↑' : '↓'}
-            </button>
-            {activeFilterCount > 0 && (
-              <button type="button" className="font-semibold text-ocean hover:text-gold" onClick={clearFilters}>
-                Clear
+      <section className="sticky top-[3.85rem] z-40 mt-4 border border-ocean/10 bg-white/95 px-3 py-2 shadow-sm backdrop-blur md:hidden">
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <input
+              value={filters.q}
+              onChange={(e) => setFilter('q', e.target.value)}
+              className="field h-11 w-full py-2.5 pr-8 text-sm leading-normal"
+              placeholder="Search plan, suite…"
+              aria-label="Search plans"
+            />
+            {filters.q && (
+              <button
+                type="button"
+                onClick={() => setFilter('q', '')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-1 text-lg leading-none text-ocean/45"
+                aria-label="Clear search"
+              >
+                ×
               </button>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="inline-flex h-11 shrink-0 items-center border border-ocean/20 bg-white px-3 text-sm font-semibold text-ocean"
+            aria-expanded={filtersOpen}
+            aria-controls="invest-filters-sheet"
+          >
+            Filters
+            {sheetFilterCount > 0 && (
+              <span className="ml-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-ocean px-1 text-[11px] text-white">
+                {sheetFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+        {activeChips.length > 0 && (
+          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5">
+            {activeChips.map((chip) => (
+              <FilterChip key={chip.key} onRemove={chip.clear}>
+                {chip.label}
+              </FilterChip>
+            ))}
+          </div>
+        )}
+        <p className="mt-2 text-sm text-ocean/70">
+          <span className="font-semibold text-ocean">{filtered.length}</span> shown
+          {activeFilterCount > 0 && (
+            <>
+              <span className="text-ocean/40"> · </span>
+              {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'}
+            </>
+          )}
+        </p>
+      </section>
+
+      <section className="sticky top-[4.5rem] z-40 mt-5 hidden overflow-visible border border-ocean/10 bg-white/95 px-4 py-4 shadow-sm backdrop-blur md:block">
+        <CatalogFilters {...filterFieldProps} fieldClass={compactField} showSearch />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-ocean/70">
+          {resultSummary}
+          {resultActions}
         </div>
       </section>
+
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-ocean/40"
+            aria-label="Close filters"
+            onClick={() => setFiltersOpen(false)}
+          />
+          <div
+            id="invest-filters-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invest-filters-title"
+            className="absolute inset-x-0 bottom-0 flex max-h-[85vh] flex-col rounded-t-2xl bg-white shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-ocean/10 px-4 py-3">
+              <h2
+                id="invest-filters-title"
+                ref={sheetTitleRef}
+                tabIndex={-1}
+                className="font-display text-xl text-ocean outline-none"
+              >
+                Filters
+              </h2>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="px-2 text-2xl leading-none text-ocean/50"
+                aria-label="Close filters"
+              >
+                ×
+              </button>
+            </div>
+            <div className="overflow-y-auto px-4 py-4">
+              <div className="mb-4 flex flex-wrap gap-2">
+                {!(isAdmin && adminStatus) && (
+                  <button
+                    type="button"
+                    className="min-h-11 border border-ocean/15 px-3 text-sm font-semibold text-ocean"
+                    onClick={() => setShowSold((v) => !v)}
+                  >
+                    {showSold ? 'Hide booked' : 'Show booked'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="min-h-11 border border-ocean/15 px-3 text-sm font-semibold text-ocean"
+                  onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
+                >
+                  Price {priceSort === 'asc' ? 'low → high' : 'high → low'}
+                </button>
+              </div>
+              <CatalogFilters {...filterFieldProps} fieldClass={sheetField} labeled />
+            </div>
+            <div className="flex gap-2 border-t border-ocean/10 px-4 py-3">
+              {sheetFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="h-11 px-4 text-sm font-semibold text-ocean"
+                >
+                  Clear
+                </button>
+              )}
+              <Button className="h-11 flex-1 py-0" onClick={() => setFiltersOpen(false)}>
+                Show {filtered.length} plan{filtered.length === 1 ? '' : 's'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((p: any) => {

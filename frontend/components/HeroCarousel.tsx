@@ -72,7 +72,7 @@ export default function HeroCarousel({
       </div>
 
       {count > 1 && (
-        <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2 md:bottom-8">
+        <div className="absolute inset-x-0 top-4 z-20 flex items-center justify-center gap-2 md:bottom-8 md:top-auto">
           {slides.map((s, i) => (
             <button
               key={s.src}

@@ -55,9 +55,9 @@ export default function InvestAdvisorPage() {
   const badges = badgesFor(suggestions);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 md:py-14">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:py-14">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Invest</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Help me choose</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Help me choose</h1>
       <p className="mt-3 max-w-2xl text-ocean/70">
         Answer two questions. We’ll suggest a suite and how much to pay today — from live prices, not a sales pitch.
       </p>
@@ -139,7 +139,7 @@ export default function InvestAdvisorPage() {
             </label>
           </div>
         )}
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading} className="w-full sm:w-auto">
           {loading ? 'Finding a match…' : 'Show my options'}
         </Button>
       </form>
@@ -198,8 +198,9 @@ export default function InvestAdvisorPage() {
               <div className="mt-4">
                 <Link
                   href={`/pricing/plans/${s.planId}?tier=${encodeURIComponent(s.paymentTierId)}&months=${s.installmentMonths}`}
+                  className="block sm:inline-flex"
                 >
-                  <Button>Continue with this plan</Button>
+                  <Button className="w-full sm:w-auto">Continue with this plan</Button>
                 </Link>
               </div>
             </article>

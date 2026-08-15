@@ -47,7 +47,7 @@ export default function FeaturesGrid() {
   return (
     <div className="grid grid-cols-1 gap-px overflow-hidden border border-ocean/10 bg-ocean/10 sm:grid-cols-2 md:grid-cols-4">
       {amenities.map((a) => (
-        <div key={a.title} className="group bg-white p-6 transition-colors hover:bg-pearl">
+        <div key={a.title} className="group bg-white p-4 transition-colors hover:bg-pearl sm:p-6">
           <div className="relative h-9 w-9">
             <Image src={a.icon} alt="" fill sizes="36px" />
           </div>

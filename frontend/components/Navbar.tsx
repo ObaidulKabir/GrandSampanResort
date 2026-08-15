@@ -35,12 +35,21 @@ export default function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false);
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   function onLogout() {
@@ -53,13 +62,14 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gold/20 bg-pearl/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="flex min-w-0 items-center gap-3" onClick={() => setOpen(false)}>
-          <span className="relative h-10 w-10 shrink-0">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 md:py-4">
+        <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3" onClick={() => setOpen(false)}>
+          <span className="relative h-9 w-9 shrink-0 sm:h-10 sm:w-10">
             <Image src="/images/logo.png" alt="Grand Sampan Resort" fill sizes="40px" className="object-contain" />
           </span>
-          <span className="font-display truncate text-lg font-bold text-ocean sm:text-xl">
-            Unitech Grand Sampan Resort
+          <span className="font-display truncate text-base font-bold text-ocean sm:text-lg md:text-xl">
+            <span className="sm:hidden">Grand Sampan</span>
+            <span className="hidden sm:inline">Unitech Grand Sampan Resort</span>
           </span>
         </Link>
 
@@ -94,7 +104,7 @@ export default function Navbar() {
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-md border border-ocean/20 px-3 py-2 text-ocean md:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-ocean/20 text-ocean md:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? 'Close menu' : 'Open menu'}
@@ -110,13 +120,20 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav id="mobile-nav" className="border-t border-gold/20 bg-pearl px-6 py-4 md:hidden">
-          <ul className="flex flex-col gap-1">
+        <nav
+          id="mobile-nav"
+          className="max-h-[min(32rem,calc(100dvh-3.5rem))] overflow-y-auto border-t border-gold/20 bg-pearl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 md:hidden"
+        >
+          <ul className="flex flex-col">
             {navLinks.map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="block rounded-md px-3 py-3 text-ocean hover:bg-ocean/5"
+                  className={`block rounded-md px-3 py-3.5 text-base ${
+                    pathname === l.href || pathname.startsWith(`${l.href}/`)
+                      ? 'bg-ocean/5 font-semibold text-ocean'
+                      : 'text-ocean hover:bg-ocean/5'
+                  }`}
                   onClick={() => setOpen(false)}
                 >
                   {l.label}
@@ -129,7 +146,7 @@ export default function Navbar() {
                 <li>
                   <button
                     type="button"
-                    className="block w-full rounded-md px-3 py-3 text-left text-ocean hover:bg-ocean/5"
+                    className="block w-full rounded-md px-3 py-3.5 text-left text-base text-ocean hover:bg-ocean/5"
                     onClick={onLogout}
                   >
                     Log out
@@ -140,7 +157,7 @@ export default function Navbar() {
               <li>
                 <Link
                   href="/auth/login"
-                  className="block rounded-md px-3 py-3 text-ocean hover:bg-ocean/5"
+                  className="block rounded-md px-3 py-3.5 text-base text-ocean hover:bg-ocean/5"
                   onClick={() => setOpen(false)}
                 >
                   Sign In

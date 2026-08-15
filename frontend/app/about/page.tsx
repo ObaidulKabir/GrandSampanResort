@@ -2,7 +2,7 @@ import AboutProject from '@/components/AboutProject';
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-7xl px-6 py-16">
+    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-16">
       <AboutProject />
 
       <section className="mx-auto mt-12 max-w-4xl">

@@ -676,10 +676,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
   if (confirmation) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16 md:py-24">
+      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-24">
         <div className="border border-gold/40 bg-white p-8 md:p-10">
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Booking submitted</p>
-          <h1 className="font-display mt-2 text-4xl text-ocean">Plan reserved</h1>
+          <h1 className="font-display mt-2 text-3xl text-ocean md:text-4xl">Plan reserved</h1>
           <p className="mt-3 text-ocean/75">
             {plan?.name ? `Your ${plan.name} plan` : 'Your plan'}
             {suite?.id ? ` on suite ${suite.id}` : ''} is reserved. The booking will be completed after
@@ -709,12 +709,12 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </p>
             </div>
           </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/investor">
-              <Button>Open owner portal</Button>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/investor" className="sm:inline-flex">
+              <Button className="w-full sm:w-auto">Open owner portal</Button>
             </Link>
-            <Link href="/invest">
-              <Button variant="outline">Browse more plans</Button>
+            <Link href="/invest" className="sm:inline-flex">
+              <Button variant="outline" className="w-full sm:w-auto">Browse more plans</Button>
             </Link>
           </div>
           <p className="mt-6 text-sm text-ocean/60">
@@ -729,11 +729,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-12 md:py-16">
-      <div className="grid gap-10 lg:grid-cols-[1.4fr_0.9fr]">
+    <main className="mx-auto max-w-7xl px-4 py-8 pb-28 sm:px-6 md:py-16 lg:pb-16">
+      <div className="grid gap-8 lg:grid-cols-[1.4fr_0.9fr] lg:gap-10">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Share plan</p>
-          <h1 className="font-display mt-2 text-4xl text-ocean">{plan?.name || 'Plan Details'}</h1>
+          <h1 className="font-display mt-2 text-3xl text-ocean md:text-4xl">{plan?.name || 'Plan Details'}</h1>
           <p className="mt-2 text-ocean/75">
             {plan
               ? `${plan.daysPerMonth} days each month · share held ${plan.lockIn ?? 36} months`
@@ -850,7 +850,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           {(plan?.suiteId || suite?.id) && <SuitePlans suiteId={plan?.suiteId || suite!.id} />}
         </div>
 
-        <aside className="border border-gold/40 bg-white p-6 lg:sticky lg:top-24 lg:self-start">
+        <aside id="reserve-panel" className="scroll-mt-24 border border-gold/40 bg-white p-4 sm:p-6 lg:sticky lg:top-24 lg:self-start">
           {!available ? (
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-gold">
@@ -1478,10 +1478,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
         {showTools && (
           <div className="mt-6">
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               <button
                 onClick={() => setTab('payment')}
-                className={`rounded-md border px-4 py-2 text-sm ${
+                className={`shrink-0 rounded-md border px-4 py-2.5 text-sm ${
                   tab === 'payment' ? 'border-ocean bg-ocean text-white' : 'border-ocean/20 text-ocean'
                 }`}
               >
@@ -1489,7 +1489,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </button>
               <button
                 onClick={() => setTab('returns')}
-                className={`rounded-md border px-4 py-2 text-sm ${
+                className={`shrink-0 rounded-md border px-4 py-2.5 text-sm ${
                   tab === 'returns' ? 'border-ocean bg-ocean text-white' : 'border-ocean/20 text-ocean'
                 }`}
               >
@@ -1626,6 +1626,28 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           </div>
         )}
       </section>
+
+      {available && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ocean/10 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(14,58,90,0.12)] pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+          <div className="mx-auto flex max-w-7xl items-center gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-ocean/50">Due today</p>
+              <p className="font-display truncate text-lg font-bold leading-tight text-ocean">
+                {formatMoney(depositPreview)}
+              </p>
+            </div>
+            <Button
+              type="button"
+              className="ml-auto shrink-0 bg-gold px-4 py-2.5 text-ocean hover:bg-gold/90"
+              onClick={() =>
+                document.getElementById('reserve-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+            >
+              Continue
+            </Button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -62,9 +62,9 @@ export default function DesignLayoutPage() {
   const showFallback = !loading && items.length === 0;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-16">
+    <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 md:py-16">
       <p className="text-sm font-semibold uppercase tracking-wide text-gold">Project drawings</p>
-      <h1 className="font-display mt-1 text-4xl text-ocean">Design &amp; Layout</h1>
+      <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Design &amp; Layout</h1>
       <p className="mt-3 max-w-2xl text-ocean/75">
         Explore the master layout, block plans, and related drawings for Unitech Grand Sampan Resort. Click an image to
         enlarge, or open a PDF for a full-resolution view.

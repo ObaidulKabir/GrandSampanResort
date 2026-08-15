@@ -16,7 +16,7 @@ export default function ReturnsIncomePage() {
   }, [planDays, occupancy, adr]);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 md:py-16">
       <h1 className="font-['Playfair Display'] text-4xl text-ocean">Returns & Income</h1>
       <p className="mt-3 text-ocean/80">Illustrative calculator with a 60% investor share and occupancy model.</p>
 

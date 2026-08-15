@@ -136,20 +136,20 @@ export default function InvestorPage() {
 
   if (hydrated && !token) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-16">
-        <h1 className="font-display text-4xl text-ocean">Your ownership portal</h1>
+      <main className="mx-auto max-w-3xl px-4 py-12 sm:px-6 md:py-16">
+        <h1 className="font-display text-3xl text-ocean md:text-4xl">Your ownership portal</h1>
         <p className="mt-3 text-ocean/75">
           Sign in to view holdings, payment schedules, and make installment payments.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/auth/login?next=/investor">
-            <Button>Sign in</Button>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <Link href="/auth/login?next=/investor" className="sm:inline-flex">
+            <Button className="w-full sm:w-auto">Sign in</Button>
           </Link>
-          <Link href="/auth/register">
-            <Button variant="outline">Create account</Button>
+          <Link href="/auth/register" className="sm:inline-flex">
+            <Button variant="outline" className="w-full sm:w-auto">Create account</Button>
           </Link>
-          <Link href="/invest">
-            <Button variant="ghost">Browse plans</Button>
+          <Link href="/invest" className="sm:inline-flex">
+            <Button variant="ghost" className="w-full sm:w-auto">Browse plans</Button>
           </Link>
         </div>
       </main>
@@ -157,24 +157,24 @@ export default function InvestorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-12 md:py-16">
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Owner portal</p>
-          <h1 className="font-display mt-1 text-4xl text-ocean">Welcome{me?.name ? `, ${me.name}` : ''}</h1>
+          <h1 className="font-display mt-1 text-3xl text-ocean md:text-4xl">Welcome{me?.name ? `, ${me.name}` : ''}</h1>
           <p className="mt-2 text-ocean/75">{me?.email}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/invest">
-            <Button>Buy another plan</Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Link href="/invest" className="sm:inline-flex">
+            <Button className="w-full sm:w-auto">Buy another plan</Button>
           </Link>
-          <Link href="/auth/change-password">
-            <Button variant="outline">Change password</Button>
+          <Link href="/auth/change-password" className="sm:inline-flex">
+            <Button variant="outline" className="w-full sm:w-auto">Change password</Button>
           </Link>
-          <Button variant="outline" onClick={loadAll}>
+          <Button variant="outline" className="w-full sm:w-auto" onClick={loadAll}>
             {loading ? 'Refreshing...' : 'Refresh'}
           </Button>
-          <Button variant="ghost" onClick={logout}>
+          <Button variant="ghost" className="w-full sm:w-auto" onClick={logout}>
             Sign out
           </Button>
         </div>
