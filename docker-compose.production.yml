@@ -33,7 +33,7 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_NAME=${ADMIN_NAME}
-      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-https://www.grandsampanresort.com}
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-https://staging.grandsampanresort.com}
       - SMTP_HOST=${SMTP_HOST:-smtppro.zoho.com}
       - SMTP_PORT=${SMTP_PORT:-465}
       - SMTP_SECURE=${SMTP_SECURE:-true}
@@ -67,18 +67,18 @@ services:
       - "${POSTGRES_PORT_HOST:-5432}:5432"
     networks:
       - app-network
-  db-explorer:
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@local.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-    networks:
-      - app-network
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    restart: unless-stopped
-    ports:
-      - "8088:80"
+  # db-explorer:
+  #   image: dpage/pgadmin4:latest
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@local.com}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+  #   networks:
+  #     - app-network
+  #   volumes:
+  #     - pgadmin_data:/var/lib/pgadmin
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8088:80"
 networks:
   app-network:
     external: false

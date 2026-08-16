@@ -4,22 +4,19 @@ services:
       context: ./frontend
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        # Internal rewrite target for /uploads → backend (never the public CF URL).
+        - API_URL=http://grand-sampan-backend:4000
       target: production
     container_name: grand-sampan-frontend
     restart: unless-stopped
     environment:
       # Server-rendered pages call the backend over the internal Docker
-      # network instead of hairpinning back out through the public domain
-      # and Traefik; the browser still uses NEXT_PUBLIC_API_URL.
+      # network instead of hairpinning back out through the public domain.
       - API_URL=http://grand-sampan-backend:4000
     networks:
-      - traefik-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grand-sampan-frontend.rule=Host(`www.grandsampanresort.com`)"
-      - "traefik.http.routers.grand-sampan-frontend.entrypoints=web"
-      - "traefik.http.routers.grand-sampan-frontend.priority=1" 
-      - "traefik.http.services.grand-sampan-frontend.loadbalancer.server.port=3000"
+      - app-network
+    ports:
+      - "3004:3000"
 
   backend:
     build:
@@ -42,26 +39,41 @@ services:
       - SMTP_SECURE=${SMTP_SECURE:-true}
       - SMTP_USER=${SMTP_USER:-admin@grandsampanresort.com}
       - SMTP_PASS=${SMTP_PASS}
-      - MAIL_FROM=${MAIL_FROM:-Grand Sampan Resort <admin@grandsampanresort.com>}
+      - MAIL_FROM=${MAIL_FROM:-admin@grandsampanresort.com}
       - MAIL_BCC=${MAIL_BCC:-admin@grandsampanresort.com}
-
+    ports:
+      - "4004:4000"
     volumes:
       # Persist uploaded media across container rebuilds/redeploys.
       - uploads_data:/app/uploads
     networks:
-      - traefik-network
-    labels:
-      - "traefik.enable=true"
-      # Serve both JSON APIs and static /uploads from the backend. Without
-      # /uploads here, Traefik sends image requests to Next.js (404).
-      - "traefik.http.routers.grand-sampan-backend.rule=Host(`www.grandsampanresort.com`) && (PathPrefix(`/api`) || PathPrefix(`/uploads`))"
-      - "traefik.http.routers.grand-sampan-backend.entrypoints=web"
-      - "traefik.http.routers.grand-sampan-backend.priority=100"
-      - "traefik.http.services.grand-sampan-backend.loadbalancer.server.port=4000" 
+      - app-network
+
+  primary-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "${POSTGRES_PORT_HOST:-5432}:5432"
+    networks:
+      - app-network 
 networks:
-  traefik-network:
-    external: true
+  app-network:
+    external: false
 
 volumes:
   grand_sampan_db_prod_data:
   uploads_data:
+  pgdata:
+    external: true
+  pgadmin_data:
