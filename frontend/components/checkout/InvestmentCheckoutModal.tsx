@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
+import { generatePaymentSchedule, scheduleTotals } from '@/lib/schedule';
 import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
 import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
@@ -93,6 +94,29 @@ export default function InvestmentCheckoutModal({
       .catch(() => {}); // tiers remain empty until loaded
   }, [isOpen]);
 
+  function fallbackQuote(tierId: string) {
+    const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
+    const disc = tier?.discountPct ?? 0;
+    const net = Math.round(plan!.price * (1 - disc / 100));
+    const schedule = generatePaymentSchedule(net, new Date(), {
+      upfrontPct: tier?.dueTodayPct ?? 10,
+      downpaymentPct: 20,
+      downpaymentAfterMonths: 3,
+      installmentMonths: 24,
+      cadence: 'monthly',
+    });
+    return {
+      listPrice: plan!.price,
+      advanceDiscountPct: disc,
+      netPrice: net,
+      amountTotal: net,
+      depositAmount: schedule.find((s) => s.type === 'deposit')?.amount ?? 0,
+      paymentTierId: tierId,
+      tierId,
+      schedule,
+    };
+  }
+
   // Fetch signed PV Quote whenever plan or selected tier changes
   const fetchQuote = async (tierId: string = selectedTierId) => {
     if (!plan) return;
@@ -107,28 +131,23 @@ export default function InvestmentCheckoutModal({
           referralCode: referralCode.trim() || undefined,
         }),
       });
-      if (res && res.amountTotal) {
-        setQuoteData(res);
-      } else {
-        // Fallback: use the resolved tier data from the admin policy
-        const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
-        const disc = tier?.discountPct ?? 0;
+      const q = res?.quote || (res?.netPrice || res?.amountTotal ? res : null);
+      if (q) {
+        const net = Number(q.netPrice ?? q.amountTotal) || 0;
         setQuoteData({
-          listPrice: plan.price,
-          advanceDiscountPct: disc,
-          amountTotal: Math.round(plan.price * (1 - disc / 100)),
-          tierId,
+          ...q,
+          netPrice: net,
+          amountTotal: net,
+          depositAmount: q.depositAmount ?? q.schedule?.find((s: any) => s.type === 'deposit')?.amount,
+          paymentTierId: q.paymentTierId || tierId,
+          tierId: q.paymentTierId || tierId,
+          schedule: q.schedule,
         });
+      } else {
+        setQuoteData(fallbackQuote(tierId));
       }
     } catch {
-      const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
-      const disc = tier?.discountPct ?? 0;
-      setQuoteData({
-        listPrice: plan.price,
-        advanceDiscountPct: disc,
-        amountTotal: Math.round(plan.price * (1 - disc / 100)),
-        tierId,
-      });
+      setQuoteData(fallbackQuote(tierId));
     }
     setLoadingQuote(false);
   };
@@ -143,8 +162,12 @@ export default function InvestmentCheckoutModal({
 
   const currentTier = resolvedTiers.find((t) => t.id === selectedTierId) || resolvedTiers[0];
   const disc = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
-  const netPrice = quoteData?.amountTotal ?? Math.round(plan.price * (1 - disc / 100));
-  const dueTodayAmount = Math.round(netPrice * ((currentTier?.dueTodayPct ?? 10) / 100));
+  const netPrice = Number(quoteData?.netPrice ?? quoteData?.amountTotal) || Math.round(plan.price * (1 - disc / 100));
+  const dueTodayAmount =
+    Number(quoteData?.depositAmount) ||
+    Number(quoteData?.schedule?.find((s: any) => s.type === 'deposit')?.amount) ||
+    Math.round(netPrice * ((currentTier?.dueTodayPct ?? 10) / 100));
+  const payTotals = scheduleTotals(quoteData?.schedule || []);
 
   const validateKyc = () => {
     const k = kycData;
@@ -390,6 +413,29 @@ export default function InvestmentCheckoutModal({
                       </div>
                     </div>
 
+                    <div className="grid gap-2 text-xs sm:grid-cols-3">
+                      <div className="rounded-lg border border-ocean/10 bg-pearl p-3">
+                        <span className="text-ocean/60 block">Downpayment</span>
+                        <span className="font-bold text-sm text-ocean">
+                          {payTotals.downpayment > 0 ? formatMoney(payTotals.downpayment) : 'Included today'}
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-ocean/10 bg-pearl p-3">
+                        <span className="text-ocean/60 block">
+                          {payTotals.installmentCount ? `${payTotals.installmentCount} installments` : 'Installments'}
+                        </span>
+                        <span className="font-bold text-sm text-ocean">
+                          {payTotals.installmentCount ? formatMoney(payTotals.installmentAmount) : 'None'}
+                        </span>
+                      </div>
+                      <div className="rounded-lg border border-ocean/10 bg-pearl p-3">
+                        <span className="text-ocean/60 block">Schedule total</span>
+                        <span className="font-bold text-sm text-ocean">
+                          {formatMoney(payTotals.scheduledTotal || netPrice)}
+                        </span>
+                      </div>
+                    </div>
+
                     <div className="rounded-lg bg-ocean p-4 text-white flex items-center justify-between">
                       <div>
                         <span className="text-xs text-gold uppercase font-semibold">First Deposit Payment Due Today</span>
@@ -407,7 +453,7 @@ export default function InvestmentCheckoutModal({
                   <div className="rounded-xl border border-ocean/10 bg-pearl p-5 space-y-4">
                     <h3 className="font-display text-lg text-ocean">Select Deposit Payment Method</h3>
                     <p className="text-xs text-ocean/70">
-                      Choose how you are submitting your initial deposit (৳{formatMoney(dueTodayAmount)}).
+                      Choose how you are submitting your initial deposit ({formatMoney(dueTodayAmount)}).
                     </p>
 
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -503,7 +549,7 @@ export default function InvestmentCheckoutModal({
               </Button>
             ) : (
               <Button onClick={handleSubmitBooking} disabled={submitting} className="px-8 bg-gold text-ocean hover:bg-gold/90 font-bold">
-                {submitting ? 'Submitting Reservation...' : `Confirm & Submit Deposit (৳${formatMoney(dueTodayAmount)})`}
+                {submitting ? 'Submitting Reservation...' : `Confirm & Submit Deposit (${formatMoney(dueTodayAmount)})`}
               </Button>
             )}
           </div>

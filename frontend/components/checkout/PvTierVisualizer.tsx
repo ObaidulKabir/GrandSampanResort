@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatMoney } from '@/lib/format';
+import { generatePaymentSchedule, scheduleTotals } from '@/lib/schedule';
 
 export type PaymentTierInfo = {
   id: string;
@@ -52,11 +53,20 @@ type QuoteData = {
   promoName?: string;
   afterPromo?: number;
   advanceDiscountPct?: number;
-  amountTotal: number;
+  amountTotal?: number;
+  netPrice?: number;
+  depositAmount?: number;
   tierId: string;
   quoteToken?: string;
   expiresAt?: string;
   schedule?: ScheduleItem[];
+  assumptions?: {
+    downpaymentPct?: number;
+    downpaymentAfterMonths?: number;
+  };
+  installmentMonths?: number;
+  cadence?: 'monthly' | 'quarterly';
+  upfrontPct?: number;
 };
 
 type Props = {
@@ -118,8 +128,19 @@ export default function PvTierVisualizer({
 
   const currentTier = tiers.find((t) => t.id === selectedTierId) || tiers[0];
   const discountPct = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
-  const netPrice = quoteData?.amountTotal ?? Math.round(listPrice * (1 - discountPct / 100));
+  const netPrice = Number(quoteData?.netPrice ?? quoteData?.amountTotal) || Math.round(listPrice * (1 - discountPct / 100));
   const savings = Math.max(0, listPrice - netPrice);
+  const schedule = useMemo(() => {
+    if (quoteData?.schedule?.length) return quoteData.schedule;
+    return generatePaymentSchedule(netPrice, new Date(), {
+      upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
+      downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
+      downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
+      installmentMonths: quoteData?.installmentMonths ?? 24,
+      cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
+    });
+  }, [quoteData, netPrice, currentTier?.dueTodayPct]);
+  const totals = scheduleTotals(schedule);
 
   if (!tiers.length) {
     return (
@@ -261,10 +282,33 @@ export default function PvTierVisualizer({
           </div>
         </div>
 
+        <div className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
+          <div className="rounded-lg bg-white px-3 py-2.5">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-ocean/50">Due today</span>
+            <span className="font-display text-lg font-bold text-ocean">{formatMoney(totals.deposit)}</span>
+          </div>
+          <div className="rounded-lg bg-white px-3 py-2.5">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-ocean/50">Downpayment</span>
+            <span className="font-display text-lg font-bold text-ocean">
+              {totals.downpayment > 0 ? formatMoney(totals.downpayment) : 'Included today'}
+            </span>
+          </div>
+          <div className="rounded-lg bg-white px-3 py-2.5">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-ocean/50">
+              {totals.installmentCount ? `${totals.installmentCount} installments` : 'Installments'}
+            </span>
+            <span className="font-display text-lg font-bold text-ocean">
+              {totals.installmentCount ? formatMoney(totals.installmentAmount) : 'None'}
+            </span>
+          </div>
+        </div>
+
         {/* Schedule Preview Toggle */}
         <div className="mt-4 flex items-center justify-between">
           <span className="text-xs text-ocean/70">
-            {quoteData?.schedule?.length ? `${quoteData.schedule.length} payment installments scheduled` : 'Installment breakdown available'}
+            {schedule.length
+              ? `${schedule.length} payments · total ${formatMoney(totals.scheduledTotal)}`
+              : 'Installment breakdown available'}
           </span>
           <button
             type="button"
@@ -276,7 +320,7 @@ export default function PvTierVisualizer({
         </div>
 
         {/* Expandable Installments Table */}
-        {showSchedule && quoteData?.schedule && (
+        {showSchedule && schedule.length > 0 && (
           <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-ocean/10 bg-white p-3 text-xs">
             <table className="w-full text-left">
               <thead>
@@ -287,7 +331,7 @@ export default function PvTierVisualizer({
                 </tr>
               </thead>
               <tbody className="divide-y divide-ocean/5">
-                {quoteData.schedule.map((item, idx) => (
+                {schedule.map((item, idx) => (
                   <tr key={idx} className="hover:bg-pearl/50">
                     <td className="py-2 capitalize font-medium text-ocean">{item.type.replace('_', ' ')}</td>
                     <td className="py-2 text-ocean/70">
