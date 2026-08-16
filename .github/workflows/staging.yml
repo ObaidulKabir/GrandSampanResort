@@ -2,9 +2,8 @@ name: Staging CI/CD
 
 on:
   push:
-    branches:
-      - dev
-      - staging
+    branches-ignore:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -124,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
     needs: [backend, backend-integration, frontend, docker]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'push' && github.ref != 'refs/heads/main') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Update Code on Staging Server
