@@ -60,6 +60,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'staging.grandsampanresort.com',
+        pathname: '/uploads/**'
+      },
+      {
+        protocol: 'https',
         hostname: 'grandsampanresort.com',
         pathname: '/uploads/**'
       }

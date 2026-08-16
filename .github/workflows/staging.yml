@@ -1,9 +1,8 @@
-name: Pull Request CI
+name: Staging CI/CD
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
       - dev
       - staging
   workflow_dispatch:
@@ -104,7 +103,7 @@ jobs:
       - run: npm ci
       - run: npm run check:messages
       - run: npm run test
-      - name: Production build check
+      - name: Staging build check
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000
@@ -115,6 +114,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build backend image
-        run: docker build -t gs-backend:ci ./backend
+        run: docker build -t gs-backend:staging ./backend
       - name: Build frontend image
-        run: docker build -t gs-frontend:ci ./frontend
+        run: docker build -t gs-frontend:staging ./frontend
+
+  # ─── Deploy to Staging ───────────────────────────────────────────
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [backend, backend-integration, frontend, docker]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Update Code on Staging Server
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.APP_PATH }}
+            git fetch -p
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+
+      - name: Build and Deploy Staging Containers
+        uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd ${{ secrets.APP_PATH }}
+            docker compose -f docker-compose.staging.yml up -d --build --remove-orphans
