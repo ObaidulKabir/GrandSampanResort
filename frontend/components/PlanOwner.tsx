@@ -58,11 +58,14 @@ function Portrait({
 export default function PlanOwner({
   owner,
   statusLabel,
-  compact = false
+  compact = false,
+  hidePhoto = false
 }: {
   owner: PublicOwner;
   statusLabel?: string;
   compact?: boolean;
+  /** Catalog privacy: name / profession / city / status only — no portrait. */
+  hidePhoto?: boolean;
 }) {
   const profession = String(owner.profession || '').trim();
   const city = String(owner.city || '').trim();
@@ -70,11 +73,11 @@ export default function PlanOwner({
   if (compact) {
     return (
       <span className="inline-flex min-w-0 items-center gap-2">
-        <Portrait owner={owner} size="sm" />
+        {!hidePhoto ? <Portrait owner={owner} size="sm" /> : null}
         <span className="min-w-0 truncate text-ocean/80">
           <span className="font-medium text-ocean">{owner.name}</span>
           {profession ? <span className="text-ocean/55"> · {profession}</span> : null}
-          {city ? <span className="text-ocean/55"> · from {city}</span> : null}
+          {city ? <span className="text-ocean/55"> · {city}</span> : null}
         </span>
       </span>
     );
@@ -82,14 +85,14 @@ export default function PlanOwner({
 
   return (
     <div className="flex items-center gap-3">
-      <Portrait owner={owner} size="md" />
+      {!hidePhoto ? <Portrait owner={owner} size="md" /> : null}
       <div className="min-w-0">
         {statusLabel && (
           <p className="text-[10px] font-bold uppercase tracking-wide text-ocean/55">{statusLabel}</p>
         )}
         <p className="truncate font-semibold text-ocean">{owner.name}</p>
         {profession ? <p className="truncate text-sm text-ocean/75">{profession}</p> : null}
-        {city ? <p className="truncate text-xs text-ocean/60">from {city}</p> : null}
+        {city ? <p className="truncate text-xs text-ocean/60">{city}</p> : null}
       </div>
     </div>
   );

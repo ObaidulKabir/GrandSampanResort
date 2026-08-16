@@ -15,9 +15,9 @@ describe('toPublicOwner', () => {
     expect(owner).toEqual({
       name: 'Rahim Uddin',
       city: 'Chattogram',
-      profession: 'Businessman',
-      picUrl: '/uploads/a.jpg'
+      profession: 'Businessman'
     });
+    expect(owner).not.toHaveProperty('picUrl');
   });
 
   it('falls back to the last part of address when city is blank', () => {

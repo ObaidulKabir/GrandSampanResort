@@ -746,11 +746,10 @@ export default function InvestPage() {
               ) : sold ? (
                 <div className="mt-3 border border-ocean/10 bg-pearl px-3 py-2.5">
                   {owner ? (
-                    <PlanOwner owner={owner} statusLabel={t('bookedBy')} />
+                    <PlanOwner owner={owner} statusLabel={statusLabel} hidePhoto />
                   ) : (
                     <p className="text-sm text-ocean/70">{t('shareBooked')}</p>
                   )}
-                  <p className="mt-2 text-xs text-ocean/55">{t('soldAt', { amount: formatMoney(total) })}</p>
                 </div>
               ) : (
                 <p className="mt-3 text-sm text-ocean/70">{t('heldBooking')}</p>
@@ -774,8 +773,8 @@ export default function InvestPage() {
                 </p>
               ) : null}
 
-              <div className="mt-3">
-                {available ? (
+              {available ? (
+                <div className="mt-3">
                   <Button
                     onClick={() => {
                       const suite = suites[p.suiteId] || {};
@@ -786,13 +785,9 @@ export default function InvestPage() {
                   >
                     {t('reserveFrom', { amount: formatMoney(bookingAmount) })}
                   </Button>
-                ) : sold ? (
-                  <Link href={`/pricing/plans/${p.id}`} className="block">
-                    <Button variant="outline" className="w-full px-4 py-2.5">
-                      {owner ? t('seeWhoBooked') : t('viewBookedPlan')}
-                    </Button>
-                  </Link>
-                ) : (
+                </div>
+              ) : !sold ? (
+                <div className="mt-3">
                   <Button
                     disabled
                     variant="outline"
@@ -800,8 +795,8 @@ export default function InvestPage() {
                   >
                     {t('statusReserved')}
                   </Button>
-                )}
-              </div>
+                </div>
+              ) : null}
             </article>
           );
         })}

@@ -288,7 +288,7 @@ export default function SuitesPage() {
                             </span>
                             {!available && p.owner && (
                               <p className="mt-0.5 text-xs">
-                                <PlanOwner owner={p.owner} compact />
+                                <PlanOwner owner={p.owner} compact hidePhoto />
                               </p>
                             )}
                           </div>
@@ -304,13 +304,6 @@ export default function SuitesPage() {
                                 className="inline-flex min-h-9 items-center text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
                               >
                                 {t('buy')}
-                              </Link>
-                            ) : isSoldPlan(p) ? (
-                              <Link
-                                href={`/pricing/plans/${encodeURIComponent(p.id)}`}
-                                className="inline-flex min-h-9 items-center text-sm font-semibold text-ocean underline decoration-gold underline-offset-4"
-                              >
-                                {t('seeWho')}
                               </Link>
                             ) : null}
                           </div>

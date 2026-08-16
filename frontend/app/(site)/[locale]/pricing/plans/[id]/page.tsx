@@ -771,7 +771,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           {booked && (
             <div className="mt-6 border border-ocean/15 bg-pearl px-4 py-4">
               {plan?.owner ? (
-                <PlanOwner owner={plan.owner} statusLabel={t('bookedBy')} />
+                <PlanOwner owner={plan.owner} statusLabel={t('bookedBy')} hidePhoto />
               ) : (
                 <p className="text-sm text-ocean/75">{t('alreadyBooked')}</p>
               )}
@@ -864,7 +864,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </h2>
               <div className="mt-4 border border-ocean/10 bg-pearl px-3 py-3">
                 {booked && plan?.owner ? (
-                  <PlanOwner owner={plan.owner} statusLabel={t('bookedBy')} />
+                  <PlanOwner owner={plan.owner} statusLabel={t('bookedBy')} hidePhoto />
                 ) : booked ? (
                   <p className="text-sm text-ocean/75">{t('alreadyBooked')}</p>
                 ) : (
@@ -1126,10 +1126,10 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                     owner={{
                       name: kyc.name.trim() || t('yourName'),
                       profession: kyc.profession.trim(),
-                      city: kyc.city.trim(),
-                      picUrl: kyc.picUrl || picPreview.pic || null
+                      city: kyc.city.trim()
                     }}
                     statusLabel={t('bookedBy')}
+                    hidePhoto
                   />
                 </div>
               )}
