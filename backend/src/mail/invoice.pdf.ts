@@ -20,9 +20,10 @@ export type InvoiceData = {
   currency?: string;
 };
 
-function money(amount: number, currency = 'BDT') {
-  const n = Math.round(Number(amount) || 0);
-  return `${currency} ${n.toLocaleString('en-BD')}`;
+function money(amount: number, _currency = 'BDT') {
+  const n = Math.round(Math.abs(Number(amount) || 0));
+  const body = `Tk${n.toLocaleString('en-IN')}/-`;
+  return Number(amount) < 0 ? `-${body}` : body;
 }
 
 function methodLabel(method: string) {

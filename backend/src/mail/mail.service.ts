@@ -463,7 +463,10 @@ export class MailService {
 }
 
 function formatMoney(amount: number) {
-  return `BDT ${Math.round(Number(amount) || 0).toLocaleString('en-BD')}`;
+  const n = Math.round(Math.abs(Number(amount) || 0));
+  const grouped = n.toLocaleString('en-IN');
+  const body = `Tk${grouped}/-`;
+  return Number(amount) < 0 ? `-${body}` : body;
 }
 
 function methodLabel(method: string) {

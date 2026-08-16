@@ -115,7 +115,9 @@ export function simulateCash(opts: {
 }
 
 function taka(n: number) {
-  return `৳${Math.round(n).toLocaleString()}`;
+  const v = Math.round(n);
+  const body = `Tk${Math.abs(v).toLocaleString('en-IN')}/-`;
+  return v < 0 ? `-${body}` : body;
 }
 
 /** One plain sentence per reason — for buyers, not a finance memo. */
