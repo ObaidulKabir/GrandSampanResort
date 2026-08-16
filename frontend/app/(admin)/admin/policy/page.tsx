@@ -8,6 +8,7 @@ import {
   normalizeReturnAssumptions,
   type ReturnAssumptions
 } from '@/lib/returns';
+import { resolveTiers, type PaymentPolicy } from '@/lib/pv';
 import Button from '@/components/Button';
 
 type RevenuePolicy = {
@@ -331,17 +332,22 @@ export default function AdminPolicyPage() {
 }
 
 function PaymentPlanPolicyBlock() {
-  const [policy, setPolicy] = useState<any>(null);
-  const [resolved, setResolved] = useState<any[]>([]);
+  const [policy, setPolicy] = useState<PaymentPolicy | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Live PV preview — recomputes immediately as admin edits any field.
+  // No save required to see updated FAIR / OFFERED values.
+  const resolved = useMemo(
+    () => (policy ? resolveTiers(policy) : []),
+    [policy]
+  );
 
   useEffect(() => {
     (async () => {
       const res = await api('/payment-plans/policy');
       if (res?.ok) {
         setPolicy(res.policy);
-        setResolved(res.resolved || []);
       }
     })();
   }, []);
@@ -353,7 +359,6 @@ function PaymentPlanPolicyBlock() {
     const res = await api('/payment-plans/policy', { method: 'PUT', body: JSON.stringify(policy) });
     if (res?.ok) {
       setPolicy(res.policy);
-      setResolved(res.resolved || []);
       setMsg('Payment plan policy saved. New quotes use these rates.');
     } else {
       setMsg(res?.error || 'Save failed');
@@ -375,7 +380,8 @@ function PaymentPlanPolicyBlock() {
     <section className="mt-10 border border-ocean/10 bg-white p-6">
       <h2 className="font-display text-2xl text-ocean">Advance payment discounts</h2>
       <p className="mt-1 text-sm text-ocean/65">
-        Fair discount is the present value of paying earlier at the rate below. Offered can differ if you set an override.
+        Fair and Offered columns update live as you edit any field below — no save needed to preview.
+        Offered can differ from Fair if you set a manual Override %.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <label className="text-sm text-ocean">
