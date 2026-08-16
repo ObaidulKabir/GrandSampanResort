@@ -1,7 +1,7 @@
 import { toPublicOwner } from './public-owner';
 
 describe('toPublicOwner', () => {
-  it('exposes name, city, and profession only', () => {
+  it('exposes name, city, profession, and photo only', () => {
     const owner = toPublicOwner({
       name: 'Rahim Uddin',
       city: 'Chattogram',
@@ -15,9 +15,9 @@ describe('toPublicOwner', () => {
     expect(owner).toEqual({
       name: 'Rahim Uddin',
       city: 'Chattogram',
-      profession: 'Businessman'
+      profession: 'Businessman',
+      picUrl: '/uploads/a.jpg'
     });
-    expect(owner).not.toHaveProperty('picUrl');
   });
 
   it('falls back to the last part of address when city is blank', () => {

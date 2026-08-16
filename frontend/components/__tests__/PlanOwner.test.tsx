@@ -27,6 +27,21 @@ describe('PlanOwner', () => {
     expect(screen.getByText(/Dhaka/)).toBeInTheDocument();
   });
 
+  it('shows the owner photo on booked catalog cards', () => {
+    const { container } = render(
+      <PlanOwner
+        owner={{
+          name: 'Rahim Uddin',
+          profession: 'Businessman',
+          city: 'Chattogram',
+          picUrl: '/uploads/a.jpg'
+        }}
+        statusLabel="Booked"
+      />
+    );
+    expect(container.querySelector('img')).not.toBeNull();
+  });
+
   it('can hide photo and keep name, profession, city, status', () => {
     const { container } = render(
       <PlanOwner

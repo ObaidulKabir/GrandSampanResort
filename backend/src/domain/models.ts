@@ -25,6 +25,7 @@ export type SharePlan = {
     name: string;
     city: string;
     profession: string;
+    picUrl: string | null;
   } | null;
 };
 

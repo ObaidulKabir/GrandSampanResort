@@ -746,7 +746,7 @@ export default function InvestPage() {
               ) : sold ? (
                 <div className="mt-3 border border-ocean/10 bg-pearl px-3 py-2.5">
                   {owner ? (
-                    <PlanOwner owner={owner} statusLabel={statusLabel} hidePhoto />
+                    <PlanOwner owner={owner} statusLabel={statusLabel} />
                   ) : (
                     <p className="text-sm text-ocean/70">{t('shareBooked')}</p>
                   )}
