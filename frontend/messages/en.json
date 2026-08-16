@@ -35,6 +35,7 @@
     "designLayout": "Design & Layout",
     "invest": "Invest",
     "returns": "Returns & income",
+    "brochure": "Download brochure",
     "faq": "FAQ",
     "terms": "Terms",
     "social": "Social",
@@ -870,5 +871,8 @@
     "promptHelpChoose": "Help me choose a payment plan",
     "promptBrowse": "Show me investment plans",
     "promptReserve": "How do I reserve a suite?"
+  },
+  "brochure": {
+    "download": "Download brochure"
   }
 }

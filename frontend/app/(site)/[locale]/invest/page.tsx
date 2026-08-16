@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
+import BrochureDownload from '@/components/BrochureDownload';
 import PlanOwner from '@/components/PlanOwner';
 import { useAppStore } from '@/store/appStore';
 import InvestmentCheckoutModal from '@/components/checkout/InvestmentCheckoutModal';
@@ -536,6 +537,7 @@ export default function InvestPage() {
               {t('returnsCalculator')}
             </Button>
           </Link>
+          <BrochureDownload className="w-full sm:w-auto" />
           <Button variant="ghost" onClick={load} className="px-3 py-2">
             {loading ? t('refreshing') : t('refresh')}
           </Button>

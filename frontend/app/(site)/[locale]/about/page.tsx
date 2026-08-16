@@ -1,11 +1,15 @@
 import { getTranslations } from 'next-intl/server';
 import AboutProject from '@/components/AboutProject';
+import BrochureDownload from '@/components/BrochureDownload';
 
 export default async function AboutPage() {
   const t = await getTranslations('about');
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-16">
+      <div className="mx-auto mb-6 flex max-w-4xl justify-end">
+        <BrochureDownload />
+      </div>
       <AboutProject />
 
       <section className="mx-auto mt-12 max-w-4xl">

@@ -20,6 +20,7 @@ import { MailModule } from './mail/mail.module';
 import { ReferralModule } from './referral/referral.module';
 import { PaymentPlansModule } from './payment-plans/payment-plans.module';
 import { AdvisorModule } from './advisor/advisor.module';
+import { BrochureModule } from './brochure/brochure.module';
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { AdvisorModule } from './advisor/advisor.module';
     MailModule,
     ReferralModule,
     PaymentPlansModule,
-    AdvisorModule
+    AdvisorModule,
+    BrochureModule
   ],
   controllers: [AppController],
   providers: [AppService]

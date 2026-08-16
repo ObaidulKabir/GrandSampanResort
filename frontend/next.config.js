@@ -24,6 +24,10 @@ const nextConfig = {
       {
         source: '/api/uploads/:path*',
         destination: `${target}/api/uploads/:path*`
+      },
+      {
+        source: '/api/brochure.pdf',
+        destination: `${target}/api/brochure.pdf`
       }
     ];
   },
