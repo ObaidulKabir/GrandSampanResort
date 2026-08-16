@@ -16,6 +16,7 @@ const PATHS = [
   '/design-layout',
   '/investment-plans',
   '/returns-income',
+  '/brochure',
   '/investor',
   '/auth/login',
   '/auth/register'

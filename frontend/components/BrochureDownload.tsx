@@ -1,7 +1,7 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
-import { apiBaseUrl } from '@/lib/api';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import Button from '@/components/Button';
 
 type Props = {
@@ -11,12 +11,12 @@ type Props = {
 
 export default function BrochureDownload({ variant = 'outline', className = '' }: Props) {
   const t = useTranslations('brochure');
-  const locale = useLocale() === 'bn' ? 'bn' : 'en';
-  const href = `${apiBaseUrl()}/brochure.pdf?locale=${locale}`;
 
   return (
-    <Button type="button" variant={variant} className={className} onClick={() => { window.location.href = href; }}>
-      {t('download')}
-    </Button>
+    <Link href="/brochure" className={`inline-flex ${className}`.trim()}>
+      <Button type="button" variant={variant} className="w-full sm:w-auto">
+        {t('download')}
+      </Button>
+    </Link>
   );
 }

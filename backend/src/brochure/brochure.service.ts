@@ -11,10 +11,29 @@ import { buildBrochurePdf, type BrochureData } from './brochure.pdf';
 import type { BrochureLocale } from './copy';
 
 const CACHE_MS = 15 * 60 * 1000;
+const JOB_TTL_MS = 30 * 60 * 1000;
+
+export type BrochureJobStatus = 'queued' | 'running' | 'ready' | 'error';
+
+export type BrochureJobPublic = {
+  id: string;
+  locale: BrochureLocale;
+  status: BrochureJobStatus;
+  progress: number;
+  step: string;
+  error?: string;
+};
+
+type BrochureJob = BrochureJobPublic & {
+  buf?: Buffer;
+  createdAt: number;
+};
 
 @Injectable()
 export class BrochureService {
   private cache = new Map<string, { at: number; buf: Buffer }>();
+  private jobs = new Map<string, BrochureJob>();
+  private inflight = new Map<BrochureLocale, Promise<Buffer>>();
 
   constructor(
     private readonly suites: SuitesService,
@@ -27,15 +46,113 @@ export class BrochureService {
     private readonly terms: TermsService
   ) {}
 
-  async pdf(localeRaw?: string): Promise<{ buf: Buffer; locale: BrochureLocale }> {
-    const locale: BrochureLocale = String(localeRaw || 'en').toLowerCase().startsWith('bn') ? 'bn' : 'en';
-    const hit = this.cache.get(locale);
-    if (hit && Date.now() - hit.at < CACHE_MS) return { buf: hit.buf, locale };
+  startJob(localeRaw?: string): BrochureJobPublic {
+    this.pruneJobs();
+    const locale = this.normalizeLocale(localeRaw);
+    const id = 'BRC-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+    const job: BrochureJob = {
+      id,
+      locale,
+      status: 'queued',
+      progress: 2,
+      step: 'queued',
+      createdAt: Date.now()
+    };
+    this.jobs.set(id, job);
+    void this.runJob(job);
+    return this.publicJob(job);
+  }
 
-    const data = await this.gather(locale);
-    const buf = await buildBrochurePdf(data);
-    this.cache.set(locale, { at: Date.now(), buf });
+  getJob(id: string): BrochureJobPublic | null {
+    const job = this.jobs.get(id);
+    if (!job) return null;
+    return this.publicJob(job);
+  }
+
+  getJobFile(id: string): { buf: Buffer; locale: BrochureLocale } | null {
+    const job = this.jobs.get(id);
+    if (!job || job.status !== 'ready' || !job.buf) return null;
+    return { buf: job.buf, locale: job.locale };
+  }
+
+  async pdf(localeRaw?: string): Promise<{ buf: Buffer; locale: BrochureLocale }> {
+    const locale = this.normalizeLocale(localeRaw);
+    const buf = await this.buildForLocale(locale);
     return { buf, locale };
+  }
+
+  private publicJob(job: BrochureJob): BrochureJobPublic {
+    return {
+      id: job.id,
+      locale: job.locale,
+      status: job.status,
+      progress: job.progress,
+      step: job.step,
+      error: job.error
+    };
+  }
+
+  private normalizeLocale(localeRaw?: string): BrochureLocale {
+    return String(localeRaw || 'en').toLowerCase().startsWith('bn') ? 'bn' : 'en';
+  }
+
+  private pruneJobs() {
+    const now = Date.now();
+    for (const [id, job] of this.jobs) {
+      if (now - job.createdAt > JOB_TTL_MS) this.jobs.delete(id);
+    }
+  }
+
+  private setJob(job: BrochureJob, patch: Partial<BrochureJob>) {
+    Object.assign(job, patch);
+  }
+
+  private async runJob(job: BrochureJob) {
+    try {
+      this.setJob(job, { status: 'running', progress: 6, step: 'gather' });
+      const buf = await this.buildForLocale(job.locale, (pct, step) => {
+        if (job.status !== 'running') return;
+        this.setJob(job, { progress: Math.max(job.progress, Math.min(99, pct)), step });
+      });
+      this.setJob(job, { status: 'ready', progress: 100, step: 'done', buf });
+    } catch (err: any) {
+      this.setJob(job, {
+        status: 'error',
+        progress: job.progress,
+        step: 'error',
+        error: String(err?.message || 'build_failed')
+      });
+    }
+  }
+
+  private async buildForLocale(
+    locale: BrochureLocale,
+    onProgress?: (pct: number, step: string) => void
+  ): Promise<Buffer> {
+    const hit = this.cache.get(locale);
+    if (hit && Date.now() - hit.at < CACHE_MS) {
+      onProgress?.(100, 'done');
+      return hit.buf;
+    }
+
+    const pending = this.inflight.get(locale);
+    if (pending) return pending;
+
+    const work = (async () => {
+      onProgress?.(8, 'gather');
+      const data = await this.gather(locale);
+      onProgress?.(18, 'layout');
+      const buf = await buildBrochurePdf(data, onProgress);
+      this.cache.set(locale, { at: Date.now(), buf });
+      return buf;
+    })();
+
+    this.inflight.set(locale, work);
+    try {
+      return await work;
+    } finally {
+      this.inflight.delete(locale);
+    }
   }
 
   private async gather(locale: BrochureLocale): Promise<BrochureData> {

@@ -1,15 +1,12 @@
 'use client';
 
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import LocaleSwitcher from '@/components/LocaleSwitcher';
-import { apiBaseUrl } from '@/lib/api';
 
 export default function Footer() {
   const t = useTranslations('footer');
-  const locale = useLocale() === 'bn' ? 'bn' : 'en';
   const year = new Date().getFullYear();
-  const brochureHref = `${apiBaseUrl()}/brochure.pdf?locale=${locale}`;
 
   return (
     <footer className="w-full border-t border-gold/20 bg-pearl">
@@ -48,7 +45,7 @@ export default function Footer() {
               <Link href="/returns-income">{t('returns')}</Link>
             </li>
             <li>
-              <a href={brochureHref}>{t('brochure')}</a>
+              <Link href="/brochure">{t('brochure')}</Link>
             </li>
             <li>
               <Link href="/faq">{t('faq')}</Link>

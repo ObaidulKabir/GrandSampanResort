@@ -873,6 +873,29 @@
     "promptReserve": "How do I reserve a suite?"
   },
   "brochure": {
-    "download": "Download brochure"
+    "download": "Download brochure",
+    "eyebrow": "Brochure",
+    "title": "Prepare your brochure",
+    "buildingIntro": "We’re assembling live promotions, suites, returns, terms, and FAQ into a printable PDF.",
+    "readyIntro": "Your brochure is ready. Download it below.",
+    "complete": "Ready to download",
+    "error": "Could not build the brochure. Please try again.",
+    "tryAgain": "Try again",
+    "step": {
+      "queued": "Starting…",
+      "gather": "Collecting site content",
+      "layout": "Preparing layout",
+      "cover": "Building the cover",
+      "resort": "Adding resort pages",
+      "design": "Adding design drawings",
+      "suites": "Listing available suites",
+      "returns": "Adding sample returns",
+      "terms": "Adding terms",
+      "faq": "Adding FAQ",
+      "back": "Building the back page",
+      "finish": "Finishing the PDF",
+      "done": "Complete",
+      "error": "Something went wrong"
+    }
   }
 }

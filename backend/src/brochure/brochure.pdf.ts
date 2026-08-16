@@ -46,10 +46,20 @@ function isBn(locale: string) {
   return locale === 'bn';
 }
 
-export function buildBrochurePdf(data: BrochureData): Promise<Buffer> {
+export function buildBrochurePdf(
+  data: BrochureData,
+  onProgress?: (pct: number, step: string) => void
+): Promise<Buffer> {
   const copy = brochureCopy(data.locale);
   const bn = isBn(data.locale);
   const hasBnFont = existsSync(FONT_BN);
+  const report = (pct: number, step: string) => {
+    try {
+      onProgress?.(pct, step);
+    } catch {
+      /* ignore listener errors */
+    }
+  };
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
@@ -74,16 +84,24 @@ export function buildBrochurePdf(data: BrochureData): Promise<Buffer> {
       skipHeader: true
     };
 
+    report(22, 'cover');
     drawCover(ctx);
     ctx.skipHeader = false;
+    report(34, 'resort');
     drawResort(ctx);
+    report(46, 'design');
     drawDesign(ctx);
+    report(58, 'suites');
     drawSuites(ctx);
+    report(68, 'returns');
     drawReturnsAndBuy(ctx);
+    report(78, 'terms');
     drawTerms(ctx);
+    report(88, 'faq');
     drawFaq(ctx);
     ctx.skipHeader = true;
     doc.addPage();
+    report(94, 'back');
     drawBack(ctx);
 
     const range = doc.bufferedPageRange();
@@ -97,6 +115,7 @@ export function buildBrochurePdf(data: BrochureData): Promise<Buffer> {
       }
     }
 
+    report(98, 'finish');
     doc.end();
   });
 }
