@@ -21,7 +21,7 @@ Use these terms consistently across `messages/bn.json` and admin-authored FAQ/Te
 
 ## Digits and money
 
-- Always Western digits: `Tk12,34,567/-`
+- Always Western digits: `ট12,34,567/-`
 - Keep Bangladesh / Indian grouping (lakh-crore)
 
 ## Tone

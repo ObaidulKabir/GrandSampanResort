@@ -1,4 +1,4 @@
-/** Bangladesh-style display helpers: dd/mm/yyyy dates and Tk##,##,###/- amounts. */
+/** Bangladesh-style display helpers: dd/mm/yyyy dates and ট##,##,###/- amounts. */
 
 export type FormatDigits = 'latin' | 'bengali';
 
@@ -83,12 +83,12 @@ export function formatAmount(value?: number | null, decimals = 2, options?: Form
   return toDigits(neg ? `-${body}` : body, options?.digits);
 }
 
-/** Currency as Tk##,##,###/- (integer taka, Bangladesh grouping). */
+/** Currency as ট##,##,###/- (integer taka, Bangladesh grouping). */
 export function formatMoney(value?: number | null, _decimals = 2, options?: FormatOptions): string {
   const n = Number(value);
   const safe = Number.isFinite(n) ? n : 0;
   const neg = safe < 0;
   const grouped = formatBdGrouped(String(Math.round(Math.abs(safe))));
-  const body = `Tk${grouped}/-`;
+  const body = `ট${grouped}/-`;
   return toDigits(neg ? `-${body}` : body, options?.digits);
 }

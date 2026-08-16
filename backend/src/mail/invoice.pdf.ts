@@ -22,7 +22,7 @@ export type InvoiceData = {
 
 function money(amount: number, _currency = 'BDT') {
   const n = Math.round(Math.abs(Number(amount) || 0));
-  const body = `Tk${n.toLocaleString('en-IN')}/-`;
+  const body = `ট${n.toLocaleString('en-IN')}/-`;
   return Number(amount) < 0 ? `-${body}` : body;
 }
 

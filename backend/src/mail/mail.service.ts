@@ -465,7 +465,7 @@ export class MailService {
 function formatMoney(amount: number) {
   const n = Math.round(Math.abs(Number(amount) || 0));
   const grouped = n.toLocaleString('en-IN');
-  const body = `Tk${grouped}/-`;
+  const body = `ট${grouped}/-`;
   return Number(amount) < 0 ? `-${body}` : body;
 }
 

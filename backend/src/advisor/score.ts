@@ -116,7 +116,7 @@ export function simulateCash(opts: {
 
 function taka(n: number) {
   const v = Math.round(n);
-  const body = `Tk${Math.abs(v).toLocaleString('en-IN')}/-`;
+  const body = `ট${Math.abs(v).toLocaleString('en-IN')}/-`;
   return v < 0 ? `-${body}` : body;
 }
 
