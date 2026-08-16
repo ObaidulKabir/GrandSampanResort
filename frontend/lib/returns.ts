@@ -147,3 +147,20 @@ export function annualReturnRange(
     category: band.category
   };
 }
+
+/** Single-point projection for the interactive calculator. */
+export function projectReturn(opts: {
+  daysPerMonth: number;
+  adr: number;
+  occupancyPct: number;
+  operatingCostPct: number;
+}) {
+  const days = Math.max(0, Math.min(30, Number(opts.daysPerMonth) || 0));
+  const adr = Math.max(0, Number(opts.adr) || 0);
+  const occupancyPct = Math.min(100, Math.max(0, Number(opts.occupancyPct) || 0));
+  const operatingCostPct = Math.min(100, Math.max(0, Number(opts.operatingCostPct) || 0));
+  const netFactor = (occupancyPct / 100) * (1 - operatingCostPct / 100);
+  const monthlyNet = Math.round(adr * days * netFactor);
+  const annualNet = Math.round(adr * days * netFactor * 12);
+  return { days, adr, occupancyPct, operatingCostPct, monthlyNet, annualNet };
+}

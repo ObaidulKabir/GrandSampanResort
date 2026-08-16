@@ -22,6 +22,7 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/invest' as const, label: t('invest') },
+    { href: '/returns-income' as const, label: t('returns') },
     { href: '/suites' as const, label: t('suites') },
     { href: '/design-layout' as const, label: t('designLayout') },
     { href: '/booking' as const, label: t('bookStay') },
@@ -73,7 +74,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-5 text-sm font-medium text-ocean md:flex">
+        <nav className="hidden items-center gap-4 text-sm font-medium text-ocean lg:flex">
           {navLinks.map((l) => (
             <Link key={l.href} href={l.href} className="transition-colors hover:text-gold">
               {l.label}
@@ -103,7 +104,7 @@ export default function Navbar() {
           )}
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <LocaleSwitcher compact />
           <button
             type="button"
@@ -126,7 +127,7 @@ export default function Navbar() {
       {open && (
         <nav
           id="mobile-nav"
-          className="max-h-[min(32rem,calc(100dvh-3.5rem))] overflow-y-auto border-t border-gold/20 bg-pearl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 md:hidden"
+          className="max-h-[min(32rem,calc(100dvh-3.5rem))] overflow-y-auto border-t border-gold/20 bg-pearl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 lg:hidden"
         >
           <ul className="flex flex-col">
             {navLinks.map((l) => (

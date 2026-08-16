@@ -26,7 +26,8 @@ export default function ChatBot() {
         text: t('greeting'),
         links: [
           { href: '/invest', label: t('browseSuites') },
-          { href: '/invest/advisor', label: t('helpChoose') }
+          { href: '/invest/advisor', label: t('helpChoose') },
+          { href: '/returns-income', label: t('returnsCalculator') }
         ]
       }
     ]);

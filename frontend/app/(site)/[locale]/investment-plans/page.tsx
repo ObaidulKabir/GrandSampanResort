@@ -62,6 +62,9 @@ export default function InvestmentPlansPage() {
             <Link href="/invest/advisor">
               <Button>{t('helpChoose')}</Button>
             </Link>
+            <Link href="/returns-income" className="ml-3 inline-block">
+              <Button variant="outline">{t('returnsCalculator')}</Button>
+            </Link>
           </div>
         </div>
         <Link href="/invest">

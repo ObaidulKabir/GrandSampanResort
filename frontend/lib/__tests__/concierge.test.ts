@@ -13,6 +13,12 @@ describe('client concierge scenarios', () => {
     expect(r.links?.[0].href).toBe('/invest');
   });
 
+  it('points a returns question at the calculator', () => {
+    expect(matchConciergeIntent('What rental income can I expect?')).toBe('returns');
+    const r = conciergeReply('Show me the returns calculator');
+    expect(r.links?.some((l) => l.href === '/returns-income' && l.label === 'Returns calculator')).toBe(true);
+  });
+
   it('matches Bangla and Banglish keywords', () => {
     expect(matchConciergeIntent('কক্সবাজার কোথায়', 'bn')).toBe('location');
     expect(matchConciergeIntent('kisti dam koto', 'bn')).toBe('payment');

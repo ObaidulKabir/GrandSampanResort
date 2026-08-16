@@ -10,6 +10,7 @@ export type ConciergeIntent =
   | 'visit'
   | 'availability'
   | 'suite'
+  | 'returns'
   | 'fallback';
 
 export type ConciergeMatch = {
@@ -60,6 +61,10 @@ const INTENT_KEYWORDS: Record<ConciergeIntent, Record<Locale, string[]>> = {
     en: ['suite', 'room', 'deluxe', 'premium'],
     bn: ['স্যুট', 'রুম', 'ডিলাক্স', 'প্রিমিয়াম', 'suite', 'room']
   },
+  returns: {
+    en: ['return', 'income', 'occupancy', 'rental', 'calculator'],
+    bn: ['আয়', 'রিটার্ন', 'ভাড়া', 'অকুপেন্সি', 'ক্যালকুলেটর', 'return', 'income', 'rent', 'calculator']
+  },
   fallback: { en: [], bn: [] }
 };
 
@@ -72,6 +77,7 @@ const INTENT_LINKS: Partial<Record<ConciergeIntent, ConciergeLink[]>> = {
     { href: '/invest', labelKey: 'linkSeePlans' },
     { href: '/invest/advisor', labelKey: 'linkHelpChoose' }
   ],
+  returns: [{ href: '/returns-income', labelKey: 'linkReturnsCalculator' }],
   reserve: [{ href: '/invest', labelKey: 'linkStartSuite' }],
   terms: [{ href: '/terms', labelKey: 'linkTerms' }],
   availability: [{ href: '/invest', labelKey: 'linkSeePlans' }],
@@ -97,6 +103,7 @@ export function matchConciergeIntent(input: string, locale: Locale = 'en'): Conc
     'faq',
     'visit',
     'availability',
+    'returns',
     'suite'
   ];
   for (const intent of order) {
@@ -131,6 +138,8 @@ export function conciergeReply(input: string): { text: string; links?: { href: s
     availability:
       'For a holiday stay, check dates on Book a Stay. For ownership, availability is shown on each share plan.',
     suite: 'Suites come in Standard, Deluxe, and Premium, with sea or hill views. Each share is a set number of days per month.',
+    returns:
+      'Use the returns calculator to estimate rental income from occupancy and daily rates. Figures follow the same assumptions shown on live plans.',
     fallback: 'I can help you browse suites, estimate what to pay today, or point you to the team.'
   };
   const labelMap: Record<string, string> = {
@@ -138,7 +147,8 @@ export function conciergeReply(input: string): { text: string; links?: { href: s
     linkBrowseSuites: 'Browse suites',
     linkSeePlans: 'See available plans',
     linkStartSuite: 'Start with a suite',
-    linkTerms: 'Terms & conditions'
+    linkTerms: 'Terms & conditions',
+    linkReturnsCalculator: 'Returns calculator'
   };
   return {
     text: texts[intent],

@@ -15,15 +15,33 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * English UI uses Manrope / Playfair, which have no Bengali glyphs.
+ * The taka prefix (ট, U+09A4) then falls back to Nirmala UI / similar,
+ * which renders ~40% larger than the Latin digits beside it.
+ * This face is used only for that one character, and only when the
+ * Latin stack is active — Bangla pages override the family below.
+ */
+@font-face {
+  font-family: 'Taka Mark';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: local('Nirmala UI'), local('Noto Sans Bengali'), local('Kohinoor Bangla'),
+    local('Bangla MN'), local('Vrinda');
+  unicode-range: U+09A4;
+  size-adjust: 71%;
+}
+
 body {
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Manrope', 'Taka Mark', system-ui, sans-serif;
   color: var(--ocean);
   background-color: var(--pearl);
   overflow-x: hidden;
 }
 
 .font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display', 'Taka Mark', Georgia, serif;
 }
 
 /* Bangla: taller ascenders/conjuncts need more line height; Playfair has no Bengali glyphs. */

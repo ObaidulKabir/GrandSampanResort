@@ -6,11 +6,11 @@ import { api, apiUpload } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 import { prepareImageForUpload } from '@/lib/uploadImage';
-import { effectiveAdrBand, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Image from 'next/image';
 import { useAppStore } from '@/store/appStore';
 import Button from '@/components/Button';
 import PlanOwner from '@/components/PlanOwner';
+import ReturnsCalculator from '@/components/ReturnsCalculator';
 import SuitePlans from '@/components/SuitePlans';
 import {
   captureReferralFromSearch,
@@ -155,12 +155,6 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   const [resolvedTiers, setResolvedTiers] = useState<any[]>([]);
   const [quote, setQuote] = useState<any>(null);
   const [showScheduleOptions, setShowScheduleOptions] = useState(false);
-  const [tab, setTab] = useState<'payment' | 'returns'>('payment');
-  const [adr, setAdr] = useState<number>(8000);
-  const [occupancy, setOccupancy] = useState<number>(0.6);
-  const [costPct, setCostPct] = useState<number>(15);
-  const [rentUpliftPct, setRentUpliftPct] = useState<number>(0);
-  const [returnAssumptions, setReturnAssumptions] = useState<ReturnAssumptions | null>(null);
   const [kyc, setKyc] = useState<KycForm>(() => emptyKyc());
   const [uploadingPic, setUploadingPic] = useState<'pic' | 'nominee' | null>(null);
   const [picPreview, setPicPreview] = useState<{ pic?: string; nominee?: string }>({});
@@ -376,27 +370,6 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       })
       .catch(() => {});
   }, [token, setAuth]);
-
-  // Seed occupancy/cost from admin settings; ADR scales with suite category + size.
-  useEffect(() => {
-    api('/settings/return-assumptions')
-      .then((a) => {
-        if (!a) return;
-        const normalized = normalizeReturnAssumptions(a);
-        setReturnAssumptions(normalized);
-        setOccupancy(
-          Math.round((normalized.occupancyLowPct + normalized.occupancyHighPct) / 2) / 100
-        );
-        setCostPct(normalized.operatingCostPct);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!returnAssumptions) return;
-    const band = effectiveAdrBand(returnAssumptions, suite);
-    if (band) setAdr(Math.round((band.adrLow + band.adrHigh) / 2));
-  }, [returnAssumptions, suite]);
 
   useEffect(() => {
     async function load() {
@@ -849,6 +822,15 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </div>
             </div>
           </section>
+
+          <ReturnsCalculator
+            className="mt-8"
+            showHeading
+            lockSuite
+            defaultDays={plan?.daysPerMonth || 5}
+            defaultSuiteType={suite?.type}
+            defaultSize={suite?.size}
+          />
 
           {(plan?.suiteId || suite?.id) && <SuitePlans suiteId={plan?.suiteId || suite!.id} />}
         </div>
@@ -1474,27 +1456,6 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
 
         {showTools && (
           <div className="mt-6">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              <button
-                onClick={() => setTab('payment')}
-                className={`shrink-0 rounded-md border px-4 py-2.5 text-sm ${
-                  tab === 'payment' ? 'border-ocean bg-ocean text-white' : 'border-ocean/20 text-ocean'
-                }`}
-              >
-                {t('tabSchedule')}
-              </button>
-              <button
-                onClick={() => setTab('returns')}
-                className={`shrink-0 rounded-md border px-4 py-2.5 text-sm ${
-                  tab === 'returns' ? 'border-ocean bg-ocean text-white' : 'border-ocean/20 text-ocean'
-                }`}
-              >
-                {t('tabReturns')}
-              </button>
-            </div>
-
-            {tab === 'payment' && (
-              <div className="mt-6">
                 <p className="text-sm text-ocean/65">
                   {t('scheduleHint')}
                 </p>
@@ -1552,67 +1513,6 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                 <p className="mt-2 text-xs text-ocean/60">
                   {t('schedulePreview', { cadence, count: installmentCount, amount: formatMoney(installmentAmount) })}
                 </p>
-              </div>
-            )}
-
-            {tab === 'returns' && (
-              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-                <label className="text-sm text-ocean">
-                  {t('adr')}
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={Number.isFinite(adr) ? String(adr) : ''}
-                    onChange={(e) => {
-                      const cleaned = e.target.value.replace(/[^\d]/g, '');
-                      setAdr(cleaned === '' ? 0 : Number(cleaned));
-                    }}
-                    className="field mt-1"
-                  />
-                </label>
-                <label className="text-sm text-ocean">
-                  {t('occupancy')}
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={occupancy}
-                    onChange={(e) => setOccupancy(Number(e.target.value))}
-                    className="field mt-1"
-                  />
-                </label>
-                <label className="text-sm text-ocean">
-                  {t('operatingCost')}
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={costPct}
-                    onChange={(e) => setCostPct(Number(e.target.value))}
-                    className="field mt-1"
-                  />
-                </label>
-                <label className="text-sm text-ocean">
-                  {t('rentalUplift')}
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={rentUpliftPct}
-                    onChange={(e) => setRentUpliftPct(Number(e.target.value))}
-                    className="field mt-1"
-                  />
-                </label>
-                <div className="border border-ocean/10 bg-white p-4 md:col-span-2">
-                  <div className="text-xs text-ocean/60">{t('illustrativeNet')}</div>
-                  <div className="font-display mt-1 text-2xl text-ocean">
-                    {(() => {
-                      const gross = adr * (1 + rentUpliftPct / 100) * (plan?.daysPerMonth || 0) * occupancy;
-                      const net = gross * (1 - costPct / 100);
-                      return formatMoney(Math.round(net * 12));
-                    })()}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {rules.length > 0 && (
               <p className="mt-4 text-sm text-ocean/70">{t('rulesOnFile', { count: rules.length })}</p>

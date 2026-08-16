@@ -531,6 +531,11 @@ export default function InvestPage() {
           <Link href="/invest/advisor" className="sm:inline-flex">
             <Button className="w-full sm:w-auto">{t('helpChoose')}</Button>
           </Link>
+          <Link href="/returns-income" className="sm:inline-flex">
+            <Button variant="outline" className="w-full sm:w-auto">
+              {t('returnsCalculator')}
+            </Button>
+          </Link>
           <Button variant="ghost" onClick={load} className="px-3 py-2">
             {loading ? t('refreshing') : t('refresh')}
           </Button>

@@ -42,6 +42,9 @@ export default function Footer() {
               <Link href="/invest">{t('invest')}</Link>
             </li>
             <li>
+              <Link href="/returns-income">{t('returns')}</Link>
+            </li>
+            <li>
               <Link href="/faq">{t('faq')}</Link>
             </li>
             <li>
