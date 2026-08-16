@@ -43,7 +43,7 @@ This guide details how the continuous integration and deployment (CI/CD) pipelin
 | Workflow File | Trigger | Environment | Action |
 |---|---|---|---|
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Pull Requests against `main`, `dev`, `staging` | None | Runs backend tests, integration tests, frontend checks & builds, and docker image build validation. |
-| [`.github/workflows/staging.yml`](../.github/workflows/staging.yml) | Push to `dev`, `staging` or `workflow_dispatch` | `staging` | Runs tests & builds, then SSH deploys to staging server via `docker-compose.staging.yml`. |
+| [`.github/workflows/staging.yml`](../.github/workflows/staging.yml) | Push to any branch other than `main` (e.g. `dev`, `staging`, feature branches) or `workflow_dispatch` | `staging` | Runs tests & builds, then SSH deploys to staging server via `docker-compose.staging.yml`. |
 | [`.github/workflows/production.yml`](../.github/workflows/production.yml) | Push to `main` or `workflow_dispatch` | `production` | Runs tests & builds, then SSH deploys to production server via `docker-compose.production.yml`. |
 
 ---
