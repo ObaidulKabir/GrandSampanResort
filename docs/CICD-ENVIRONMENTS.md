@@ -67,11 +67,11 @@ To ensure credentials and infrastructure targets are strictly isolated, follow t
 
 | Secret Name | Description | Example Value |
 |---|---|---|
-| `SSH_HOST` | IP address or domain of staging server | `192.168.1.100` or `staging-server.example.com` |
-| `SSH_USER` | SSH username on staging server | `ubuntu` or `deploy` or `root` |
-| `SSH_KEY` | Private SSH key (PEM / OpenSSH format) with deploy access | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
-| `SSH_PORT` | SSH port (optional, defaults to 22) | `22` |
-| `APP_PATH` | Full directory path on staging server where repo is cloned | `/home/deploy/grandsampanresort-staging` |
+| `STAGING_SSH_HOST` | IP address or domain of staging server | `192.168.1.100` or `staging-server.example.com` |
+| `STAGING_SSH_USER` | SSH username on staging server | `ubuntu` or `deploy` or `root` |
+| `STAGING_SSH_KEY` | Private SSH key (PEM / OpenSSH format) with deploy access | `-----BEGIN OPENSSH PRIVATE KEY----- ...` |
+| `STAGING_SSH_PORT` | SSH port (optional, defaults to 22) | `22` |
+| `STAGING_APP_PATH` | Full directory path on staging server where repo is cloned | `/home/deploy/grandsampanresort-staging` |
 
 ---
 

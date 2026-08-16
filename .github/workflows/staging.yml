@@ -129,13 +129,13 @@ jobs:
       - name: Update Code on Staging Server
         uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
-            cd ${{ secrets.APP_PATH }}
+            cd ${{ secrets.STAGING_APP_PATH }}
             git fetch -p
             git checkout ${{ github.ref_name }}
             git reset --hard origin/${{ github.ref_name }}
@@ -143,11 +143,11 @@ jobs:
       - name: Build and Deploy Staging Containers
         uses: appleboy/ssh-action@b0a8f324e192469585a608d1f586061cf28a6571
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
           script: |
             set -euo pipefail
-            cd ${{ secrets.APP_PATH }}
+            cd ${{ secrets.STAGING_APP_PATH }}
             docker compose -f docker-compose.staging.yml up -d --build --remove-orphans
