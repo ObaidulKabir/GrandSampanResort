@@ -332,6 +332,18 @@ export default function InvestPage() {
     load();
   }, []);
 
+  const resumedCheckout = useRef(false);
+  useEffect(() => {
+    if (resumedCheckout.current || !plans.length) return;
+    const resumeId = new URLSearchParams(window.location.search).get('resume');
+    if (!resumeId) return;
+    const p = plans.find((item: any) => item.id === resumeId);
+    if (!p) return;
+    resumedCheckout.current = true;
+    setCheckoutPlan({ ...p, suite: suites[p.suiteId] || {} });
+    setIsCheckoutOpen(true);
+  }, [plans, suites]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const q = new URLSearchParams(window.location.search).get('q');
@@ -862,6 +874,7 @@ export default function InvestPage() {
         onClose={() => setIsCheckoutOpen(false)}
         plan={checkoutPlan}
         user={user}
+        returnTo="invest"
         onBookingSuccess={() => {
           load();
         }}

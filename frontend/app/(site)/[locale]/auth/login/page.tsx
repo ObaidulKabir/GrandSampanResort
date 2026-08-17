@@ -1,19 +1,26 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
 import Button from '@/components/Button';
 import { useAppStore } from '@/store/appStore';
 import { api } from '@/lib/api';
+import { clearAllBookingDrafts } from '@/lib/bookingDraft';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
+  const [registerHref, setRegisterHref] = useState('/auth/register');
   const setAuth = useAppStore((s) => s.setAuth);
   const router = useRouter();
+
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    setRegisterHref(next ? `/auth/register?next=${encodeURIComponent(next)}` : '/auth/register');
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +99,11 @@ export default function LoginPage() {
       </form>
       <p className="mt-6 text-sm text-ocean/70">
         {t('newInvestor')}{' '}
-        <Link href="/auth/register" className="font-semibold text-ocean underline">
+        <Link
+          href={registerHref}
+          className="font-semibold text-ocean underline"
+          onClick={() => clearAllBookingDrafts()}
+        >
           {t('createAccount')}
         </Link>
       </p>

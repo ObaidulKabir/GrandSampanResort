@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api, apiUpload } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import { resolveMediaUrl } from '@/lib/media';
 import { generatePaymentSchedule, planOfferPrice, scheduleTotals } from '@/lib/schedule';
 import { prepareImageForUpload, uploadImageErrorMessage } from '@/lib/uploadImage';
+import {
+  bookingReturnPath,
+  clearBookingDraft,
+  loadBookingDraft,
+  saveBookingDraft
+} from '@/lib/bookingDraft';
+import { useAppStore } from '@/store/appStore';
+import { useRouter } from '@/i18n/navigation';
 import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
 import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
@@ -29,7 +37,8 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   plan: SharePlan | null;
-  user?: { id: string; email?: string; name?: string } | null;
+  user?: { id: string; email?: string; name?: string; emailVerified?: boolean; role?: string } | null;
+  returnTo?: 'invest' | 'advisor';
   onBookingSuccess?: (bookingId: string) => void;
 };
 
@@ -55,8 +64,15 @@ export default function InvestmentCheckoutModal({
   onClose,
   plan,
   user,
+  returnTo = 'invest',
   onBookingSuccess,
 }: Props) {
+  const router = useRouter();
+  const hydrate = useAppStore((s) => s.hydrate);
+  const storeUser = useAppStore((s) => s.user);
+  const token = useAppStore((s) => s.token);
+  const sessionUser = storeUser || user || null;
+  const suppressDraftPersist = useRef(true);
   const [step, setStep] = useState(1);
   const [maxCompletedStep, setMaxCompletedStep] = useState(1);
   const [selectedTierId, setSelectedTierId] = useState('standard');
@@ -78,16 +94,89 @@ export default function InvestmentCheckoutModal({
   const [resolvedTiers, setResolvedTiers] = useState<PaymentTierInfo[]>([]);
   const [discountRateAnnualPct, setDiscountRateAnnualPct] = useState<number | undefined>(undefined);
 
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  // Restore in-progress checkout after login redirects.
+  useEffect(() => {
+    if (!isOpen || !plan?.id) return;
+    suppressDraftPersist.current = true;
+    const draft = loadBookingDraft(plan.id);
+    if (draft) {
+      if (draft.kyc && typeof draft.kyc === 'object') {
+        setKycData({ ...initialKyc, ...draft.kyc });
+      }
+      if (typeof draft.step === 'number' && draft.step >= 1) setStep(draft.step);
+      if (typeof draft.maxCompletedStep === 'number') setMaxCompletedStep(draft.maxCompletedStep);
+      if (draft.selectedTierId) setSelectedTierId(draft.selectedTierId);
+      if (typeof draft.referralCode === 'string') setReferralCode(draft.referralCode);
+      if (
+        draft.depositMethod === 'cheque' ||
+        draft.depositMethod === 'cash_payorder' ||
+        draft.depositMethod === 'online_transfer'
+      ) {
+        setDepositMethod(draft.depositMethod);
+      }
+      if (typeof draft.depositReference === 'string') setDepositReference(draft.depositReference);
+      if (typeof draft.depositNote === 'string') setDepositNote(draft.depositNote);
+      if (typeof draft.depositProofUrl === 'string') setDepositProofUrl(draft.depositProofUrl);
+    } else {
+      setStep(1);
+      setMaxCompletedStep(1);
+      setSelectedTierId('standard');
+      setKycData(initialKyc);
+      setReferralCode('');
+      setDepositMethod('cheque');
+      setDepositReference('');
+      setDepositNote('');
+      setDepositProofUrl('');
+      setError('');
+      setConfirmedBooking(null);
+    }
+  }, [isOpen, plan?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !plan?.id) return;
+    if (suppressDraftPersist.current) {
+      suppressDraftPersist.current = false;
+      return;
+    }
+    saveBookingDraft(plan.id, {
+      step,
+      maxCompletedStep,
+      selectedTierId,
+      kyc: kycData,
+      referralCode,
+      depositMethod,
+      depositReference,
+      depositNote,
+      depositProofUrl
+    });
+  }, [
+    isOpen,
+    plan?.id,
+    step,
+    maxCompletedStep,
+    selectedTierId,
+    kycData,
+    referralCode,
+    depositMethod,
+    depositReference,
+    depositNote,
+    depositProofUrl
+  ]);
+
   // Pre-fill email/name from logged in user if available
   useEffect(() => {
-    if (user) {
+    if (sessionUser) {
       setKycData((prev) => ({
         ...prev,
-        email: prev.email || user.email || '',
-        name: prev.name || user.name || '',
+        email: prev.email || sessionUser.email || '',
+        name: prev.name || sessionUser.name || '',
       }));
     }
-  }, [user]);
+  }, [sessionUser]);
 
   // Fetch admin-configured payment policy (discount rate + resolved tiers)
   useEffect(() => {
@@ -194,6 +283,40 @@ export default function InvestmentCheckoutModal({
   );
   const promoSavings = Math.max(0, plan.price - afterPromo);
 
+  function returnPath() {
+    return bookingReturnPath(plan.id, returnTo);
+  }
+
+  function persistDraft() {
+    if (!plan?.id) return;
+    saveBookingDraft(plan.id, {
+      step,
+      maxCompletedStep,
+      selectedTierId,
+      kyc: kycData,
+      referralCode,
+      depositMethod,
+      depositReference,
+      depositNote,
+      depositProofUrl
+    });
+  }
+
+  function ensureLoggedIn() {
+    if (token && sessionUser?.id) {
+      const verified = !!sessionUser.emailVerified || sessionUser.role === 'admin';
+      if (!verified) {
+        persistDraft();
+        router.push(`/auth/verify?next=${encodeURIComponent(returnPath())}`);
+        return false;
+      }
+      return true;
+    }
+    persistDraft();
+    router.push(`/auth/login?next=${encodeURIComponent(returnPath())}`);
+    return false;
+  }
+
   const KYC_REQUIRED: { key: keyof KycData; label: string }[] = [
     { key: 'name', label: 'full legal name' },
     { key: 'fatherName', label: "father's / spouse name" },
@@ -223,6 +346,7 @@ export default function InvestmentCheckoutModal({
 
   async function uploadDepositProof(file: File | null) {
     if (!file) return;
+    if (!ensureLoggedIn()) return;
     setUploadingProof(true);
     setError('');
     try {
@@ -254,6 +378,7 @@ export default function InvestmentCheckoutModal({
         return;
       }
       if (validateKyc()) {
+        if (!ensureLoggedIn()) return;
         setStep(3);
         setMaxCompletedStep((prev) => Math.max(prev, 3));
       }
@@ -275,6 +400,7 @@ export default function InvestmentCheckoutModal({
       setError('Please enter the cheque, pay-order, or transfer reference.');
       return;
     }
+    if (!ensureLoggedIn()) return;
     setSubmitting(true);
 
     try {
@@ -287,7 +413,7 @@ export default function InvestmentCheckoutModal({
         planId: plan.id,
         start: now.toISOString(),
         end: nextYear.toISOString(),
-        investorId: user?.id,
+        investorId: sessionUser?.id,
         quoteToken: quoteData?.quoteToken,
         paymentTierId: quoteData?.paymentTierId || selectedTierId,
         referralCode: referralCode.trim() || undefined,
@@ -319,12 +445,15 @@ export default function InvestmentCheckoutModal({
       });
 
       if (res?.ok && res.booking?.id) {
+        clearBookingDraft(plan.id);
         setConfirmedBooking(res.booking);
         if (onBookingSuccess) onBookingSuccess(res.booking.id);
       } else {
         const code = String(res?.error || '');
         setError(
-          code === 'kyc_required'
+            code === 'email_not_verified'
+              ? 'Please verify your email before completing this booking.'
+              : code === 'kyc_required'
             ? 'Please complete all KYC fields, including client and nominee photographs.'
             : code === 'deposit_payment_required'
               ? 'Please enter a deposit payment reference.'
@@ -449,9 +578,10 @@ export default function InvestmentCheckoutModal({
                 <KycStepForm
                   data={kycData}
                   onChange={setKycData}
-                  userEmail={user?.email}
-                  userName={user?.name}
+                  userEmail={sessionUser?.email}
+                  userName={sessionUser?.name}
                   onBusyChange={setKycBusy}
+                  onAuthRequired={ensureLoggedIn}
                 />
               )}
 

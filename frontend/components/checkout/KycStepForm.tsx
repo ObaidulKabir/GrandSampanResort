@@ -33,6 +33,7 @@ type Props = {
   userEmail?: string;
   userName?: string;
   onBusyChange?: (busy: boolean) => void;
+  onAuthRequired?: () => boolean;
 };
 
 function PhotoField({
@@ -106,7 +107,7 @@ function PhotoField({
   );
 }
 
-export default function KycStepForm({ data, onChange, userEmail, userName, onBusyChange }: Props) {
+export default function KycStepForm({ data, onChange, userEmail, userName, onBusyChange, onAuthRequired }: Props) {
   const [sameAddress, setSameAddress] = useState(false);
   const [uploading, setUploading] = useState<PhotoKind | null>(null);
   const [photoError, setPhotoError] = useState<{ pic?: string; nominee?: string }>({});
@@ -130,6 +131,7 @@ export default function KycStepForm({ data, onChange, userEmail, userName, onBus
 
   async function uploadPhoto(kind: PhotoKind, file: File | null) {
     if (!file) return;
+    if (onAuthRequired && !onAuthRequired()) return;
     setUploading(kind);
     onBusyChange?.(true);
     setPhotoError((prev) => ({ ...prev, [kind]: undefined }));

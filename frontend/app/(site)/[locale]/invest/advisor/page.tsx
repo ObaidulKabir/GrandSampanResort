@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
@@ -9,6 +9,7 @@ import { tierHeadline } from '@/lib/paymentCopy';
 import { badgesFor, monthlyOutlay } from '@/lib/advisorUi';
 import { formatAdvisorReasons } from '@/lib/advisorReasons';
 import { apiErrorMessage } from '@/lib/errors';
+import { useAppStore } from '@/store/appStore';
 import InvestmentCheckoutModal from '@/components/checkout/InvestmentCheckoutModal';
 
 export default function InvestAdvisorPage() {
@@ -16,6 +17,8 @@ export default function InvestAdvisorPage() {
   const tPayment = useTranslations('payment');
   const tReasons = useTranslations('advisorReasons');
   const tErrors = useTranslations('errors');
+  const user = useAppStore((s) => s.user);
+  const hydrate = useAppStore((s) => s.hydrate);
   const [availableNow, setAvailableNow] = useState('');
   const [monthlyCapacity, setMonthlyCapacity] = useState('');
   const [horizonMonths, setHorizonMonths] = useState('36');
@@ -28,6 +31,35 @@ export default function InvestAdvisorPage() {
   const [result, setResult] = useState<any>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const resumedCheckout = useRef(false);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    if (resumedCheckout.current) return;
+    const resumeId = new URLSearchParams(window.location.search).get('resume');
+    if (!resumeId) return;
+    resumedCheckout.current = true;
+    api(`/timeshares/${encodeURIComponent(resumeId)}`).then((json: any) => {
+      const p = json?.id ? json : json?.plan;
+      if (!p?.id) return;
+      setCheckoutPlan({
+        id: p.id,
+        name: p.name,
+        daysPerMonth: p.daysPerMonth || 1,
+        lockIn: p.lockIn || 12,
+        price: p.price,
+        discountedPrice: p.discountedPrice,
+        discountPct: p.discountPct,
+        promoName: p.promoName,
+        suiteId: p.suiteId,
+        suite: p.suite
+      });
+      setIsCheckoutOpen(true);
+    });
+  }, []);
 
   async function run(e: React.FormEvent) {
     e.preventDefault();
@@ -244,6 +276,8 @@ export default function InvestAdvisorPage() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         plan={checkoutPlan}
+        user={user}
+        returnTo="advisor"
       />
     </main>
   );

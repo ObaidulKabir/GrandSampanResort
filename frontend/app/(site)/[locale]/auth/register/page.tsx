@@ -12,6 +12,7 @@ import {
   normalizeReferralCode,
   setStoredReferralCode
 } from '@/lib/referral';
+import { clearAllBookingDrafts } from '@/lib/bookingDraft';
 
 export default function RegisterPage() {
   const t = useTranslations('auth');
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   useEffect(() => {
+    clearAllBookingDrafts();
     captureReferralFromSearch(typeof window !== 'undefined' ? window.location.search : '');
     setReferralCode(getStoredReferralCode() || '');
   }, []);
@@ -55,7 +57,9 @@ export default function RegisterPage() {
         login.token
       );
       setStatus(t('accountCreatedVerify'));
-      router.push('/auth/verify');
+      const next =
+        typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next') : null;
+      router.push(next ? `/auth/verify?next=${encodeURIComponent(next)}` : '/auth/verify');
       return;
     }
     setStatus(t('accountCreatedSignIn'));

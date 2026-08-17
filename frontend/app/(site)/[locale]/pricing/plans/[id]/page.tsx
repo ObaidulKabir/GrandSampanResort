@@ -19,6 +19,7 @@ import {
   normalizeReferralCode,
   setStoredReferralCode
 } from '@/lib/referral';
+import { loadBookingDraft, saveBookingDraft, clearBookingDraft } from '@/lib/bookingDraft';
 import { formatSavePct, tierHeadline, tierHelp } from '@/lib/paymentCopy';
 import { generatePaymentSchedule, planOfferPrice, scheduleTotals } from '@/lib/schedule';
 import { uploadImageErrorMessageLocalized } from '@/lib/errors';
@@ -103,10 +104,6 @@ function missingKycFields(kyc: KycForm): (keyof KycForm)[] {
 
 function isKycComplete(kyc: KycForm) {
   return missingKycFields(kyc).length === 0;
-}
-
-function draftStorageKey(planId: string) {
-  return `gsr_booking_draft:${planId}`;
 }
 
 type DepositMethod = 'cheque' | 'cash_payorder' | 'online_transfer';
@@ -202,40 +199,35 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   // Restore in-progress booking form after login redirects / refreshes.
   useLayoutEffect(() => {
     suppressDraftPersist.current = true;
-    try {
-      const raw = sessionStorage.getItem(draftStorageKey(planId));
-      if (raw) {
-        const draft = JSON.parse(raw);
-        if (draft?.kyc && typeof draft.kyc === 'object') {
-          setKyc({ ...emptyKyc(), ...draft.kyc });
-        } else {
-          setKyc(emptyKyc());
-        }
-        if (
-          draft?.depositMethod === 'cheque' ||
-          draft?.depositMethod === 'cash_payorder' ||
-          draft?.depositMethod === 'online_transfer'
-        ) {
-          setDepositMethod(draft.depositMethod);
-        } else {
-          setDepositMethod('cheque');
-        }
-        setDepositReference(typeof draft?.depositReference === 'string' ? draft.depositReference : '');
-        setDepositNote(typeof draft?.depositNote === 'string' ? draft.depositNote : '');
-        setDepositProofUrl(typeof draft?.depositProofUrl === 'string' ? draft.depositProofUrl : '');
-        if (typeof draft?.startDate === 'string' && draft.startDate) setStartDate(draft.startDate);
-        if (draft?.cadence === 'monthly' || draft?.cadence === 'quarterly') setCadence(draft.cadence);
-        if (typeof draft?.paymentTierId === 'string' && draft.paymentTierId) setPaymentTierId(draft.paymentTierId);
-        if (Number(draft?.installmentMonths) > 0) setInstallmentMonths(Number(draft.installmentMonths));
+    const draft = loadBookingDraft(planId);
+    if (draft) {
+      if (draft.kyc && typeof draft.kyc === 'object') {
+        setKyc({ ...emptyKyc(), ...draft.kyc });
       } else {
         setKyc(emptyKyc());
-        setDepositReference('');
-        setDepositNote('');
-        setDepositProofUrl('');
+      }
+      if (
+        draft.depositMethod === 'cheque' ||
+        draft.depositMethod === 'cash_payorder' ||
+        draft.depositMethod === 'online_transfer'
+      ) {
+        setDepositMethod(draft.depositMethod);
+      } else {
         setDepositMethod('cheque');
       }
-    } catch {
+      setDepositReference(typeof draft.depositReference === 'string' ? draft.depositReference : '');
+      setDepositNote(typeof draft.depositNote === 'string' ? draft.depositNote : '');
+      setDepositProofUrl(typeof draft.depositProofUrl === 'string' ? draft.depositProofUrl : '');
+      if (typeof draft.startDate === 'string' && draft.startDate) setStartDate(draft.startDate);
+      if (draft.cadence === 'monthly' || draft.cadence === 'quarterly') setCadence(draft.cadence);
+      if (typeof draft.paymentTierId === 'string' && draft.paymentTierId) setPaymentTierId(draft.paymentTierId);
+      if (Number(draft.installmentMonths) > 0) setInstallmentMonths(Number(draft.installmentMonths));
+    } else {
       setKyc(emptyKyc());
+      setDepositReference('');
+      setDepositNote('');
+      setDepositProofUrl('');
+      setDepositMethod('cheque');
     }
   }, [planId]);
 
@@ -244,24 +236,17 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       suppressDraftPersist.current = false;
       return;
     }
-    try {
-      sessionStorage.setItem(
-        draftStorageKey(planId),
-        JSON.stringify({
-          kyc,
-          depositMethod,
-          depositReference,
-          depositNote,
-          depositProofUrl,
-          startDate,
-          cadence,
-          paymentTierId,
-          installmentMonths
-        })
-      );
-    } catch {
-      /* quota / private mode */
-    }
+    saveBookingDraft(planId, {
+      kyc,
+      depositMethod,
+      depositReference,
+      depositNote,
+      depositProofUrl,
+      startDate,
+      cadence,
+      paymentTierId,
+      installmentMonths
+    });
   }, [
     planId,
     kyc,
@@ -422,10 +407,29 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     setKyc((prev) => ({ ...prev, [key]: value }));
   }
 
+  function persistCurrentDraft() {
+    saveBookingDraft(planId, {
+      kyc,
+      depositMethod,
+      depositReference,
+      depositNote,
+      depositProofUrl,
+      startDate,
+      cadence,
+      paymentTierId,
+      installmentMonths
+    });
+  }
+
+  function redirectToLogin() {
+    persistCurrentDraft();
+    router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+  }
+
   async function uploadKycPhoto(kind: 'pic' | 'nominee', file: File | null) {
     if (!file) return;
     if (!token || !user?.id) {
-      router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      redirectToLogin();
       return;
     }
 
@@ -468,7 +472,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
   async function uploadDepositProof(file: File | null) {
     if (!file) return;
     if (!token || !user?.id) {
-      router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      redirectToLogin();
       return;
     }
     setUploadingProof(true);
@@ -496,10 +500,11 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
       return;
     }
     if (!token || !user?.id) {
-      router.push(`/auth/login?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
+      redirectToLogin();
       return;
     }
     if (!emailVerified) {
+      persistCurrentDraft();
       setStatus(t('verifyBeforeSubmit'));
       router.push(`/auth/verify?next=${encodeURIComponent(`/pricing/plans/${planId}`)}`);
       return;
@@ -622,11 +627,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
         depositMethod,
         depositReference: depositReference.trim()
       });
-      try {
-        sessionStorage.removeItem(draftStorageKey(planId));
-      } catch {
-        /* ignore */
-      }
+      clearBookingDraft(planId);
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
       setStatus(t('errPurchaseFailed'));
