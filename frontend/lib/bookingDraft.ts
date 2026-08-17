@@ -73,6 +73,6 @@ export function clearAllBookingDrafts() {
 
 export function bookingReturnPath(planId: string, from: 'invest' | 'advisor' | 'plan' = 'invest') {
   if (from === 'advisor') return `/invest/advisor?resume=${encodeURIComponent(planId)}`;
-  if (from === 'plan') return `/pricing/plans/${encodeURIComponent(planId)}`;
+  if (from === 'plan') return `/pricing/plans/${encodeURIComponent(planId)}?resume=1`;
   return `/invest?resume=${encodeURIComponent(planId)}`;
 }

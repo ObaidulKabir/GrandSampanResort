@@ -46,6 +46,6 @@ describe('bookingDraft', () => {
   it('returns the buyer to the same checkout after login', () => {
     expect(bookingReturnPath('PLAN-1')).toBe('/invest?resume=PLAN-1');
     expect(bookingReturnPath('PLAN-1', 'advisor')).toBe('/invest/advisor?resume=PLAN-1');
-    expect(bookingReturnPath('PLAN-1', 'plan')).toBe('/pricing/plans/PLAN-1');
+    expect(bookingReturnPath('PLAN-1', 'plan')).toBe('/pricing/plans/PLAN-1?resume=1');
   });
 });

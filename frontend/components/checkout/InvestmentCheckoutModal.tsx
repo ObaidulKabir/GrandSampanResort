@@ -38,7 +38,7 @@ type Props = {
   onClose: () => void;
   plan: SharePlan | null;
   user?: { id: string; email?: string; name?: string; emailVerified?: boolean; role?: string } | null;
-  returnTo?: 'invest' | 'advisor';
+  returnTo?: 'invest' | 'advisor' | 'plan';
   onBookingSuccess?: (bookingId: string) => void;
 };
 
