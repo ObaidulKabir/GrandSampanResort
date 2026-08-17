@@ -81,8 +81,9 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="mx-auto max-w-7xl px-4 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] text-sm text-ocean/60 sm:px-6 md:pb-8">
-        {t('copyright', { year })}
+      <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] text-sm text-ocean/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 md:pb-8">
+        <p>{t('copyright', { year })}</p>
+        <p>{t('developedBy')}</p>
       </div>
     </footer>
   );
