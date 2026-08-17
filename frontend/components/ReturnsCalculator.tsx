@@ -16,6 +16,9 @@ import {
 } from '@/lib/returns';
 
 const CATEGORIES = ['Standard', 'Delux', 'Premium'] as const;
+const ADR_SLIDER_MIN = 1000;
+const ADR_SLIDER_MAX = 100000;
+const ADR_STEP = 100;
 
 type Props = {
   defaultDays?: number;
@@ -96,8 +99,6 @@ export default function ReturnsCalculator({
     [days, assumptions, suiteType, size]
   );
 
-  const adrMin = band ? Math.max(0, band.adrLow) : 0;
-  const adrMax = band ? Math.max(adrMin + 1, band.adrHigh) : 1;
   const occLow = Math.min(assumptions.occupancyLowPct, assumptions.occupancyHighPct);
   const occHigh = Math.max(assumptions.occupancyLowPct, assumptions.occupancyHighPct);
 
@@ -173,11 +174,19 @@ export default function ReturnsCalculator({
           <label className="block text-sm text-ocean">
             {t('adr', { amount: formatMoney(adr) })}
             <input
+              type="number"
+              min={0}
+              step={ADR_STEP}
+              value={adr || ''}
+              onChange={(e) => setAdr(Math.max(0, Number(e.target.value) || 0))}
+              className="field mt-1"
+            />
+            <input
               type="range"
-              min={adrMin}
-              max={adrMax}
-              step={100}
-              value={Math.min(adrMax, Math.max(adrMin, adr))}
+              min={ADR_SLIDER_MIN}
+              max={ADR_SLIDER_MAX}
+              step={ADR_STEP}
+              value={Math.min(ADR_SLIDER_MAX, Math.max(ADR_SLIDER_MIN, adr || ADR_SLIDER_MIN))}
               onChange={(e) => setAdr(Number(e.target.value))}
               className="mt-2 w-full accent-ocean"
             />
