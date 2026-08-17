@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
-import { generatePaymentSchedule, scheduleTotals } from '@/lib/schedule';
+import { generatePaymentSchedule, planOfferPrice, scheduleTotals } from '@/lib/schedule';
 import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
 import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
@@ -15,6 +15,9 @@ type SharePlan = {
   daysPerMonth: number;
   lockIn: number;
   price: number;
+  discountedPrice?: number;
+  discountPct?: number;
+  promoName?: string;
   suiteId?: string;
   suite?: { id: string; type: string; view?: string };
 };
@@ -97,7 +100,8 @@ export default function InvestmentCheckoutModal({
   function fallbackQuote(tierId: string) {
     const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
     const disc = tier?.discountPct ?? 0;
-    const net = Math.round(plan!.price * (1 - disc / 100));
+    const afterPromo = planOfferPrice(plan);
+    const net = Math.round(afterPromo * (1 - disc / 100));
     const schedule = generatePaymentSchedule(net, new Date(), {
       upfrontPct: tier?.dueTodayPct ?? 10,
       downpaymentPct: 20,
@@ -107,6 +111,9 @@ export default function InvestmentCheckoutModal({
     });
     return {
       listPrice: plan!.price,
+      afterPromo,
+      promoDiscountPct: plan?.discountPct,
+      promoName: plan?.promoName,
       advanceDiscountPct: disc,
       netPrice: net,
       amountTotal: net,
@@ -136,6 +143,7 @@ export default function InvestmentCheckoutModal({
         const net = Number(q.netPrice ?? q.amountTotal) || 0;
         setQuoteData({
           ...q,
+          afterPromo: Number(q.afterPromo) || planOfferPrice(plan),
           netPrice: net,
           amountTotal: net,
           depositAmount: q.depositAmount ?? q.schedule?.find((s: any) => s.type === 'deposit')?.amount,
@@ -162,12 +170,24 @@ export default function InvestmentCheckoutModal({
 
   const currentTier = resolvedTiers.find((t) => t.id === selectedTierId) || resolvedTiers[0];
   const disc = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
-  const netPrice = Number(quoteData?.netPrice ?? quoteData?.amountTotal) || Math.round(plan.price * (1 - disc / 100));
+  const afterPromo = Number(quoteData?.afterPromo) || planOfferPrice(plan);
+  const netPrice = Number(quoteData?.netPrice ?? quoteData?.amountTotal) || Math.round(afterPromo * (1 - disc / 100));
   const dueTodayAmount =
     Number(quoteData?.depositAmount) ||
     Number(quoteData?.schedule?.find((s: any) => s.type === 'deposit')?.amount) ||
     Math.round(netPrice * ((currentTier?.dueTodayPct ?? 10) / 100));
-  const payTotals = scheduleTotals(quoteData?.schedule || []);
+  const payTotals = scheduleTotals(
+    quoteData?.schedule?.length
+      ? quoteData.schedule
+      : generatePaymentSchedule(netPrice, new Date(), {
+          upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
+          downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
+          downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
+          installmentMonths: quoteData?.installmentMonths ?? 24,
+          cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
+        })
+  );
+  const promoSavings = Math.max(0, plan.price - afterPromo);
 
   const validateKyc = () => {
     const k = kycData;
@@ -332,6 +352,7 @@ export default function InvestmentCheckoutModal({
               {step === 1 && (
                 <PvTierVisualizer
                   listPrice={plan.price}
+                  afterPromo={afterPromo}
                   selectedTierId={selectedTierId}
                   onSelectTier={(id) => {
                     setSelectedTierId(id);
@@ -399,12 +420,18 @@ export default function InvestmentCheckoutModal({
                     <div className="grid gap-3 sm:grid-cols-3 text-xs">
                       <div className="bg-pearl p-3 rounded-lg">
                         <span className="text-ocean/60 block">List Price</span>
-                        <span className="font-bold text-sm text-ocean">{formatMoney(plan.price)}</span>
+                        <span className={`font-bold text-sm text-ocean ${promoSavings > 0 ? 'line-through text-ocean/50' : ''}`}>
+                          {formatMoney(plan.price)}
+                        </span>
                       </div>
                       <div className="bg-pearl p-3 rounded-lg">
-                        <span className="text-ocean/60 block">PV Discount Applied</span>
+                        <span className="text-ocean/60 block">
+                          {promoSavings > 0 ? plan.promoName || 'Promotional offer' : 'PV Discount Applied'}
+                        </span>
                         <span className="font-bold text-sm text-emerald-700">
-                          {quoteData?.advanceDiscountPct || currentTier.discountPct}% OFF
+                          {promoSavings > 0
+                            ? `${plan.discountPct || quoteData?.promoDiscountPct || 0}% OFF`
+                            : `${quoteData?.advanceDiscountPct || currentTier.discountPct}% OFF`}
                         </span>
                       </div>
                       <div className="bg-gold/10 border border-gold/30 p-3 rounded-lg">

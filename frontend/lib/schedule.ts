@@ -1,5 +1,15 @@
 /** Integer-taka payment calendar. Mirrors backend generatePaymentSchedule. */
 
+/** List price after a live promotional offer; otherwise the published list price. */
+export function planOfferPrice(plan?: { price?: number; discountedPrice?: number | null } | null) {
+  const list = Math.max(0, Math.round(Number(plan?.price) || 0));
+  const discounted = plan?.discountedPrice;
+  if (typeof discounted === 'number' && Number.isFinite(discounted)) {
+    return Math.max(0, Math.round(discounted));
+  }
+  return list;
+}
+
 export type ScheduleCadence = 'monthly' | 'quarterly';
 
 export type ScheduleLine = {

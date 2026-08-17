@@ -20,6 +20,7 @@ import {
   setStoredReferralCode
 } from '@/lib/referral';
 import { formatSavePct, tierHeadline, tierHelp } from '@/lib/paymentCopy';
+import { generatePaymentSchedule, planOfferPrice, scheduleTotals } from '@/lib/schedule';
 import { uploadImageErrorMessageLocalized } from '@/lib/errors';
 
 type Plan = {
@@ -633,21 +634,40 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
     setBuying(false);
   }
 
-  const discounted = typeof plan?.discountedPrice === 'number';
-  const effectivePrice = quote?.netPrice ?? (discounted ? (plan!.discountedPrice as number) : plan?.price || 0);
+  const listPrice = Math.round(Number(plan?.price) || 0);
+  const offerPrice = quote?.afterPromo ?? planOfferPrice(plan);
+  const netPayable = quote?.netPrice ?? offerPrice;
+  const discounted = offerPrice < listPrice || typeof plan?.discountedPrice === 'number';
   const kycMissing = useMemo(() => missingKycFields(kyc), [kyc]);
   const kycComplete = kycMissing.length === 0;
   const onlyPhotosMissing =
     kycMissing.length > 0 && kycMissing.every((k) => k === 'picUrl' || k === 'nomineePicUrl');
 
-  const depositPreview = quote?.depositAmount ?? Math.round(effectivePrice * ((resolvedTiers.find((t) => t.id === paymentTierId)?.upfrontPct || 10) / 100));
-  const downItem = (quote?.schedule || []).find((s: any) => s.type === 'downpayment');
-  const downPreview = downItem?.amount ?? 0;
-  const installmentItems = (quote?.schedule || []).filter((s: any) => s.type === 'installment');
-  const installmentCount = installmentItems.length;
-  const installmentAmount = installmentItems[0]?.amount ?? 0;
-  const schedule = quote?.schedule || [];
-  const afterPromo = quote?.afterPromo ?? effectivePrice;
+  const selectedTier = resolvedTiers.find((t) => t.id === paymentTierId);
+  const pricedSchedule = useMemo(() => {
+    if (quote?.schedule?.length) return quote.schedule;
+    return generatePaymentSchedule(netPayable, new Date(startDate || Date.now()), {
+      upfrontPct: quote?.upfrontPct ?? selectedTier?.upfrontPct ?? 10,
+      downpaymentPct: quote?.assumptions?.downpaymentPct ?? 20,
+      downpaymentAfterMonths: quote?.assumptions?.downpaymentAfterMonths ?? 3,
+      installmentMonths,
+      cadence
+    });
+  }, [
+    quote,
+    netPayable,
+    startDate,
+    selectedTier?.upfrontPct,
+    installmentMonths,
+    cadence
+  ]);
+  const payTotals = scheduleTotals(pricedSchedule);
+  const depositPreview = quote?.depositAmount ?? payTotals.deposit;
+  const downPreview = payTotals.downpayment;
+  const installmentCount = payTotals.installmentCount;
+  const installmentAmount = payTotals.installmentAmount;
+  const schedule = pricedSchedule;
+  const afterPromo = offerPrice;
   const defaultTenor = tenors.includes(24) ? 24 : tenors[0] || 24;
   const scheduleIsCustom = paymentTierId !== 'full' && (installmentMonths !== defaultTenor || cadence !== 'monthly');
 
@@ -770,8 +790,8 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
               </div>
               {discounted && available ? (
                 <>
-                  <div className="text-sm text-ocean/50 line-through">{formatMoney(plan?.price || 0)}</div>
-                  <div className="font-display text-2xl font-semibold text-ocean">{formatMoney(effectivePrice)}</div>
+                  <div className="text-sm text-ocean/50 line-through">{formatMoney(listPrice)}</div>
+                  <div className="font-display text-2xl font-semibold text-ocean">{formatMoney(offerPrice)}</div>
                 </>
               ) : (
                 <div className="mt-1 font-display text-2xl font-semibold text-ocean">
@@ -1327,7 +1347,7 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
             <div className="flex justify-between">
               <span>{t('totalPrice')}</span>
               <span className={discounted ? 'line-through text-ocean/50' : 'font-semibold text-ocean'}>
-                {formatMoney(plan?.price || 0)}
+                {formatMoney(listPrice)}
               </span>
             </div>
             {discounted && (
@@ -1336,14 +1356,14 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
                   {plan?.promoName} ({plan?.discountPct}%)
                 </span>
                 <span className="font-semibold text-gold">
-                  − {formatMoney((plan?.price || 0) - effectivePrice)}
+                  − {formatMoney(listPrice - offerPrice)}
                 </span>
               </div>
             )}
             {discounted && (
               <div className="mt-2 flex justify-between border-t border-ocean/10 pt-2">
                 <span className="font-semibold text-ocean">{t('offerPrice')}</span>
-                <span className="font-semibold text-ocean">{formatMoney(effectivePrice)}</span>
+                <span className="font-semibold text-ocean">{formatMoney(offerPrice)}</span>
               </div>
             )}
             {quote?.advanceDiscountPct > 0 && (

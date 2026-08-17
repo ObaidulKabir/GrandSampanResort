@@ -71,6 +71,8 @@ type QuoteData = {
 
 type Props = {
   listPrice: number;
+  /** Price after a live promotional offer. PV / advance discounts apply on top of this. */
+  afterPromo?: number;
   selectedTierId: string;
   onSelectTier: (tierId: string) => void;
   quoteData?: QuoteData | null;
@@ -84,6 +86,7 @@ type Props = {
 
 export default function PvTierVisualizer({
   listPrice,
+  afterPromo: afterPromoProp,
   selectedTierId,
   onSelectTier,
   quoteData,
@@ -128,8 +131,15 @@ export default function PvTierVisualizer({
 
   const currentTier = tiers.find((t) => t.id === selectedTierId) || tiers[0];
   const discountPct = quoteData?.advanceDiscountPct ?? currentTier?.discountPct ?? 0;
-  const netPrice = Number(quoteData?.netPrice ?? quoteData?.amountTotal) || Math.round(listPrice * (1 - discountPct / 100));
-  const savings = Math.max(0, listPrice - netPrice);
+  const afterPromo = Math.max(
+    0,
+    Math.round(Number(quoteData?.afterPromo ?? afterPromoProp ?? listPrice) || 0)
+  );
+  const netPrice =
+    Number(quoteData?.netPrice ?? quoteData?.amountTotal) ||
+    Math.round(afterPromo * (1 - discountPct / 100));
+  const promoSavings = Math.max(0, listPrice - afterPromo);
+  const pvSavings = Math.max(0, afterPromo - netPrice);
   const schedule = useMemo(() => {
     if (quoteData?.schedule?.length) return quoteData.schedule;
     return generatePaymentSchedule(netPrice, new Date(), {
@@ -202,8 +212,8 @@ export default function PvTierVisualizer({
       <div className="grid gap-3.5 sm:grid-cols-2">
         {tiers.map((tier) => {
           const isSelected = selectedTierId === tier.id;
-          const tierNetPrice = Math.round(listPrice * (1 - tier.discountPct / 100));
-          const tierSavings = listPrice - tierNetPrice;
+          const tierNetPrice = Math.round(afterPromo * (1 - tier.discountPct / 100));
+          const tierSavings = afterPromo - tierNetPrice;
           const dueTodayAmount = Math.round(tierNetPrice * (tier.dueTodayPct / 100));
 
           return (
@@ -273,10 +283,18 @@ export default function PvTierVisualizer({
           </div>
           <div className="text-right">
             <span className="text-xs text-ocean/60">Final Net Price</span>
+            {promoSavings > 0 && (
+              <div className="text-xs text-ocean/45 line-through">{formatMoney(listPrice)}</div>
+            )}
             <div className="font-display text-2xl font-bold text-ocean">{formatMoney(netPrice)}</div>
-            {savings > 0 && (
-              <span className="inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                You Save {formatMoney(savings)} with PV Discount
+            {promoSavings > 0 && (
+              <span className="mt-0.5 inline-block rounded bg-gold/20 px-2 py-0.5 text-xs font-semibold text-ocean">
+                Offer saves {formatMoney(promoSavings)}
+              </span>
+            )}
+            {pvSavings > 0 && (
+              <span className="mt-0.5 inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                You Save {formatMoney(pvSavings)} with PV Discount
               </span>
             )}
           </div>
