@@ -139,7 +139,7 @@ export function conciergeReply(input: string): { text: string; links?: { href: s
       'For a holiday stay, check dates on Book a Stay. For ownership, availability is shown on each share plan.',
     suite: 'Suites come in Standard, Deluxe, and Premium, with sea or hill views. Each share is a set number of days per month.',
     returns:
-      'Use the returns calculator to estimate rental income from occupancy and daily rates. Figures follow the same assumptions shown on live plans.',
+      'Pick a suite, then a share on that suite. Occupancy and daily rate stay adjustable; days and size come from the unit.',
     fallback: 'I can help you browse suites, estimate what to pay today, or point you to the team.'
   };
   const labelMap: Record<string, string> = {

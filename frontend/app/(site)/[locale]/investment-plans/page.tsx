@@ -110,13 +110,16 @@ export default function InvestmentPlansPage() {
                 </div>
               </div>
               {returns && (
-                <div className="mt-4 border border-gold/40 bg-gold/5 px-3 py-2">
+                <Link
+                  href={`/returns-income?plan=${encodeURIComponent(p.id)}`}
+                  className="mt-4 block border border-gold/40 bg-gold/5 px-3 py-2 hover:bg-gold/10"
+                >
                   <p className="text-xs font-semibold uppercase tracking-wide text-ocean/60">{t('expectedReturn')}</p>
                   <p className="mt-0.5 text-sm font-semibold text-ocean">
                     {formatMoney(returns.low, 0)} – {formatMoney(returns.high, 0)}
                   </p>
                   <p className="mt-0.5 text-[11px] text-ocean/55">{t('projected')}</p>
-                </div>
+                </Link>
               )}
               <div className="mt-6">
                 <Link href={`/pricing/plans/${p.id}`}>

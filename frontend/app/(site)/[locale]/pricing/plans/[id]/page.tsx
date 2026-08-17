@@ -847,10 +847,31 @@ export default function PlanDetailsPage({ params }: { params: { id: string } }) 
           <ReturnsCalculator
             className="mt-8"
             showHeading
-            lockSuite
-            defaultDays={plan?.daysPerMonth || 5}
-            defaultSuiteType={suite?.type}
-            defaultSize={suite?.size}
+            locked
+            suite={
+              suite
+                ? {
+                    id: suite.id,
+                    type: suite.type,
+                    size: suite.size,
+                    view: suite.view,
+                    floor: suite.floor
+                  }
+                : plan?.suiteId
+                  ? { id: plan.suiteId }
+                  : null
+            }
+            plan={
+              plan
+                ? {
+                    id: plan.id,
+                    name: plan.name,
+                    suiteId: plan.suiteId,
+                    daysPerMonth: plan.daysPerMonth,
+                    planStatus: plan.planStatus
+                  }
+                : null
+            }
           />
 
           {(plan?.suiteId || suite?.id) && <SuitePlans suiteId={plan?.suiteId || suite!.id} />}

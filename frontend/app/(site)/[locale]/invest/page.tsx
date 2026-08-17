@@ -806,9 +806,12 @@ export default function InvestPage() {
                     <span>{t('payFullSave', { pct: Number(full.offeredDiscountPct).toFixed(1) })}</span>
                   )}
                   {returns && available && (
-                    <span>
+                    <Link
+                      href={`/returns-income?plan=${encodeURIComponent(p.id)}`}
+                      className="underline decoration-gold/60 underline-offset-2 hover:text-ocean"
+                    >
                       {t('rentRange', { low: formatMoney(returns.low, 0), high: formatMoney(returns.high, 0) })}
-                    </span>
+                    </Link>
                   )}
                 </p>
               ) : null}
