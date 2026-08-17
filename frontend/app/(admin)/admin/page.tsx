@@ -38,6 +38,11 @@ const tools = [
     desc: 'Add, edit, or remove question-and-answer cards on the FAQ page.'
   },
   {
+    label: 'Directors',
+    href: '/admin/directors',
+    desc: 'Add and edit director profiles linked from the About page.'
+  },
+  {
     label: 'Terms & Conditions',
     href: '/admin/terms',
     desc: 'Add, edit, or reorder paragraphs on the Terms page.'

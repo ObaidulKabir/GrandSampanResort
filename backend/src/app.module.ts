@@ -21,6 +21,7 @@ import { ReferralModule } from './referral/referral.module';
 import { PaymentPlansModule } from './payment-plans/payment-plans.module';
 import { AdvisorModule } from './advisor/advisor.module';
 import { BrochureModule } from './brochure/brochure.module';
+import { DirectorsModule } from './directors/directors.module';
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { BrochureModule } from './brochure/brochure.module';
     ReferralModule,
     PaymentPlansModule,
     AdvisorModule,
-    BrochureModule
+    BrochureModule,
+    DirectorsModule
   ],
   controllers: [AppController],
   providers: [AppService]

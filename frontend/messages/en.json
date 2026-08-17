@@ -187,7 +187,9 @@
     "co1": "Experience in coastal developments and boutique hospitality",
     "co2": "Transparent fractional model with investor services",
     "co3": "Local operations team for daily guest excellence",
-    "co4": "Commitment to environmental and community standards"
+    "co4": "Commitment to environmental and community standards",
+    "directorsLink": "Directors' profiles",
+    "directorsHint": "Meet the people leading Unitech Grand Sampan Resort."
   },
   "booking": {
     "errorDates": "Choose a suite and a valid date range",
@@ -559,6 +561,14 @@
     "intro": "Answers to common questions about ownership, payments, and the resort.",
     "loading": "Loading...",
     "empty": "No FAQ entries published yet."
+  },
+  "directors": {
+    "eyebrow": "Leadership",
+    "title": "Directors' profiles",
+    "intro": "The people responsible for Unitech Grand Sampan Resort’s development and stewardship.",
+    "loading": "Loading...",
+    "empty": "Director profiles will appear here once they are published.",
+    "photoAlt": "Portrait of {name}"
   },
   "terms": {
     "eyebrow": "Legal",

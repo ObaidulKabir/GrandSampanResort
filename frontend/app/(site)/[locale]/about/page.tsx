@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import AboutProject from '@/components/AboutProject';
 import BrochureDownload from '@/components/BrochureDownload';
 
@@ -68,6 +69,12 @@ export default async function AboutPage() {
             <li key={n}>{t(`co${n}`)}</li>
           ))}
         </ul>
+        <p className="mt-6">
+          <Link href="/directors" className="font-semibold text-ocean underline underline-offset-4 hover:text-gold">
+            {t('directorsLink')}
+          </Link>
+        </p>
+        <p className="mt-2 text-sm text-ocean/65">{t('directorsHint')}</p>
       </section>
     </main>
   );

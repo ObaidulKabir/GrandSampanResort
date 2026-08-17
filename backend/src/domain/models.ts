@@ -163,6 +163,20 @@ export type TermsParagraph = {
   updatedAt: Date;
 };
 
+export type Director = {
+  id: string;
+  name: string;
+  nameBn?: string | null;
+  title: string;
+  titleBn?: string | null;
+  bio: string;
+  bioBn?: string | null;
+  photoUrl?: string | null;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type Promotion = {
   id: string;
   name: string;

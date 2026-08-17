@@ -194,6 +194,20 @@ model TermsParagraph {
   updatedAt DateTime @updatedAt
 }
 
+model Director {
+  id        String   @id
+  name      String
+  nameBn    String?
+  title     String
+  titleBn   String?
+  bio       String
+  bioBn     String?
+  photoUrl  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model AppSetting {
   key       String   @id
   value     Json

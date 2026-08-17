@@ -13,6 +13,7 @@ const links = [
   { href: '/admin/media', label: 'Media' },
   { href: '/admin/promotions', label: 'Promos' },
   { href: '/admin/faq', label: 'FAQ' },
+  { href: '/admin/directors', label: 'Directors' },
   { href: '/admin/terms', label: 'Terms' },
   { href: '/admin/policy', label: 'Policy' }
 ];

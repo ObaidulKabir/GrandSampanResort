@@ -10,6 +10,7 @@ const PATHS = [
   '/suites',
   '/booking',
   '/about',
+  '/directors',
   '/faq',
   '/terms',
   '/trust',
