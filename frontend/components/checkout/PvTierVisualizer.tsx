@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { formatMoney } from '@/lib/format';
-import { generatePaymentSchedule, scheduleTotals } from '@/lib/schedule';
+import { CUSTOM_INSTALLMENT_MONTHS, generatePaymentSchedule, scheduleTotals } from '@/lib/schedule';
 
 export type PaymentTierInfo = {
   id: string;
@@ -82,6 +82,8 @@ type Props = {
   resolvedTiers?: PaymentTierInfo[];
   /** Admin-configured discount rate (for display). */
   discountRateAnnualPct?: number;
+  installmentMonths?: number;
+  onInstallmentMonthsChange?: (months: number) => void;
 };
 
 export default function PvTierVisualizer({
@@ -94,8 +96,11 @@ export default function PvTierVisualizer({
   onRefreshQuote,
   resolvedTiers,
   discountRateAnnualPct,
+  installmentMonths,
+  onInstallmentMonthsChange,
 }: Props) {
   const [showSchedule, setShowSchedule] = useState(false);
+  const [showCustomCalendar, setShowCustomCalendar] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const tiers: PaymentTierInfo[] = resolvedTiers?.length
@@ -140,17 +145,24 @@ export default function PvTierVisualizer({
     Math.round(afterPromo * (1 - discountPct / 100));
   const promoSavings = Math.max(0, listPrice - afterPromo);
   const pvSavings = Math.max(0, afterPromo - netPrice);
+  const selectedTenor = installmentMonths ?? quoteData?.installmentMonths ?? 24;
   const schedule = useMemo(() => {
-    if (quoteData?.schedule?.length) return quoteData.schedule;
+    if (
+      quoteData?.schedule?.length &&
+      (quoteData.installmentMonths == null || quoteData.installmentMonths === selectedTenor)
+    ) {
+      return quoteData.schedule;
+    }
     return generatePaymentSchedule(netPrice, new Date(), {
       upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
       downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
       downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
-      installmentMonths: quoteData?.installmentMonths ?? 24,
+      installmentMonths: selectedTenor,
       cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
     });
-  }, [quoteData, netPrice, currentTier?.dueTodayPct]);
+  }, [quoteData, netPrice, currentTier?.dueTodayPct, selectedTenor]);
   const totals = scheduleTotals(schedule);
+  const canCustomizeCalendar = (currentTier?.dueTodayPct ?? 0) < 100 && !!onInstallmentMonthsChange;
 
   if (!tiers.length) {
     return (
@@ -322,20 +334,62 @@ export default function PvTierVisualizer({
         </div>
 
         {/* Schedule Preview Toggle */}
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs text-ocean/70">
             {schedule.length
-              ? `${schedule.length} payments · total ${formatMoney(totals.scheduledTotal)}`
+              ? `${schedule.length} payments · ${selectedTenor}-month calendar · total ${formatMoney(totals.scheduledTotal)}`
               : 'Installment breakdown available'}
           </span>
-          <button
-            type="button"
-            onClick={() => setShowSchedule(!showSchedule)}
-            className="text-xs font-semibold text-gold hover:underline"
-          >
-            {showSchedule ? 'Hide Payment Calendar ▲' : 'View Payment Calendar ▼'}
-          </button>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <button
+              type="button"
+              onClick={() => setShowSchedule(!showSchedule)}
+              className="text-xs font-semibold text-gold hover:underline"
+            >
+              {showSchedule ? 'Hide Payment Calendar ▲' : 'View Payment Calendar ▼'}
+            </button>
+            {canCustomizeCalendar && (
+              <button
+                type="button"
+                onClick={() => setShowCustomCalendar((open) => !open)}
+                className="text-xs font-semibold text-ocean underline hover:text-gold"
+              >
+                {showCustomCalendar ? 'Hide Custom Calendar ▲' : 'Create Custom Payment Calendar'}
+              </button>
+            )}
+          </div>
         </div>
+
+        {showCustomCalendar && canCustomizeCalendar && (
+          <div className="mt-3 rounded-lg border border-ocean/10 bg-white p-3">
+            <p className="text-sm font-semibold text-ocean">Installment length</p>
+            <p className="mt-0.5 text-xs text-ocean/65">
+              Split the remaining balance over 12, 24, 30, or 36 months. Due today stays the same.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Installment length">
+              {CUSTOM_INSTALLMENT_MONTHS.map((n) => {
+                const selected = selectedTenor === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => {
+                      onInstallmentMonthsChange?.(n);
+                      setShowSchedule(true);
+                    }}
+                    className={`border px-3 py-2 text-sm font-semibold ${
+                      selected ? 'border-gold bg-gold/10 text-ocean' : 'border-ocean/15 text-ocean/80 hover:border-gold/50'
+                    }`}
+                  >
+                    {n} months
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Expandable Installments Table */}
         {showSchedule && schedule.length > 0 && (

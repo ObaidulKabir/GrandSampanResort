@@ -76,6 +76,8 @@ export default function InvestmentCheckoutModal({
   const [step, setStep] = useState(1);
   const [maxCompletedStep, setMaxCompletedStep] = useState(1);
   const [selectedTierId, setSelectedTierId] = useState('standard');
+  const [installmentMonths, setInstallmentMonths] = useState(24);
+  const [customCalendar, setCustomCalendar] = useState(false);
   const [kycData, setKycData] = useState<KycData>(initialKyc);
   const [referralCode, setReferralCode] = useState('');
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
@@ -110,6 +112,13 @@ export default function InvestmentCheckoutModal({
       if (typeof draft.step === 'number' && draft.step >= 1) setStep(draft.step);
       if (typeof draft.maxCompletedStep === 'number') setMaxCompletedStep(draft.maxCompletedStep);
       if (draft.selectedTierId) setSelectedTierId(draft.selectedTierId);
+      if (Number(draft.installmentMonths) > 0) {
+        setInstallmentMonths(Number(draft.installmentMonths));
+        setCustomCalendar(true);
+      } else {
+        setInstallmentMonths(24);
+        setCustomCalendar(false);
+      }
       if (typeof draft.referralCode === 'string') setReferralCode(draft.referralCode);
       if (
         draft.depositMethod === 'cheque' ||
@@ -125,6 +134,8 @@ export default function InvestmentCheckoutModal({
       setStep(1);
       setMaxCompletedStep(1);
       setSelectedTierId('standard');
+      setInstallmentMonths(24);
+      setCustomCalendar(false);
       setKycData(initialKyc);
       setReferralCode('');
       setDepositMethod('cheque');
@@ -146,6 +157,7 @@ export default function InvestmentCheckoutModal({
       step,
       maxCompletedStep,
       selectedTierId,
+      installmentMonths: customCalendar ? installmentMonths : undefined,
       kyc: kycData,
       referralCode,
       depositMethod,
@@ -159,6 +171,8 @@ export default function InvestmentCheckoutModal({
     step,
     maxCompletedStep,
     selectedTierId,
+    customCalendar,
+    installmentMonths,
     kycData,
     referralCode,
     depositMethod,
@@ -200,7 +214,7 @@ export default function InvestmentCheckoutModal({
       upfrontPct: tier?.dueTodayPct ?? 10,
       downpaymentPct: 20,
       downpaymentAfterMonths: 3,
-      installmentMonths: 24,
+      installmentMonths: customCalendar ? installmentMonths : 24,
       cadence: 'monthly',
     });
     return {
@@ -214,13 +228,15 @@ export default function InvestmentCheckoutModal({
       depositAmount: schedule.find((s) => s.type === 'deposit')?.amount ?? 0,
       paymentTierId: tierId,
       tierId,
+      installmentMonths: customCalendar ? installmentMonths : 24,
       schedule,
     };
   }
 
   // Fetch signed PV Quote whenever plan or selected tier changes
-  const fetchQuote = async (tierId: string = selectedTierId) => {
+  const fetchQuote = async (tierId: string = selectedTierId, months?: number) => {
     if (!plan) return;
+    const tenor = months ?? (customCalendar ? installmentMonths : undefined);
     setLoadingQuote(true);
     setError('');
     try {
@@ -229,6 +245,7 @@ export default function InvestmentCheckoutModal({
         body: JSON.stringify({
           planId: plan.id,
           paymentTierId: tierId,
+          installmentMonths: tenor,
           referralCode: referralCode.trim() || undefined,
         }),
       });
@@ -243,6 +260,7 @@ export default function InvestmentCheckoutModal({
           depositAmount: q.depositAmount ?? q.schedule?.find((s: any) => s.type === 'deposit')?.amount,
           paymentTierId: q.paymentTierId || tierId,
           tierId: q.paymentTierId || tierId,
+          installmentMonths: q.installmentMonths ?? tenor ?? 24,
           schedule: q.schedule,
         });
       } else {
@@ -256,9 +274,9 @@ export default function InvestmentCheckoutModal({
 
   useEffect(() => {
     if (isOpen && plan && resolvedTiers.length) {
-      fetchQuote(selectedTierId);
+      fetchQuote(selectedTierId, customCalendar ? installmentMonths : undefined);
     }
-  }, [isOpen, plan, selectedTierId, resolvedTiers]);
+  }, [isOpen, plan, selectedTierId, resolvedTiers, customCalendar, installmentMonths]);
 
   if (!isOpen || !plan) return null;
 
@@ -277,7 +295,7 @@ export default function InvestmentCheckoutModal({
           upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
           downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
           downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
-          installmentMonths: quoteData?.installmentMonths ?? 24,
+          installmentMonths: quoteData?.installmentMonths ?? (customCalendar ? installmentMonths : 24),
           cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
         })
   );
@@ -295,6 +313,7 @@ export default function InvestmentCheckoutModal({
       step,
       maxCompletedStep,
       selectedTierId,
+      installmentMonths: customCalendar ? installmentMonths : undefined,
       kyc: kycData,
       referralCode,
       depositMethod,
@@ -419,6 +438,7 @@ export default function InvestmentCheckoutModal({
         investorId: sessionUser?.id,
         quoteToken: quoteData?.quoteToken,
         paymentTierId: quoteData?.paymentTierId || selectedTierId,
+        installmentMonths: quoteData?.installmentMonths ?? (customCalendar ? installmentMonths : undefined),
         referralCode: referralCode.trim() || undefined,
         depositMethod,
         depositReference: depositReference.trim(),
@@ -566,13 +586,18 @@ export default function InvestmentCheckoutModal({
                   selectedTierId={selectedTierId}
                   onSelectTier={(id) => {
                     setSelectedTierId(id);
-                    fetchQuote(id);
+                    fetchQuote(id, customCalendar ? installmentMonths : undefined);
                   }}
                   quoteData={quoteData}
                   loadingQuote={loadingQuote}
-                  onRefreshQuote={() => fetchQuote(selectedTierId)}
+                  onRefreshQuote={() => fetchQuote(selectedTierId, customCalendar ? installmentMonths : undefined)}
                   resolvedTiers={resolvedTiers}
                   discountRateAnnualPct={discountRateAnnualPct}
+                  installmentMonths={customCalendar ? installmentMonths : quoteData?.installmentMonths}
+                  onInstallmentMonthsChange={(months) => {
+                    setCustomCalendar(true);
+                    setInstallmentMonths(months);
+                  }}
                 />
               )}
 

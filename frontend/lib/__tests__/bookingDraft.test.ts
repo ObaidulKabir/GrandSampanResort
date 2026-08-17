@@ -48,4 +48,9 @@ describe('bookingDraft', () => {
     expect(bookingReturnPath('PLAN-1', 'advisor')).toBe('/invest/advisor?resume=PLAN-1');
     expect(bookingReturnPath('PLAN-1', 'plan')).toBe('/pricing/plans/PLAN-1?resume=1');
   });
+
+  it('keeps a custom installment calendar so checkout can resume it', () => {
+    saveBookingDraft('PLAN-1', { installmentMonths: 30, selectedTierId: 'standard' });
+    expect(loadBookingDraft('PLAN-1')?.installmentMonths).toBe(30);
+  });
 });

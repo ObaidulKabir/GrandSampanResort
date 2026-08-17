@@ -36,4 +36,10 @@ describe('generatePaymentSchedule', () => {
     expect(items[0].type).toBe('deposit');
     expect(items[0].amount).toBe(100000);
   });
+
+  it.each([12, 24, 30, 36])('keeps %s monthly installments after deposit and downpayment', (months) => {
+    const items = generatePaymentSchedule(100000, anchor, { ...standard, installmentMonths: months });
+    expect(items.filter((i) => i.type === 'installment')).toHaveLength(months);
+    expect(items.reduce((s, i) => s + i.amount, 0)).toBe(100000);
+  });
 });

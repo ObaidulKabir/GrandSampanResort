@@ -485,11 +485,14 @@ export class BookingService {
     const afterPromo = Math.round(Number(promo ? promo.discountedPrice : listPrice) || 0);
     const policy = await this.paymentPlans.getPolicy();
     const cadence = input.cadence === 'quarterly' ? 'quarterly' : 'monthly';
+    const requestedMonths = Number(input.installmentMonths);
+    const buyerChoseTenor = Number.isFinite(requestedMonths) && requestedMonths > 0;
     const tenor = this.paymentPlans.pickTenor(policy, input.installmentMonths);
     const resolved = this.paymentPlans.resolveTiers(policy, { installmentMonths: tenor, cadence });
     const standard = this.paymentPlans.standardTier(policy);
     const requested = this.paymentPlans.pickTier(policy, input.paymentTierId);
     const tier = resolved.find((t) => t.id === requested.id) || resolved.find((t) => t.id === standard.id)!;
+    const scheduleMonths = buyerChoseTenor ? tenor : (tier.installmentMonthsOverride ?? tenor);
     const advancePct = policy.enabled ? tier.offeredDiscountPct : 0;
     const netPrice = applyDiscount(afterPromo, advancePct);
     const savings = Math.max(0, afterPromo - netPrice);
@@ -504,7 +507,7 @@ export class BookingService {
       upfrontPct: tier.upfrontPct,
       downpaymentPct: policy.downpaymentPct,
       downpaymentAfterMonths: policy.downpaymentAfterMonths,
-      installmentMonths: tier.installmentMonthsOverride ?? tenor,
+      installmentMonths: scheduleMonths,
       cadence,
     };
     const schedule = generatePaymentSchedule(netPrice, anchor, scheduleOpts);
@@ -530,7 +533,7 @@ export class BookingService {
         discountSource: tier.source,
         netPrice,
         savings,
-        installmentMonths: tenor,
+        installmentMonths: scheduleMonths,
         cadence,
         discountRateAnnualPct: policy.discountRateAnnualPct,
         presentValue: Math.round(pv),
@@ -553,7 +556,7 @@ export class BookingService {
         {
           planId,
           paymentTierId: tier.id,
-          installmentMonths: tenor,
+          installmentMonths: scheduleMonths,
           cadence,
           listPrice,
           promoDiscountPct: promo?.discountPct || 0,

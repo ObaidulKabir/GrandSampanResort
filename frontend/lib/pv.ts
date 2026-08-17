@@ -203,7 +203,7 @@ export function resolveTiers(
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function pickTenor(policy: PaymentPolicy, months?: number | null): number {
-  const allowed = policy.tenors.length ? policy.tenors : [24];
+  const allowed = [...new Set([...(policy.tenors.length ? policy.tenors : [24]), 12, 24, 30, 36])];
   const n = Number(months);
   if (Number.isFinite(n) && allowed.includes(n)) return n;
   if (allowed.includes(24)) return 24;

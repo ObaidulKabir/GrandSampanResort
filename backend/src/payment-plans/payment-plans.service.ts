@@ -49,7 +49,7 @@ export const DEFAULT_PAYMENT_PLAN_POLICY: PaymentPlanPolicy = {
   compoundingPerYear: 1, // Matches our discrete annual switch
   downpaymentPct: 20,
   downpaymentAfterMonths: 3,
-  tenors: [12, 18, 24, 36],
+  tenors: [12, 18, 24, 30, 36],
   tenorPricing: 'neutral',
   quoteTtlMinutes: 30,
   tiers: [
@@ -259,7 +259,9 @@ export class PaymentPlansService {
   }
 
   pickTenor(policy: PaymentPlanPolicy, months?: number | null): number {
-    const allowed = policy.tenors.length ? policy.tenors : [24];
+    const allowed = [
+      ...new Set([...(policy.tenors.length ? policy.tenors : [24]), 12, 24, 30, 36])
+    ];
     const n = Number(months);
     if (Number.isFinite(n) && allowed.includes(n)) return n;
     // Prefer classic 24-month default even when shorter tenors exist (sorted ascending).
