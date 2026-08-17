@@ -267,6 +267,8 @@
     "filtersCount": "{count, plural, one {# ফিল্টার} other {# ফিল্টার}}",
     "hideBooked": "বুকড লুকান",
     "showBooked": "বুকড দেখান",
+    "hideArchPlan": "আর্কিটেকচারাল প্ল্যান লুকান",
+    "showArchPlan": "আর্কিটেকচারাল প্ল্যান দেখান",
     "price": "দাম {arrow}",
     "clear": "মুছুন",
     "title": "স্যুটে বিনিয়োগ করুন",

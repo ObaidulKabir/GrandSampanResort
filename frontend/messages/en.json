@@ -267,6 +267,8 @@
     "filtersCount": "{count, plural, one {# filter} other {# filters}}",
     "hideBooked": "Hide booked",
     "showBooked": "Show booked",
+    "hideArchPlan": "Hide architectural plan",
+    "showArchPlan": "Show architectural plan",
     "price": "Price {arrow}",
     "clear": "Clear",
     "title": "Invest in a Suite",

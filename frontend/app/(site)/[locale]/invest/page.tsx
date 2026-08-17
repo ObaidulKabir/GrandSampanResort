@@ -278,6 +278,7 @@ export default function InvestPage() {
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [priceSort, setPriceSort] = useState<'asc' | 'desc'>('asc');
   const [showSold, setShowSold] = useState(true);
+  const [showArchPlans, setShowArchPlans] = useState(false);
   const [adminStatus, setAdminStatus] = useState<AdminStatusFilter>('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const sheetTitleRef = useRef<HTMLHeadingElement>(null);
@@ -540,6 +541,13 @@ export default function InvestPage() {
       <button
         type="button"
         className="font-semibold text-ocean hover:text-gold"
+        onClick={() => setShowArchPlans((v) => !v)}
+      >
+        {showArchPlans ? t('hideArchPlan') : t('showArchPlan')}
+      </button>
+      <button
+        type="button"
+        className="font-semibold text-ocean hover:text-gold"
         onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
       >
         {t('price', { arrow: priceSort === 'asc' ? '↑' : '↓' })}
@@ -690,6 +698,13 @@ export default function InvestPage() {
                 <button
                   type="button"
                   className="min-h-11 border border-ocean/15 px-3 text-sm font-semibold text-ocean"
+                  onClick={() => setShowArchPlans((v) => !v)}
+                >
+                  {showArchPlans ? t('hideArchPlan') : t('showArchPlan')}
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 border border-ocean/15 px-3 text-sm font-semibold text-ocean"
                   onClick={() => setPriceSort((s) => (s === 'asc' ? 'desc' : 'asc'))}
                 >
                   {priceSort === 'asc' ? t('priceLowHigh') : t('priceHighLow')}
@@ -816,7 +831,7 @@ export default function InvestPage() {
                 </p>
               ) : null}
 
-              {p.suiteId ? (
+              {showArchPlans && p.suiteId ? (
                 <div className="mt-3">
                   <SuitePlans
                     suiteId={p.suiteId}
