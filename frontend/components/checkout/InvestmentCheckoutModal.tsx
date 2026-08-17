@@ -282,8 +282,10 @@ export default function InvestmentCheckoutModal({
         })
   );
   const promoSavings = Math.max(0, plan.price - afterPromo);
+  const suiteIdForPlans = plan.suiteId || plan.suite?.id;
 
   function returnPath() {
+    if (!plan) return '/invest';
     return bookingReturnPath(plan.id, returnTo);
   }
 
@@ -401,6 +403,7 @@ export default function InvestmentCheckoutModal({
       return;
     }
     if (!ensureLoggedIn()) return;
+    if (!plan) return;
     setSubmitting(true);
 
     try {
@@ -549,9 +552,9 @@ export default function InvestmentCheckoutModal({
             </div>
           ) : (
             <>
-              {(plan.suiteId || plan.suite?.id) && (
+              {suiteIdForPlans && (
                 <div className="mb-6 border border-ocean/10 bg-pearl/50 p-3">
-                  <SuitePlans suiteId={plan.suiteId || plan.suite.id} variant="compact" />
+                  <SuitePlans suiteId={suiteIdForPlans} variant="compact" />
                 </div>
               )}
 
