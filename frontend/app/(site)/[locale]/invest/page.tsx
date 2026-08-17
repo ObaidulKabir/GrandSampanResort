@@ -5,10 +5,12 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { api } from '@/lib/api';
 import { formatDate, formatMoney } from '@/lib/format';
+import { fetchMedia, resolveMediaUrl, type MediaItem } from '@/lib/media';
 import { annualReturnRange, normalizeReturnAssumptions, type ReturnAssumptions } from '@/lib/returns';
 import Button from '@/components/Button';
 import BrochureDownload from '@/components/BrochureDownload';
 import PlanOwner from '@/components/PlanOwner';
+import SuitePlans from '@/components/SuitePlans';
 import { useAppStore } from '@/store/appStore';
 import InvestmentCheckoutModal from '@/components/checkout/InvestmentCheckoutModal';
 
@@ -46,6 +48,19 @@ function humanView(v: string | undefined, t: (key: string) => string) {
   if (s.includes('sea')) return t('seaView');
   if (s.includes('hill')) return t('hillView');
   return v || '—';
+}
+
+function firstBySuite(items: MediaItem[]) {
+  const map: Record<string, { src: string; alt: string }> = {};
+  for (const item of items) {
+    const suiteId = item.suiteId;
+    if (!suiteId || map[suiteId] || !item.url) continue;
+    map[suiteId] = {
+      src: resolveMediaUrl(item.url),
+      alt: item.alt || item.label || suiteId
+    };
+  }
+  return map;
 }
 
 function FieldWrap({ label, children }: { label?: string; children: ReactNode }) {
@@ -268,6 +283,8 @@ export default function InvestPage() {
   const sheetTitleRef = useRef<HTMLHeadingElement>(null);
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [archBySuite, setArchBySuite] = useState<Record<string, { src: string; alt: string }>>({});
+  const [keyMapBySuite, setKeyMapBySuite] = useState<Record<string, { src: string; alt: string }>>({});
 
   useEffect(() => {
     hydrate();
@@ -282,16 +299,20 @@ export default function InvestPage() {
     setLoading(true);
     setError('');
     try {
-      const [plansJson, suitesJson, returnsJson, policyJson] = await Promise.all([
+      const [plansJson, suitesJson, returnsJson, policyJson, archMedia, keyMedia] = await Promise.all([
         api('/timeshares'),
         api('/suites'),
         api('/settings/return-assumptions').catch(() => null),
-        api('/payment-plans/policy').catch(() => null)
+        api('/payment-plans/policy').catch(() => null),
+        fetchMedia('suite_plan'),
+        fetchMedia('suite_keymap')
       ]);
       const items = Array.isArray(plansJson) ? plansJson : plansJson?.plans ?? [];
       const suitesArr = Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? [];
       const byId = Object.fromEntries((suitesArr as any[]).map((s: any) => [s.id, s]));
       setSuites(byId);
+      setArchBySuite(firstBySuite(archMedia));
+      setKeyMapBySuite(firstBySuite(keyMedia));
       // Keep available + sold/booked plans; drop other draft/internal statuses.
       setPlans(
         items.filter((p: any) => {
@@ -780,8 +801,19 @@ export default function InvestPage() {
                 </p>
               ) : null}
 
-              {available ? (
+              {p.suiteId ? (
                 <div className="mt-3">
+                  <SuitePlans
+                    suiteId={p.suiteId}
+                    variant="compact"
+                    planImage={archBySuite[p.suiteId] || null}
+                    keyImage={keyMapBySuite[p.suiteId] || null}
+                  />
+                </div>
+              ) : null}
+
+              {available ? (
+                <div className="mt-3 flex flex-col gap-2">
                   <Button
                     onClick={() => {
                       const suite = suites[p.suiteId] || {};
@@ -792,6 +824,12 @@ export default function InvestPage() {
                   >
                     {t('reserveFrom', { amount: formatMoney(bookingAmount) })}
                   </Button>
+                  <Link
+                    href={`/pricing/plans/${encodeURIComponent(p.id)}`}
+                    className="text-center text-xs font-semibold text-ocean underline decoration-gold underline-offset-4"
+                  >
+                    {t('planDetails')}
+                  </Link>
                 </div>
               ) : !sold ? (
                 <div className="mt-3">

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 export default function ImageLightbox({
@@ -25,9 +26,11 @@ export default function ImageLightbox({
     };
   }, [onClose]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-ocean/90 p-4 md:p-10"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-ocean/90 p-4 md:p-10"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -50,6 +53,7 @@ export default function ImageLightbox({
         className="max-h-full max-w-full bg-white object-contain"
         onClick={(e) => e.stopPropagation()}
       />
-    </div>
+    </div>,
+    document.body
   );
 }

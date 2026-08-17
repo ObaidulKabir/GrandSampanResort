@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
 import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
 import KycStepForm, { type KycData } from './KycStepForm';
+import SuitePlans from '@/components/SuitePlans';
 
 type SharePlan = {
   id: string;
@@ -419,6 +420,12 @@ export default function InvestmentCheckoutModal({
             </div>
           ) : (
             <>
+              {(plan.suiteId || plan.suite?.id) && (
+                <div className="mb-6 border border-ocean/10 bg-pearl/50 p-3">
+                  <SuitePlans suiteId={plan.suiteId || plan.suite.id} variant="compact" />
+                </div>
+              )}
+
               {/* Step 1: PV Tier Selection */}
               {step === 1 && (
                 <PvTierVisualizer

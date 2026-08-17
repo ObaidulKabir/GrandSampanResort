@@ -115,7 +115,9 @@
     "keyEmpty": "Key plan not uploaded yet for this unit.",
     "keyAlt": "Key plan",
     "enlarge": "Enlarge",
-    "loading": "Loading drawing…"
+    "loading": "Loading drawing…",
+    "compactTitle": "Suite plan & key map",
+    "compactHint": "Click a drawing to enlarge before you reserve."
   },
   "carousel": {
     "empty": "No images available",
@@ -293,6 +295,7 @@
     "payFullSave": "Pay in full, save {pct}%",
     "rentRange": "Rent {low}–{high}/yr",
     "reserveFrom": "Reserve from {amount}",
+    "planDetails": "Plan details",
     "seeWhoBooked": "See who booked",
     "viewBookedPlan": "View booked plan",
     "emptyNoAvailable": "No available plans right now. Turn on “Show booked” to see who already reserved a share, or check back soon.",
