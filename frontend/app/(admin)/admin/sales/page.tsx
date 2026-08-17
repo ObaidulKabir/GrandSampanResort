@@ -20,6 +20,7 @@ export default function AdminSalesPage() {
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [suites, setSuites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'investment' | 'stay'>('investment');
@@ -34,15 +35,17 @@ export default function AdminSalesPage() {
     setLoading(true);
     setError('');
     try {
-      const [salesJson, usersJson, plansJson] = await Promise.all([
+      const [salesJson, usersJson, plansJson, suitesJson] = await Promise.all([
         api('/booking/admin/all'),
         api('/auth/users'),
-        api('/timeshares')
+        api('/timeshares'),
+        api('/suites')
       ]);
       setSales(Array.isArray(salesJson?.sales) ? salesJson.sales : []);
       setUsers(Array.isArray(usersJson?.users) ? usersJson.users : []);
       const planList = Array.isArray(plansJson) ? plansJson : plansJson?.plans || plansJson?.items || [];
       setPlans(planList);
+      setSuites(Array.isArray(suitesJson) ? suitesJson : suitesJson?.suites ?? []);
     } catch {
       setError('Failed to load sales data');
     }
@@ -60,6 +63,7 @@ export default function AdminSalesPage() {
     const unsold = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'unsold').length;
     const booked = plans.filter((p) => (p.planStatus || '').toLowerCase() === 'booked').length;
     const pendingKyc = users.filter((u) => !u.kyc).length;
+    const inventoryValue = suites.reduce((n, s) => n + (Number(s.totalPrice) || 0), 0);
     return {
       total: sales.length,
       investments: investments.length,
@@ -68,9 +72,10 @@ export default function AdminSalesPage() {
       investors: users.length,
       unsold,
       booked,
-      pendingKyc
+      pendingKyc,
+      inventoryValue
     };
-  }, [sales, users, plans]);
+  }, [sales, users, plans, suites]);
 
   const statuses = useMemo(() => {
     const set = new Set<string>();
@@ -304,12 +309,13 @@ export default function AdminSalesPage() {
 
       {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
 
-      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
         {[
           { label: 'Bookings', value: String(stats.total) },
           { label: 'Investments', value: String(stats.investments) },
           { label: 'Stays', value: String(stats.stays) },
           { label: 'GMV', value: formatMoney(stats.gmv) },
+          { label: 'Inventory value', value: formatMoney(stats.inventoryValue) },
           { label: 'Unsold plans', value: String(stats.unsold) },
           { label: 'Booked plans', value: String(stats.booked) },
           { label: 'KYC pending', value: String(stats.pendingKyc) }
@@ -582,6 +588,67 @@ export default function AdminSalesPage() {
                   Preview buyer catalog
                 </Link>
               </div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-display text-2xl text-ocean">Suite total values</h2>
+            <p className="mt-1 text-sm text-ocean/65">Full unit value, independent of how share plans are split.</p>
+            <div className="mt-3 overflow-auto border border-ocean/10 bg-white">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ocean/10 text-left text-ocean/70">
+                    <th className="p-3 font-medium">Unit</th>
+                    <th className="p-3 font-medium">Category</th>
+                    <th className="p-3 font-medium">View</th>
+                    <th className="p-3 font-medium">Total value</th>
+                    <th className="p-3 font-medium">Plans</th>
+                    <th className="p-3 font-medium">Manage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suites.map((s) => {
+                    const forUnit = plans.filter((p) => p.suiteId === s.id);
+                    const plansValue = forUnit.reduce((n, p) => n + (Number(p.price) || 0), 0);
+                    return (
+                      <tr key={s.id} className="border-t border-ocean/10">
+                        <td className="p-3 font-medium text-ocean">{s.id}</td>
+                        <td className="p-3">{s.type || '—'}</td>
+                        <td className="p-3">{s.view || '—'}</td>
+                        <td className="p-3 font-semibold text-ocean">{formatMoney(s.totalPrice || 0)}</td>
+                        <td className="p-3">
+                          {forUnit.length} · {formatMoney(plansValue)}
+                        </td>
+                        <td className="p-3">
+                          <Link href={`/admin/units/${s.id}/plans`} className="text-ocean underline">
+                            Unit plans
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {suites.length === 0 && !loading && (
+                    <tr>
+                      <td className="p-4 text-ocean/70" colSpan={6}>
+                        No units yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {suites.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t border-ocean/15 bg-pearl/50">
+                      <td className="p-3 font-semibold text-ocean" colSpan={3}>
+                        All suites
+                      </td>
+                      <td className="p-3 font-semibold text-ocean">{formatMoney(stats.inventoryValue)}</td>
+                      <td className="p-3 text-ocean/70" colSpan={2}>
+                        {plans.length} plans
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
           </div>
 

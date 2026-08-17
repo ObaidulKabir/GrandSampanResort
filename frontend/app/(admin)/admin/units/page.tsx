@@ -16,7 +16,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'type', label: 'Category' },
   { key: 'size', label: 'Size' },
   { key: 'view', label: 'View' },
-  { key: 'totalPrice', label: 'Price' },
+  { key: 'totalPrice', label: 'Total value' },
   { key: 'plans', label: 'Plans' }
 ];
 
@@ -97,7 +97,8 @@ export default function AdminUnitsListPage() {
   function planStats(suiteId: string) {
     const forUnit = plans.filter((p) => p.suiteId === suiteId);
     const unsold = forUnit.filter((p) => (p.planStatus || '').toLowerCase() === 'unsold').length;
-    return { total: forUnit.length, unsold };
+    const value = forUnit.reduce((n, p) => n + (Number(p.price) || 0), 0);
+    return { total: forUnit.length, unsold, value };
   }
 
   function toggleSort(key: SortKey) {
@@ -134,7 +135,7 @@ export default function AdminUnitsListPage() {
   const sorted = useMemo(() => {
     const rows = items.map((i) => {
       const stats = planStats(i.id);
-      return { ...i, _plansTotal: stats.total, _plansUnsold: stats.unsold };
+      return { ...i, _plansTotal: stats.total, _plansUnsold: stats.unsold, _plansValue: stats.value };
     });
     const dir = sortDir === 'asc' ? 1 : -1;
     rows.sort((a, b) => {
@@ -162,6 +163,12 @@ export default function AdminUnitsListPage() {
     return rows;
   }, [items, plans, sortKey, sortDir]);
 
+  const inventoryTotals = useMemo(() => {
+    const suiteValue = items.reduce((n, i) => n + (Number(i.totalPrice) || 0), 0);
+    const plansValue = plans.reduce((n, p) => n + (Number(p.price) || 0), 0);
+    return { suiteValue, plansValue, count: items.length };
+  }, [items, plans]);
+
   function SortHeader({ col }: { col: (typeof COLUMNS)[number] }) {
     const active = sortKey === col.key;
     return (
@@ -187,7 +194,10 @@ export default function AdminUnitsListPage() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-gold">Inventory</p>
           <h1 className="font-display mt-1 text-4xl text-ocean">Units</h1>
-          <p className="mt-2 text-ocean/75">Each unit needs at least one Unsold plan to appear in the buyer catalog.</p>
+          <p className="mt-2 text-ocean/75">
+            Each unit needs at least one Unsold plan to appear in the buyer catalog. Total value is the full suite
+            price used to size share plans.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/units/new">
@@ -200,6 +210,23 @@ export default function AdminUnitsListPage() {
       </div>
 
       {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
+
+      <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="border border-ocean/10 bg-white p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Units</div>
+          <div className="font-display mt-1 text-2xl text-ocean">{inventoryTotals.count}</div>
+        </div>
+        <div className="border border-gold/40 bg-gold/10 p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Inventory total value</div>
+          <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(inventoryTotals.suiteValue)}</div>
+          <p className="mt-1 text-xs text-ocean/65">Sum of suite total values</p>
+        </div>
+        <div className="border border-ocean/10 bg-white p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Allocated in plans</div>
+          <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(inventoryTotals.plansValue)}</div>
+          <p className="mt-1 text-xs text-ocean/65">Sum of share-plan prices</p>
+        </div>
+      </section>
 
       <div className="mt-6 overflow-auto border border-ocean/10 bg-white">
         <table className="w-full text-sm">
@@ -223,7 +250,12 @@ export default function AdminUnitsListPage() {
                   <td className="p-3">{i.type}</td>
                   <td className="p-3">{i.size} sq ft</td>
                   <td className="p-3">{i.view}</td>
-                  <td className="p-3">{formatMoney(i.totalPrice || 0)}</td>
+                  <td className="p-3">
+                    <div className="font-semibold text-ocean">{formatMoney(i.totalPrice || 0)}</div>
+                    {stats.total > 0 && (
+                      <div className="mt-0.5 text-xs text-ocean/55">Plans {formatMoney(i._plansValue || 0)}</div>
+                    )}
+                  </td>
                   <td className="p-3">
                     {stats.total === 0 ? (
                       <span className="inline-block border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700">
@@ -284,6 +316,19 @@ export default function AdminUnitsListPage() {
               </tr>
             )}
           </tbody>
+          {items.length > 0 && (
+            <tfoot>
+              <tr className="border-t border-ocean/15 bg-pearl/50 text-sm">
+                <td className="p-3 font-semibold text-ocean" colSpan={5}>
+                  All units
+                </td>
+                <td className="p-3 font-semibold text-ocean">{formatMoney(inventoryTotals.suiteValue)}</td>
+                <td className="p-3 text-ocean/70" colSpan={4}>
+                  Plans {formatMoney(inventoryTotals.plansValue)}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
       {lightbox && (

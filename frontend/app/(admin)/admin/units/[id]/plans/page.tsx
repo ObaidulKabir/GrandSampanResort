@@ -129,6 +129,13 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
   /** Unit locks only when the combined days/month already fill the month. */
   const planCreationLocked = remainingDays <= 0;
 
+  const suiteValue = Number(suite?.totalPrice || 0);
+  const plansValue = useMemo(
+    () => items.reduce((n, p) => n + (Number(p.price) || 0), 0),
+    [items]
+  );
+  const valueGap = suiteValue - plansValue;
+
   /** Suggested price = unit total price × time fraction, rounded to whole taka. */
   function suggestedPrice(days: number) {
     const total = Number(suite?.totalPrice || 0);
@@ -335,7 +342,7 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
           <h1 className="font-display mt-1 text-4xl text-ocean">Share plans · {suiteId}</h1>
           <p className="mt-2 text-ocean/75">
             {suite
-              ? `${suite.type || 'Suite'} · ${suite.view || ''} view · Floor ${suite.floor ?? '—'} · ${formatMoney(suite.totalPrice || 0)}`
+              ? `${suite.type || 'Suite'} · ${suite.view || ''} view · Floor ${suite.floor ?? '—'}`
               : 'Plans marked Unsold appear in the buyer catalog immediately.'}
           </p>
         </div>
@@ -352,6 +359,32 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
 
       {error && <div className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>}
       {notice && <div className="mt-4 border border-gold/40 bg-gold/10 p-3 text-ocean">{notice}</div>}
+
+      <section className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="border border-gold/40 bg-gold/10 p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Suite total value</div>
+          <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(suiteValue)}</div>
+          <p className="mt-1 text-xs text-ocean/65">
+            <Link href={`/admin/units/${suiteId}/edit`} className="font-semibold text-ocean underline">
+              Edit unit
+            </Link>
+          </p>
+        </div>
+        <div className="border border-ocean/10 bg-white p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Allocated in plans</div>
+          <div className="font-display mt-1 text-2xl text-ocean">{formatMoney(plansValue)}</div>
+          <p className="mt-1 text-xs text-ocean/65">
+            {items.length} plan{items.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="border border-ocean/10 bg-white p-4">
+          <div className="text-xs uppercase tracking-wide text-ocean/60">Unallocated</div>
+          <div className={`font-display mt-1 text-2xl ${valueGap === 0 ? 'text-ocean' : 'text-gold'}`}>
+            {formatMoney(valueGap)}
+          </div>
+          <p className="mt-1 text-xs text-ocean/65">Suite value minus plan prices</p>
+        </div>
+      </section>
 
       <section className="mt-6 border border-ocean/10 bg-white p-6">
         <h2 className="font-display text-2xl text-ocean">Create plan</h2>
@@ -647,6 +680,19 @@ export default function AdminSuitePlansPage({ params }: { params: { id: string }
                 </tr>
               )}
             </tbody>
+            {items.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-ocean/15 bg-pearl/50">
+                  <td className="p-3 font-semibold text-ocean" colSpan={3}>
+                    Plans total
+                  </td>
+                  <td className="p-3 font-semibold text-ocean">{formatMoney(plansValue)}</td>
+                  <td className="p-3 text-ocean/70" colSpan={3}>
+                    Suite {formatMoney(suiteValue)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </section>

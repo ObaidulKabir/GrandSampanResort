@@ -222,7 +222,7 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
         </div>
         <div className="space-y-4 border border-ocean/10 bg-pearl/30 p-4">
           <label className="block text-sm font-medium text-ocean">
-            Total price (BDT)
+            Total value (BDT)
             <input
               type="text"
               inputMode="numeric"
@@ -235,16 +235,16 @@ export default function AdminEditUnitPage({ params }: { params: { id: string } }
               className="field mt-1"
             />
             <span className="mt-1 block text-xs font-normal text-ocean/60">
-              {savedPrice != null ? `Saved price: ${formatMoney(savedPrice)}. ` : ''}
-              Changing this rescales unsold share-plan prices for this unit proportionally. Sold or reserved plans keep
-              their current price.
+              {savedPrice != null ? `Saved total value: ${formatMoney(savedPrice)}. ` : ''}
+              This is the full suite value. Changing it rescales unsold share-plan prices proportionally. Sold or
+              reserved plans keep their current price.
             </span>
           </label>
 
           <div>
             <p className="text-sm font-medium text-ocean">Adjust by percent</p>
             <p className="mt-1 text-xs text-ocean/60">
-              Preview and apply a percent change to the price field, then save to persist.
+              Preview and apply a percent change to the total value, then save to persist.
             </p>
             <div className="mt-3 flex flex-wrap items-end gap-3">
               <fieldset className="text-sm text-ocean">

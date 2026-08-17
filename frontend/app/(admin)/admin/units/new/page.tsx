@@ -122,7 +122,7 @@ export default function AdminCreateUnitPage() {
           </label>
         </div>
         <label className="block text-sm font-medium text-ocean">
-          Total price (BDT)
+          Total value (BDT)
           <input
             type="number"
             value={totalPrice}
@@ -130,6 +130,9 @@ export default function AdminCreateUnitPage() {
             className="field mt-1"
             placeholder="8500000"
           />
+          <span className="mt-1 block text-xs font-normal text-ocean/60">
+            Full suite value. Share-plan prices are suggested from this amount × days ÷ 30.
+          </span>
         </label>
 
         <div className="flex items-center gap-3 border-t border-ocean/10 pt-5">
