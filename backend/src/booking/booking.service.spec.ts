@@ -107,6 +107,32 @@ describe('BookingService', () => {
     expect(missingDeposit.ok).toBe(false);
     if (!missingDeposit.ok) expect(missingDeposit.error).toBe('deposit_payment_required');
 
+    const missingClientPhoto = await svc.book(
+      suiteId,
+      planId,
+      now.toISOString(),
+      new Date(now.getTime() + 86400000).toISOString(),
+      investorId,
+      'monthly',
+      { ...sampleKyc, picUrl: '' },
+      sampleDeposit
+    );
+    expect(missingClientPhoto.ok).toBe(false);
+    if (!missingClientPhoto.ok) expect(missingClientPhoto.error).toBe('kyc_required');
+
+    const missingNomineePhoto = await svc.book(
+      suiteId,
+      planId,
+      now.toISOString(),
+      new Date(now.getTime() + 86400000).toISOString(),
+      investorId,
+      'monthly',
+      { ...sampleKyc, nomineePicUrl: '   ' },
+      sampleDeposit
+    );
+    expect(missingNomineePhoto.ok).toBe(false);
+    if (!missingNomineePhoto.ok) expect(missingNomineePhoto.error).toBe('kyc_required');
+
     const blockedUnverified = await svc.book(
       suiteId,
       planId,

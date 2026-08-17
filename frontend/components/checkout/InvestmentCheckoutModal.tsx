@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, apiUpload } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
+import { resolveMediaUrl } from '@/lib/media';
 import { generatePaymentSchedule, planOfferPrice, scheduleTotals } from '@/lib/schedule';
+import { prepareImageForUpload, uploadImageErrorMessage } from '@/lib/uploadImage';
 import Button from '@/components/Button';
 import CheckoutStepper from './CheckoutStepper';
 import PvTierVisualizer, { buildTiersFromPolicy, type PaymentTierInfo } from './PvTierVisualizer';
@@ -64,6 +66,8 @@ export default function InvestmentCheckoutModal({
   const [depositReference, setDepositReference] = useState('');
   const [depositProofUrl, setDepositProofUrl] = useState('');
   const [depositNote, setDepositNote] = useState('');
+  const [kycBusy, setKycBusy] = useState(false);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const [quoteData, setQuoteData] = useState<any>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
@@ -189,19 +193,54 @@ export default function InvestmentCheckoutModal({
   );
   const promoSavings = Math.max(0, plan.price - afterPromo);
 
+  const KYC_REQUIRED: { key: keyof KycData; label: string }[] = [
+    { key: 'name', label: 'full legal name' },
+    { key: 'fatherName', label: "father's / spouse name" },
+    { key: 'nid', label: 'NID / smart card number' },
+    { key: 'dob', label: 'date of birth' },
+    { key: 'profession', label: 'profession' },
+    { key: 'city', label: 'city' },
+    { key: 'address', label: 'present address' },
+    { key: 'permanentAddress', label: 'permanent address' },
+    { key: 'contact', label: 'contact number' },
+    { key: 'email', label: 'email address' },
+    { key: 'picUrl', label: 'client photograph' },
+    { key: 'nomineeName', label: 'nominee name' },
+    { key: 'nomineeNid', label: 'nominee NID' },
+    { key: 'nomineePicUrl', label: 'nominee photograph' }
+  ];
+
   const validateKyc = () => {
-    const k = kycData;
-    if (!k.name.trim() || !k.fatherName.trim() || !k.nid.trim() || !k.contact.trim() || !k.email.trim() || !k.address.trim()) {
-      setError('Please fill in all required investor fields (*)');
-      return false;
-    }
-    if (!k.nomineeName.trim() || !k.nomineeNid.trim()) {
-      setError('Please fill in nominee name and NID/passport number (*)');
+    const missing = KYC_REQUIRED.filter(({ key }) => !String(kycData[key] || '').trim()).map((f) => f.label);
+    if (missing.length) {
+      setError(`Please complete all KYC fields: ${missing.join(', ')}.`);
       return false;
     }
     setError('');
     return true;
   };
+
+  async function uploadDepositProof(file: File | null) {
+    if (!file) return;
+    setUploadingProof(true);
+    setError('');
+    try {
+      const prepared = await prepareImageForUpload(file);
+      const form = new FormData();
+      form.append('file', prepared);
+      const res = await apiUpload('/media/payment-proof', form);
+      if (!res?.ok || !res.url) {
+        const authFailed = res?.status === 401 || res?.status === 403;
+        setError(authFailed ? 'Please sign in to upload a deposit slip.' : 'Deposit slip upload failed. Use JPG or PNG under 20MB.');
+        return;
+      }
+      setDepositProofUrl(res.url);
+    } catch (err) {
+      setError(uploadImageErrorMessage(err));
+    } finally {
+      setUploadingProof(false);
+    }
+  }
 
   const handleNextStep = () => {
     setError('');
@@ -209,6 +248,10 @@ export default function InvestmentCheckoutModal({
       setStep(2);
       setMaxCompletedStep((prev) => Math.max(prev, 2));
     } else if (step === 2) {
+      if (kycBusy) {
+        setError('Please wait for the photograph upload to finish.');
+        return;
+      }
       if (validateKyc()) {
         setStep(3);
         setMaxCompletedStep((prev) => Math.max(prev, 3));
@@ -226,6 +269,11 @@ export default function InvestmentCheckoutModal({
 
   const handleSubmitBooking = async () => {
     setError('');
+    if (!validateKyc()) return;
+    if (!depositReference.trim()) {
+      setError('Please enter the cheque, pay-order, or transfer reference.');
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -240,12 +288,28 @@ export default function InvestmentCheckoutModal({
         end: nextYear.toISOString(),
         investorId: user?.id,
         quoteToken: quoteData?.quoteToken,
+        paymentTierId: quoteData?.paymentTierId || selectedTierId,
         referralCode: referralCode.trim() || undefined,
         depositMethod,
-        depositReference: depositReference.trim() || undefined,
+        depositReference: depositReference.trim(),
         depositProofUrl: depositProofUrl.trim() || undefined,
         depositNote: depositNote.trim() || undefined,
-        client: kycData,
+        kyc: {
+          name: kycData.name.trim(),
+          fatherName: kycData.fatherName.trim(),
+          nid: kycData.nid.trim(),
+          dob: kycData.dob.trim(),
+          address: kycData.address.trim(),
+          permanentAddress: kycData.permanentAddress.trim(),
+          contact: kycData.contact.trim(),
+          email: kycData.email.trim(),
+          picUrl: kycData.picUrl.trim(),
+          profession: kycData.profession.trim(),
+          city: kycData.city.trim(),
+          nomineeName: kycData.nomineeName.trim(),
+          nomineeNid: kycData.nomineeNid.trim(),
+          nomineePicUrl: kycData.nomineePicUrl.trim()
+        }
       };
 
       const res = await api('/booking', {
@@ -257,7 +321,14 @@ export default function InvestmentCheckoutModal({
         setConfirmedBooking(res.booking);
         if (onBookingSuccess) onBookingSuccess(res.booking.id);
       } else {
-        setError(res?.message || 'Failed to place booking. Please check details.');
+        const code = String(res?.error || '');
+        setError(
+          code === 'kyc_required'
+            ? 'Please complete all KYC fields, including client and nominee photographs.'
+            : code === 'deposit_payment_required'
+              ? 'Please enter a deposit payment reference.'
+              : res?.message || res?.error || 'Failed to place booking. Please check details.'
+        );
       }
     } catch (err: any) {
       setError(err?.message || 'Server error while submitting booking.');
@@ -373,6 +444,7 @@ export default function InvestmentCheckoutModal({
                   onChange={setKycData}
                   userEmail={user?.email}
                   userName={user?.name}
+                  onBusyChange={setKycBusy}
                 />
               )}
 
@@ -530,14 +602,32 @@ export default function InvestmentCheckoutModal({
                       </label>
 
                       <label className="block">
-                        <span className="text-xs font-semibold text-ocean">Deposit Slip / Receipt URL (Optional)</span>
+                        <span className="text-xs font-semibold text-ocean">Deposit slip / receipt photo</span>
                         <input
-                          type="url"
-                          className="field mt-1 text-sm"
-                          placeholder="https://... image link or leave blank"
-                          value={depositProofUrl}
-                          onChange={(e) => setDepositProofUrl(e.target.value)}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif"
+                          className="mt-1 block w-full text-xs text-ocean/80"
+                          disabled={uploadingProof}
+                          onChange={(e) => {
+                            const selected = e.target.files?.[0] || null;
+                            void uploadDepositProof(selected);
+                            e.target.value = '';
+                          }}
                         />
+                        {uploadingProof && (
+                          <span className="mt-1 block text-xs font-medium text-ocean/70">Uploading receipt…</span>
+                        )}
+                        {depositProofUrl && !uploadingProof && (
+                          <span className="mt-1 block text-xs text-ocean/60">Receipt uploaded</span>
+                        )}
+                        {depositProofUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={resolveMediaUrl(depositProofUrl)}
+                            alt="Deposit receipt"
+                            className="mt-2 h-20 w-20 border border-ocean/15 object-cover"
+                          />
+                        )}
                       </label>
 
                       <label className="block sm:col-span-2">
@@ -571,11 +661,15 @@ export default function InvestmentCheckoutModal({
             </Button>
 
             {step < 4 ? (
-              <Button onClick={handleNextStep} className="px-8">
+              <Button onClick={handleNextStep} disabled={step === 2 && kycBusy} className="px-8">
                 Continue to Step {step + 1} →
               </Button>
             ) : (
-              <Button onClick={handleSubmitBooking} disabled={submitting} className="px-8 bg-gold text-ocean hover:bg-gold/90 font-bold">
+              <Button
+                onClick={handleSubmitBooking}
+                disabled={submitting || uploadingProof}
+                className="px-8 bg-gold text-ocean hover:bg-gold/90 font-bold"
+              >
                 {submitting ? 'Submitting Reservation...' : `Confirm & Submit Deposit (${formatMoney(dueTodayAmount)})`}
               </Button>
             )}
