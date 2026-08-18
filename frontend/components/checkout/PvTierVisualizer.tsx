@@ -11,11 +11,12 @@ export type PaymentTierInfo = {
   discountPct: number;
   description: string;
   badge?: string;
+  /** Tenor this tier's discount was priced on by the admin policy. */
+  installmentMonths?: number;
 };
 
 /** Fallback display metadata — discount values here are ONLY used if the backend policy is unavailable. */
 const TIER_DISPLAY: Record<string, { description: string; badge?: string }> = {
-  fast_track: { description: 'Max discount by shortening schedule to 12 months (Early Payoff).', badge: 'Fast Track' },
   standard: { description: '10% deposit today + downpayment in 3 months + monthly installments.' },
   booking_plus_down: { description: 'Merged deposit & downpayment today. First installment at Month 4.', badge: 'Popular' },
   advance_40: { description: 'Pay 40% upfront. Balance split across remaining monthly installments.' },
@@ -37,6 +38,7 @@ export function buildTiersFromPolicy(resolved: any[]): PaymentTierInfo[] {
     discountPct: Number(t.offeredDiscountPct) || 0,
     description: TIER_DISPLAY[t.id]?.description || `Pay ${t.upfrontPct}% upfront.`,
     badge: TIER_DISPLAY[t.id]?.badge,
+    installmentMonths: Number(t.installmentMonths) || undefined,
   }));
 }
 
@@ -82,6 +84,12 @@ type Props = {
   resolvedTiers?: PaymentTierInfo[];
   /** Admin-configured discount rate (for display). */
   discountRateAnnualPct?: number;
+  /** Admin downpayment shape and allowed tenors from policy. */
+  policyAssumptions?: {
+    downpaymentPct: number;
+    downpaymentAfterMonths: number;
+    tenors: number[];
+  } | null;
   installmentMonths?: number;
   onInstallmentMonthsChange?: (months: number) => void;
 };
@@ -96,6 +104,7 @@ export default function PvTierVisualizer({
   onRefreshQuote,
   resolvedTiers,
   discountRateAnnualPct,
+  policyAssumptions,
   installmentMonths,
   onInstallmentMonthsChange,
 }: Props) {
@@ -145,7 +154,8 @@ export default function PvTierVisualizer({
     Math.round(afterPromo * (1 - discountPct / 100));
   const promoSavings = Math.max(0, listPrice - afterPromo);
   const pvSavings = Math.max(0, afterPromo - netPrice);
-  const selectedTenor = installmentMonths ?? quoteData?.installmentMonths ?? 24;
+  const selectedTenor =
+    installmentMonths ?? quoteData?.installmentMonths ?? currentTier?.installmentMonths ?? 24;
   const schedule = useMemo(() => {
     if (
       quoteData?.schedule?.length &&
@@ -155,14 +165,23 @@ export default function PvTierVisualizer({
     }
     return generatePaymentSchedule(netPrice, new Date(), {
       upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
-      downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
-      downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
+      downpaymentPct:
+        quoteData?.assumptions?.downpaymentPct ?? policyAssumptions?.downpaymentPct ?? 20,
+      downpaymentAfterMonths:
+        quoteData?.assumptions?.downpaymentAfterMonths ??
+        policyAssumptions?.downpaymentAfterMonths ??
+        3,
       installmentMonths: selectedTenor,
       cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
     });
-  }, [quoteData, netPrice, currentTier?.dueTodayPct, selectedTenor]);
+  }, [quoteData, netPrice, currentTier?.dueTodayPct, selectedTenor, policyAssumptions]);
   const totals = scheduleTotals(schedule);
-  const canCustomizeCalendar = (currentTier?.dueTodayPct ?? 0) < 100 && !!onInstallmentMonthsChange;
+  // Only offer lengths the admin actually allows in policy.tenors.
+  const allowedTenors = policyAssumptions?.tenors?.length
+    ? CUSTOM_INSTALLMENT_MONTHS.filter((n) => policyAssumptions.tenors.includes(n))
+    : [...CUSTOM_INSTALLMENT_MONTHS];
+  const canCustomizeCalendar =
+    (currentTier?.dueTodayPct ?? 0) < 100 && !!onInstallmentMonthsChange && allowedTenors.length > 1;
 
   if (!tiers.length) {
     return (
@@ -364,10 +383,11 @@ export default function PvTierVisualizer({
           <div className="mt-3 rounded-lg border border-ocean/10 bg-white p-3">
             <p className="text-sm font-semibold text-ocean">Installment length</p>
             <p className="mt-0.5 text-xs text-ocean/65">
-              Split the remaining balance over 12, 24, 30, or 36 months. Due today stays the same.
+              Split the remaining balance over {listMonths(allowedTenors)} months. Due today stays the
+              same, and the advance discount is repriced for the calendar you pick.
             </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Installment length">
-              {CUSTOM_INSTALLMENT_MONTHS.map((n) => {
+            <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Installment length">
+              {allowedTenors.map((n) => {
                 const selected = selectedTenor === n;
                 return (
                   <button
@@ -419,4 +439,9 @@ export default function PvTierVisualizer({
       </div>
     </div>
   );
+}
+
+function listMonths(months: number[]): string {
+  if (months.length <= 1) return String(months[0] ?? '');
+  return `${months.slice(0, -1).join(', ')} or ${months[months.length - 1]}`;
 }

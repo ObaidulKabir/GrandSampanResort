@@ -440,7 +440,7 @@ function PaymentPlanPolicyBlock() {
           />
         </label>
         <label className="text-sm text-ocean">
-          Tenors (comma-separated)
+          Tenors (comma-separated, min 24 months)
           <input
             className="field mt-1"
             value={(policy.tenors || []).join(', ')}

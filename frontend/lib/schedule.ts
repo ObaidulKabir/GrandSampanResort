@@ -13,7 +13,7 @@ export function planOfferPrice(plan?: { price?: number; discountedPrice?: number
 export type ScheduleCadence = 'monthly' | 'quarterly';
 
 /** Buyer-selectable installment lengths on the checkout payment calendar. */
-export const CUSTOM_INSTALLMENT_MONTHS = [12, 24, 30, 36] as const;
+export const CUSTOM_INSTALLMENT_MONTHS = [24, 30, 36] as const;
 
 export type ScheduleLine = {
   type: 'deposit' | 'downpayment' | 'installment';

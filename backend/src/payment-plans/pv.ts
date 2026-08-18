@@ -2,9 +2,11 @@
  * Present-value engine for advance-payment discounts.
  * Pure functions — no I/O. The model must never do this arithmetic.
  *
- * Rate convention: nominal annual %, compounded `periodsPerYear` times
- * (default 8%). Monthly factor is
- *   v = (1 + r)^(-1/12)
+ * Rate convention: nominal annual % compounded `periodsPerYear` times a year.
+ * Both values come from admin policy (discountRateAnnualPct, compoundingPerYear):
+ *   periodic rate   = r / m
+ *   effective year  = (1 + r/m)^m
+ *   monthly factor  = (1 + r/m)^(-m/12)
  */
 
 export type Cashflow = { dueMonth: number; amount: number };
@@ -35,10 +37,17 @@ export const PV_FIXTURES = {
   tenorGap36: 0.024924972654961852
 } as const;
 
-export function monthlyDiscountFactor(annualNominalPct: number, _periodsPerYear = 1): number {
+export function monthlyDiscountFactor(annualNominalPct: number, periodsPerYear = 1): number {
   const annual = Math.max(0, Number(annualNominalPct) || 0) / 100;
-  // Discrete annual compounding: (1 + r)^(-1/12)
-  return Math.pow(1 + annual, -1 / 12);
+  const periods = clampCompounding(periodsPerYear);
+  return Math.pow(1 + annual / periods, -periods / 12);
+}
+
+/** Admin compounding input, kept in the 1–12 range the policy normalizer allows. */
+export function clampCompounding(periodsPerYear: number): number {
+  const m = Math.round(Number(periodsPerYear) || 1);
+  if (!Number.isFinite(m)) return 1;
+  return Math.max(1, Math.min(12, m));
 }
 
 export function presentValue(items: Cashflow[], monthlyFactor: number): number {

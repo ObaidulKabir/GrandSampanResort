@@ -11,13 +11,16 @@ export class PaymentPlansController {
   @Get('policy')
   async policy(
     @Query('installmentMonths') installmentMonths?: string,
-    @Query('cadence') cadence?: string
+    @Query('cadence') cadence?: string,
+    @Query('honorTierTenorOverride') honorTierTenorOverride?: string
   ) {
     const policy = await this.plans.getPolicy();
     const months = installmentMonths ? Number(installmentMonths) : undefined;
+    const honor = String(honorTierTenorOverride ?? '').toLowerCase();
     const resolved = this.plans.resolveTiers(policy, {
       installmentMonths: Number.isFinite(months as number) ? months : undefined,
-      cadence: cadence === 'quarterly' ? 'quarterly' : ('monthly' as ScheduleCadence)
+      cadence: cadence === 'quarterly' ? 'quarterly' : ('monthly' as ScheduleCadence),
+      honorTierTenorOverride: !(honor === 'false' || honor === '0')
     });
     return { ok: true, policy, resolved };
   }

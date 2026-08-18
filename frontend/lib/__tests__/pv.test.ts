@@ -19,6 +19,7 @@ import {
   resolveTiers,
   type PaymentPolicy,
 } from '../pv';
+import { CUSTOM_INSTALLMENT_MONTHS } from '../schedule';
 
 // ─── shared fixtures (match backend PV_FIXTURES at 8% annual discrete) ────────
 
@@ -329,5 +330,65 @@ describe('resolveTiers — live admin preview', () => {
       const expected = fairDiscountPct(pv, stdPv) * 100;
       expect(tier.fairDiscountPct).toBeCloseTo(expected, 3);
     }
+  });
+});
+
+// ─── 6. admin compounding setting must reach the discount ─────────────────────
+
+describe('admin compounding input', () => {
+  it('nominal 8% compounded monthly discounts harder than compounded once', () => {
+    expect(monthlyDiscountFactor(8, 12)).toBeCloseTo(1 / (1 + 0.08 / 12), 12);
+    expect(monthlyDiscountFactor(8, 12)).toBeLessThan(monthlyDiscountFactor(8, 1));
+  });
+
+  it('clamps compounding to the 1-12 range the policy allows', () => {
+    expect(monthlyDiscountFactor(8, 0)).toBeCloseTo(monthlyDiscountFactor(8, 1), 12);
+    expect(monthlyDiscountFactor(8, 99)).toBeCloseTo(monthlyDiscountFactor(8, 12), 12);
+  });
+
+  it('LIVE PREVIEW: changing compounding moves the FAIR column', () => {
+    const annual = resolveTiers(makePolicy({ compoundingPerYear: 1 }));
+    const monthly = resolveTiers(makePolicy({ compoundingPerYear: 12 }));
+    const get = (rows: typeof annual) => rows.find((t) => t.id === 'full')!.fairDiscountPct;
+    expect(get(monthly)).toBeGreaterThan(get(annual));
+  });
+});
+
+// ─── 7. buyer-built calendar must be the calendar that gets priced ────────────
+
+describe('resolveTiers with a buyer-built calendar', () => {
+  const withPinnedTenorTier = () =>
+    makePolicy({
+      tenors: [24, 30, 36],
+      tiers: [
+        { id: 'pinned_24', label: 'Pinned 24 mo', upfrontPct: 10, installmentMonthsOverride: 24, discountPct: null, passThroughPct: 100, maxDiscountPct: 15 },
+        { id: 'standard', label: 'Booking only', upfrontPct: 10, discountPct: 0, passThroughPct: 100, maxDiscountPct: 12 },
+        { id: 'full', label: 'Full payment', upfrontPct: 100, discountPct: null, passThroughPct: 100, maxDiscountPct: 15 }
+      ]
+    });
+
+  it('reports the tenor each tier was priced on', () => {
+    const resolved = resolveTiers(withPinnedTenorTier(), { installmentMonths: 36 });
+    expect(resolved.find((t) => t.id === 'pinned_24')!.installmentMonths).toBe(24);
+    expect(resolved.find((t) => t.id === 'full')!.installmentMonths).toBe(36);
+  });
+
+  it('drops a tier tenor override so the discount matches the billed calendar', () => {
+    const resolved = resolveTiers(withPinnedTenorTier(), {
+      installmentMonths: 36,
+      honorTierTenorOverride: false
+    });
+    const pinned = resolved.find((t) => t.id === 'pinned_24')!;
+    expect(pinned.installmentMonths).toBe(36);
+    expect(pinned.offeredDiscountPct).toBe(0);
+  });
+
+  it('offers only the 24, 30 and 36 month calendars', () => {
+    expect(CUSTOM_INSTALLMENT_MONTHS).toEqual([24, 30, 36]);
+  });
+
+  it('refuses a retired 12-month calendar and falls back to 24', () => {
+    const resolved = resolveTiers(withPinnedTenorTier(), { installmentMonths: 12 });
+    expect(resolved.find((t) => t.id === 'full')!.installmentMonths).toBe(24);
   });
 });

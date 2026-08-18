@@ -16,10 +16,22 @@ export type NominalScheduleOpts = {
   cadence: ScheduleCadence;
 };
 
-/** Monthly discount factor from a nominal annual rate (discrete compounding). */
-export function monthlyDiscountFactor(annualNominalPct: number): number {
+/**
+ * Monthly discount factor from the admin rate: nominal annual % compounded
+ * `periodsPerYear` times a year. Mirrors backend monthlyDiscountFactor().
+ *   monthly factor = (1 + r/m)^(-m/12)
+ */
+export function monthlyDiscountFactor(annualNominalPct: number, periodsPerYear = 1): number {
   const annual = Math.max(0, Number(annualNominalPct) || 0) / 100;
-  return Math.pow(1 + annual, -1 / 12);
+  const periods = clampCompounding(periodsPerYear);
+  return Math.pow(1 + annual / periods, -periods / 12);
+}
+
+/** Admin compounding input, kept in the 1–12 range the policy normalizer allows. */
+export function clampCompounding(periodsPerYear: number): number {
+  const m = Math.round(Number(periodsPerYear) || 1);
+  if (!Number.isFinite(m)) return 1;
+  return Math.max(1, Math.min(12, m));
 }
 
 /** PV of a stream of cashflows given a monthly discount factor v. */
@@ -127,6 +139,8 @@ export type ResolvedTier = PaymentTier & {
   fairDiscountPct: number;
   offeredDiscountPct: number;
   source: 'override' | 'pv' | 'standard';
+  /** Tenor the PV discount was priced on. The billed schedule must use this exact value. */
+  installmentMonths: number;
 };
 
 /**
@@ -135,26 +149,35 @@ export type ResolvedTier = PaymentTier & {
  */
 export function resolveTiers(
   policy: PaymentPolicy,
-  opts?: { installmentMonths?: number; cadence?: ScheduleCadence }
+  opts?: {
+    installmentMonths?: number;
+    cadence?: ScheduleCadence;
+    /** False when the buyer built their own calendar — see backend resolveTiers(). */
+    honorTierTenorOverride?: boolean;
+  }
 ): ResolvedTier[] {
   const cadence: ScheduleCadence = opts?.cadence === 'quarterly' ? 'quarterly' : 'monthly';
   const tenor = pickTenor(policy, opts?.installmentMonths);
-  const v = monthlyDiscountFactor(policy.discountRateAnnualPct);
+  const honorOverride = opts?.honorTierTenorOverride !== false;
+  const v = monthlyDiscountFactor(policy.discountRateAnnualPct, policy.compoundingPerYear);
 
   const standardTier = findStandardTier(policy);
-  const baselineMonths = policy.tenorPricing === 'pv' ? Math.min(...policy.tenors) : tenor;
+  const shortestTenor = policy.tenors.length ? Math.min(...policy.tenors) : tenor;
+  const baselineMonths = policy.tenorPricing === 'pv' ? shortestTenor : tenor;
 
-  const standardOpts: NominalScheduleOpts = {
-    upfrontPct: standardTier.upfrontPct,
-    downpaymentPct: policy.downpaymentPct,
-    downpaymentAfterMonths: policy.downpaymentAfterMonths,
-    installmentMonths: baselineMonths,
-    cadence,
-  };
-  const standardPv = presentValue(nominalCashflows(standardOpts), v);
+  const standardPv = presentValue(
+    nominalCashflows({
+      upfrontPct: standardTier.upfrontPct,
+      downpaymentPct: policy.downpaymentPct,
+      downpaymentAfterMonths: policy.downpaymentAfterMonths,
+      installmentMonths: baselineMonths,
+      cadence,
+    }),
+    v
+  );
 
   return policy.tiers.map((tier) => {
-    const tierTenor = tier.installmentMonthsOverride ?? tenor;
+    const tierTenor = (honorOverride ? tier.installmentMonthsOverride : undefined) ?? tenor;
     const tierOpts: NominalScheduleOpts = {
       upfrontPct: tier.upfrontPct,
       downpaymentPct: policy.downpaymentPct,
@@ -163,25 +186,20 @@ export function resolveTiers(
       cadence,
     };
 
-    const baselineForTier =
-      policy.tenorPricing === 'pv'
-        ? standardPv
-        : presentValue(nominalCashflows({ ...standardOpts, installmentMonths: tenor }), v);
-
     const tierPv = presentValue(nominalCashflows(tierOpts), v);
-    const fair = Math.max(0, fairDiscountPct(tierPv, baselineForTier) * 100);
+    const fair = Math.max(0, fairDiscountPct(tierPv, standardPv) * 100);
+    const base = {
+      ...tier,
+      installmentMonths: tierTenor,
+      fairDiscountPct: round4(fair),
+    };
 
     const isStandard =
       tier.id === standardTier.id ||
-      (tier.upfrontPct <= standardTier.upfrontPct && !tier.installmentMonthsOverride);
+      (tier.upfrontPct <= standardTier.upfrontPct && tierTenor >= tenor);
 
     if (isStandard && (tier.discountPct === 0 || tier.discountPct == null)) {
-      return {
-        ...tier,
-        fairDiscountPct: round4(fair),
-        offeredDiscountPct: 0,
-        source: 'standard' as const,
-      };
+      return { ...base, offeredDiscountPct: 0, source: 'standard' as const };
     }
 
     const offered = offeredDiscountPct({
@@ -192,8 +210,7 @@ export function resolveTiers(
     });
 
     return {
-      ...tier,
-      fairDiscountPct: round4(fair),
+      ...base,
       offeredDiscountPct: round4(offered.offeredPct),
       source: offered.source,
     };
@@ -203,7 +220,8 @@ export function resolveTiers(
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function pickTenor(policy: PaymentPolicy, months?: number | null): number {
-  const allowed = [...new Set([...(policy.tenors.length ? policy.tenors : [24]), 12, 24, 30, 36])];
+  // The admin tenor list is authoritative — a buyer cannot invent a calendar length.
+  const allowed = [...new Set(policy.tenors.length ? policy.tenors : [24])];
   const n = Number(months);
   if (Number.isFinite(n) && allowed.includes(n)) return n;
   if (allowed.includes(24)) return 24;

@@ -14,6 +14,10 @@ export type QuoteTokenPayload = {
   discountRateAnnualPct: number;
   netPrice: number;
   upfrontPct: number;
+  /** Locked with the quote so a policy edit mid-quote cannot reshape the calendar.
+   *  Optional: tokens issued before this field existed fall back to live policy. */
+  downpaymentPct?: number;
+  downpaymentAfterMonths?: number;
 };
 
 export function signQuoteToken(

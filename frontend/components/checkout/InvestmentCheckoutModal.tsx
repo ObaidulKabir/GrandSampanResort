@@ -95,6 +95,12 @@ export default function InvestmentCheckoutModal({
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [resolvedTiers, setResolvedTiers] = useState<PaymentTierInfo[]>([]);
   const [discountRateAnnualPct, setDiscountRateAnnualPct] = useState<number | undefined>(undefined);
+  // Downpayment shape comes from admin policy — never hardcode it into a preview.
+  const [policyAssumptions, setPolicyAssumptions] = useState<{
+    downpaymentPct: number;
+    downpaymentAfterMonths: number;
+    tenors: number[];
+  } | null>(null);
 
   useEffect(() => {
     hydrate();
@@ -192,18 +198,32 @@ export default function InvestmentCheckoutModal({
     }
   }, [sessionUser]);
 
-  // Fetch admin-configured payment policy (discount rate + resolved tiers)
+  // Fetch admin-configured payment policy (discount rate + resolved tiers).
+  // A buyer-built calendar is sent along so the tier cards show the same discount
+  // the server will quote for that calendar.
   useEffect(() => {
     if (!isOpen) return;
-    api('/payment-plans/policy')
+    const query = customCalendar
+      ? `?installmentMonths=${installmentMonths}&honorTierTenorOverride=false`
+      : '';
+    api(`/payment-plans/policy${query}`)
       .then((res: any) => {
         if (res?.ok && res.resolved) {
           setResolvedTiers(buildTiersFromPolicy(res.resolved));
           setDiscountRateAnnualPct(res.policy?.discountRateAnnualPct);
+          if (res.policy) {
+            setPolicyAssumptions({
+              downpaymentPct: Number(res.policy.downpaymentPct) || 0,
+              downpaymentAfterMonths: Number(res.policy.downpaymentAfterMonths) || 0,
+              tenors: Array.isArray(res.policy.tenors)
+                ? res.policy.tenors.map(Number).filter((n: number) => Number.isFinite(n) && n > 0)
+                : [],
+            });
+          }
         }
       })
       .catch(() => {}); // tiers remain empty until loaded
-  }, [isOpen]);
+  }, [isOpen, customCalendar, installmentMonths]);
 
   function fallbackQuote(tierId: string) {
     const tier = resolvedTiers.find((t) => t.id === tierId) || resolvedTiers[0];
@@ -212,9 +232,9 @@ export default function InvestmentCheckoutModal({
     const net = Math.round(afterPromo * (1 - disc / 100));
     const schedule = generatePaymentSchedule(net, new Date(), {
       upfrontPct: tier?.dueTodayPct ?? 10,
-      downpaymentPct: 20,
-      downpaymentAfterMonths: 3,
-      installmentMonths: customCalendar ? installmentMonths : 24,
+      downpaymentPct: policyAssumptions?.downpaymentPct ?? 20,
+      downpaymentAfterMonths: policyAssumptions?.downpaymentAfterMonths ?? 3,
+      installmentMonths: customCalendar ? installmentMonths : tier?.installmentMonths ?? 24,
       cadence: 'monthly',
     });
     return {
@@ -252,6 +272,12 @@ export default function InvestmentCheckoutModal({
       const q = res?.quote || (res?.netPrice || res?.amountTotal ? res : null);
       if (q) {
         const net = Number(q.netPrice ?? q.amountTotal) || 0;
+        // The server decides the final tenor against admin policy. Adopt it so the
+        // calendar on screen is the one the discount was actually priced on.
+        const pricedMonths = Number(q.installmentMonths);
+        if (tenor != null && Number.isFinite(pricedMonths) && pricedMonths !== tenor) {
+          setInstallmentMonths(pricedMonths);
+        }
         setQuoteData({
           ...q,
           afterPromo: Number(q.afterPromo) || planOfferPrice(plan),
@@ -293,9 +319,15 @@ export default function InvestmentCheckoutModal({
       ? quoteData.schedule
       : generatePaymentSchedule(netPrice, new Date(), {
           upfrontPct: quoteData?.upfrontPct ?? currentTier?.dueTodayPct ?? 10,
-          downpaymentPct: quoteData?.assumptions?.downpaymentPct ?? 20,
-          downpaymentAfterMonths: quoteData?.assumptions?.downpaymentAfterMonths ?? 3,
-          installmentMonths: quoteData?.installmentMonths ?? (customCalendar ? installmentMonths : 24),
+          downpaymentPct:
+            quoteData?.assumptions?.downpaymentPct ?? policyAssumptions?.downpaymentPct ?? 20,
+          downpaymentAfterMonths:
+            quoteData?.assumptions?.downpaymentAfterMonths ??
+            policyAssumptions?.downpaymentAfterMonths ??
+            3,
+          installmentMonths:
+            quoteData?.installmentMonths ??
+            (customCalendar ? installmentMonths : currentTier?.installmentMonths ?? 24),
           cadence: quoteData?.cadence === 'quarterly' ? 'quarterly' : 'monthly',
         })
   );
@@ -593,6 +625,7 @@ export default function InvestmentCheckoutModal({
                   onRefreshQuote={() => fetchQuote(selectedTierId, customCalendar ? installmentMonths : undefined)}
                   resolvedTiers={resolvedTiers}
                   discountRateAnnualPct={discountRateAnnualPct}
+                  policyAssumptions={policyAssumptions}
                   installmentMonths={customCalendar ? installmentMonths : quoteData?.installmentMonths}
                   onInstallmentMonthsChange={(months) => {
                     setCustomCalendar(true);

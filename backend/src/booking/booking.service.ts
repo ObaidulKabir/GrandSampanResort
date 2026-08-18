@@ -488,11 +488,18 @@ export class BookingService {
     const requestedMonths = Number(input.installmentMonths);
     const buyerChoseTenor = Number.isFinite(requestedMonths) && requestedMonths > 0;
     const tenor = this.paymentPlans.pickTenor(policy, input.installmentMonths);
-    const resolved = this.paymentPlans.resolveTiers(policy, { installmentMonths: tenor, cadence });
+    // A buyer-built calendar replaces the tier's own tenor. Pricing has to follow it,
+    // otherwise the PV discount would be earned on a calendar we never bill.
+    const resolved = this.paymentPlans.resolveTiers(policy, {
+      installmentMonths: tenor,
+      cadence,
+      honorTierTenorOverride: !buyerChoseTenor
+    });
     const standard = this.paymentPlans.standardTier(policy);
     const requested = this.paymentPlans.pickTier(policy, input.paymentTierId);
     const tier = resolved.find((t) => t.id === requested.id) || resolved.find((t) => t.id === standard.id)!;
-    const scheduleMonths = buyerChoseTenor ? tenor : (tier.installmentMonthsOverride ?? tenor);
+    // Same tenor the discount was priced on, so schedule and discount can never drift.
+    const scheduleMonths = tier.installmentMonths;
     const advancePct = policy.enabled ? tier.offeredDiscountPct : 0;
     const netPrice = applyDiscount(afterPromo, advancePct);
     const savings = Math.max(0, afterPromo - netPrice);
@@ -564,6 +571,8 @@ export class BookingService {
           discountRateAnnualPct: policy.discountRateAnnualPct,
           netPrice,
           upfrontPct: tier.upfrontPct,
+          downpaymentPct: policy.downpaymentPct,
+          downpaymentAfterMonths: policy.downpaymentAfterMonths,
         },
         policy.quoteTtlMinutes,
       );
@@ -684,13 +693,29 @@ export class BookingService {
           const policy = await this.paymentPlans.getPolicy();
           const lockedNet = Math.round(Number(verified.payload.netPrice) || 0);
           const lockedCadence = verified.payload.cadence === 'quarterly' ? 'quarterly' : 'monthly';
+          // Prefer the assumptions locked into the token over live policy.
+          const lockedDownPct = Number(verified.payload.downpaymentPct);
+          const lockedDownAfter = Number(verified.payload.downpaymentAfterMonths);
+          const downpaymentPct = Number.isFinite(lockedDownPct) ? lockedDownPct : policy.downpaymentPct;
+          const downpaymentAfterMonths = Number.isFinite(lockedDownAfter)
+            ? lockedDownAfter
+            : policy.downpaymentAfterMonths;
           const scheduleFromToken = generatePaymentSchedule(lockedNet, new Date(start), {
             upfrontPct: Number(verified.payload.upfrontPct) || 10,
-            downpaymentPct: policy.downpaymentPct,
-            downpaymentAfterMonths: policy.downpaymentAfterMonths,
+            downpaymentPct,
+            downpaymentAfterMonths,
             installmentMonths: verified.payload.installmentMonths,
             cadence: lockedCadence,
           });
+          const lockedRatePct = Number(verified.payload.discountRateAnnualPct) || 0;
+          const lockedAnchor = new Date(start);
+          const lockedPv = presentValue(
+            scheduleFromToken.map((s) => ({
+              dueMonth: monthsFromAnchor(lockedAnchor, new Date(s.dueDate)),
+              amount: s.amount,
+            })),
+            monthlyDiscountFactor(lockedRatePct, policy.compoundingPerYear),
+          );
           priced = {
             ok: true as const,
             quote: {
@@ -722,19 +747,19 @@ export class BookingService {
               savings: 0,
               installmentMonths: verified.payload.installmentMonths,
               cadence: lockedCadence,
-              discountRateAnnualPct: Number(verified.payload.discountRateAnnualPct) || 8,
-              presentValue: lockedNet,
+              discountRateAnnualPct: lockedRatePct,
+              presentValue: Math.round(lockedPv),
               schedule: scheduleFromToken,
               depositAmount: scheduleFromToken.find((s) => s.type === 'deposit')?.amount ?? 0,
               generatedAt: new Date().toISOString(),
               expiresAt: new Date().toISOString(),
               quoteToken,
               assumptions: {
-                discountRateAnnualPct: Number(verified.payload.discountRateAnnualPct) || 8,
+                discountRateAnnualPct: lockedRatePct,
                 compoundingPerYear: policy.compoundingPerYear,
                 tenorPricing: policy.tenorPricing,
-                downpaymentPct: policy.downpaymentPct,
-                downpaymentAfterMonths: policy.downpaymentAfterMonths,
+                downpaymentPct,
+                downpaymentAfterMonths,
               },
             },
           };

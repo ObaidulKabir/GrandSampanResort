@@ -57,7 +57,7 @@ describe('generatePaymentSchedule', () => {
     expect(t.scheduledTotal).toBe(900_000);
   });
 
-  it.each([12, 24, 30, 36])('splits remaining balance across %s monthly installments', (months) => {
+  it.each([24, 30, 36])('splits remaining balance across %s monthly installments', (months) => {
     const items = generatePaymentSchedule(1_000_000, new Date('2026-03-01T00:00:00.000Z'), {
       ...OPTS,
       installmentMonths: months

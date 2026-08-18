@@ -69,4 +69,31 @@ describe('payment-plans PV engine', () => {
   it('rounds discounted prices to whole taka', () => {
     expect(applyDiscount(100000, 7.0686)).toBe(92931);
   });
+
+  it('converts the admin compounding setting into the monthly factor', () => {
+    // Nominal 8% compounded monthly: periodic 8/12%, so v = 1 / (1 + 0.08/12).
+    const monthly = monthlyDiscountFactor(8, 12);
+    expect(monthly).toBeCloseTo(1 / (1 + 0.08 / 12), 12);
+    expect(Math.pow(1 / monthly, 12) - 1).toBeCloseTo(Math.pow(1 + 0.08 / 12, 12) - 1, 12);
+
+    // More frequent compounding discounts future cash harder.
+    expect(monthly).toBeLessThan(monthlyDiscountFactor(8, 1));
+    expect(monthlyDiscountFactor(8, 2)).toBeLessThan(monthlyDiscountFactor(8, 1));
+  });
+
+  it('clamps compounding to the 1-12 range the policy allows', () => {
+    expect(monthlyDiscountFactor(8, 0)).toBeCloseTo(monthlyDiscountFactor(8, 1), 12);
+    expect(monthlyDiscountFactor(8, 99)).toBeCloseTo(monthlyDiscountFactor(8, 12), 12);
+  });
+
+  it('pays a bigger advance discount as the admin rate rises', () => {
+    const fairAt = (ratePct: number) => {
+      const factor = monthlyDiscountFactor(ratePct, 1);
+      const stdPv = presentValue(nominalCashflows(standard24), factor);
+      const fullPv = presentValue(nominalCashflows({ ...standard24, upfrontPct: 100 }), factor);
+      return fairDiscountPct(fullPv, stdPv);
+    };
+    expect(fairAt(12)).toBeGreaterThan(fairAt(8));
+    expect(fairAt(0)).toBeCloseTo(0, 12);
+  });
 });
