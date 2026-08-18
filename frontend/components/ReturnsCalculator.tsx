@@ -8,9 +8,12 @@ import { formatMoney } from '@/lib/format';
 import { planStatusLabel, suiteTypeLabel, suiteViewLabel } from '@/lib/domainLabels';
 import {
   annualReturnRange,
+  clampAdr,
+  clampOccupancyPct,
   DEFAULT_RETURN_ASSUMPTIONS,
   effectiveAdrBand,
   normalizeReturnAssumptions,
+  occupancyBounds,
   projectReturn,
   type ReturnAssumptions
 } from '@/lib/returns';
@@ -188,15 +191,20 @@ export default function ReturnsCalculator({
     setOccupancy(Math.round((assumptions.occupancyLowPct + assumptions.occupancyHighPct) / 2));
   }, [assumptions.occupancyLowPct, assumptions.occupancyHighPct]);
 
+  // Admin bands are hard bounds: the projection must stay inside what the resort
+  // published, even if a stale slider value or typed rate sits outside them.
+  const boundedAdr = clampAdr(adr, band);
+  const boundedOccupancy = clampOccupancyPct(occupancy, assumptions);
+
   const result = useMemo(
     () =>
       projectReturn({
         daysPerMonth: days,
-        adr,
-        occupancyPct: occupancy,
+        adr: boundedAdr,
+        occupancyPct: boundedOccupancy,
         operatingCostPct: assumptions.operatingCostPct
       }),
-    [days, adr, occupancy, assumptions.operatingCostPct]
+    [days, boundedAdr, boundedOccupancy, assumptions.operatingCostPct]
   );
 
   const catalogRange = useMemo(
@@ -204,10 +212,9 @@ export default function ReturnsCalculator({
     [days, assumptions, activeSuite?.type, activeSuite?.size]
   );
 
-  const occLow = Math.min(assumptions.occupancyLowPct, assumptions.occupancyHighPct);
-  const occHigh = Math.max(assumptions.occupancyLowPct, assumptions.occupancyHighPct);
-  const adrMin = band ? Math.max(ADR_STEP, band.adrLow) : 1000;
-  const adrMax = band ? Math.max(adrMin + ADR_STEP, band.adrHigh) : 100000;
+  const { low: occLow, high: occHigh } = occupancyBounds(assumptions);
+  const adrMin = band ? band.adrLow : 1000;
+  const adrMax = band ? Math.max(adrMin, band.adrHigh) : 100000;
   const shareAvailable = activePlan ? isUnsold(activePlan) : false;
 
   function selectSuite(id: string) {
@@ -331,25 +338,32 @@ export default function ReturnsCalculator({
           )}
 
           <label className="block text-sm text-ocean">
-            {t('occupancy', { pct: occupancy })}
+            {t('occupancy', { pct: boundedOccupancy })}
             <input
               type="range"
-              min={10}
-              max={100}
+              min={occLow}
+              max={occHigh}
               step={1}
-              value={occupancy}
-              onChange={(e) => setOccupancy(Number(e.target.value))}
+              value={boundedOccupancy}
+              onChange={(e) => setOccupancy(clampOccupancyPct(Number(e.target.value), assumptions))}
               className="mt-2 w-full accent-ocean"
             />
+            <span className="mt-1 block text-xs text-ocean/55">
+              {t('occupancyBandHint', { low: occLow, high: occHigh })}
+            </span>
           </label>
           <label className="block text-sm text-ocean">
-            {t('adr', { amount: formatMoney(adr) })}
+            {t('adr', { amount: formatMoney(boundedAdr) })}
+            {/* Typing stays free-form; the value snaps into the admin band on blur,
+                and the projection always uses the clamped rate regardless. */}
             <input
               type="number"
-              min={0}
+              min={adrMin}
+              max={adrMax}
               step={ADR_STEP}
               value={adr || ''}
               onChange={(e) => setAdr(Math.max(0, Number(e.target.value) || 0))}
+              onBlur={() => setAdr(clampAdr(adr, band))}
               className="field mt-1"
             />
             <input
@@ -357,8 +371,8 @@ export default function ReturnsCalculator({
               min={adrMin}
               max={adrMax}
               step={ADR_STEP}
-              value={Math.min(adrMax, Math.max(adrMin, adr || adrMin))}
-              onChange={(e) => setAdr(Number(e.target.value))}
+              value={boundedAdr || adrMin}
+              onChange={(e) => setAdr(clampAdr(Number(e.target.value), band))}
               className="mt-2 w-full accent-ocean"
             />
             {band && (

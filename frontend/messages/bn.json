@@ -539,6 +539,7 @@
     "viewShare": "এই শেয়ার দেখুন",
     "shareUnavailable": "এই শেয়ার আর বিক্রির জন্য নেই। তুলনার জন্য হিসাব দেখানো হচ্ছে।",
     "adrBandHint": "এই স্যুটের সাধারণ দৈনিক রেট: {low}–{high}",
+    "occupancyBandHint": "রিসোর্ট নির্ধারিত অকুপেন্সি সীমা: {low}–{high}%",
     "occupancy": "অকুপেন্সি: {pct}%",
     "adr": "গড় দৈনিক রেট: {amount}",
     "expectedTitle": "প্রজেক্টেড ভাড়া আয়",

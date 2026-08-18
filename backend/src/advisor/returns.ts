@@ -74,16 +74,20 @@ export function normalizeReturnAssumptions(raw: unknown): ReturnAssumptions {
     if (c.adrLow > c.adrHigh) [c.adrLow, c.adrHigh] = [c.adrHigh, c.adrLow];
   }
 
+  const occupancyLowPct = Math.min(
+    100,
+    Math.max(0, Number(stored.occupancyLowPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyLowPct) || 0)
+  );
+  let occupancyHighPct = Math.min(
+    100,
+    Math.max(0, Number(stored.occupancyHighPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyHighPct) || 0)
+  );
+  if (occupancyLowPct > occupancyHighPct) occupancyHighPct = occupancyLowPct;
+
   return {
     referenceSqFt: Math.max(1, Number(stored.referenceSqFt) || DEFAULT_RETURN_ASSUMPTIONS.referenceSqFt),
-    occupancyLowPct: Math.min(
-      100,
-      Math.max(0, Number(stored.occupancyLowPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyLowPct) || 0)
-    ),
-    occupancyHighPct: Math.min(
-      100,
-      Math.max(0, Number(stored.occupancyHighPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyHighPct) || 0)
-    ),
+    occupancyLowPct,
+    occupancyHighPct,
     operatingCostPct: Math.min(
       100,
       Math.max(0, Number(stored.operatingCostPct ?? DEFAULT_RETURN_ASSUMPTIONS.operatingCostPct) || 0)

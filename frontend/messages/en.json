@@ -539,6 +539,7 @@
     "viewShare": "View this share",
     "shareUnavailable": "This share is no longer on sale. Figures are still shown for comparison.",
     "adrBandHint": "Typical daily rate for this suite: {low}–{high}",
+    "occupancyBandHint": "Occupancy range set by the resort: {low}–{high}%",
     "occupancy": "Occupancy: {pct}%",
     "adr": "Average daily rate: {amount}",
     "expectedTitle": "Projected rental income",

@@ -81,22 +81,61 @@ export function normalizeReturnAssumptions(raw: unknown): ReturnAssumptions {
     if (c.adrLow > c.adrHigh) [c.adrLow, c.adrHigh] = [c.adrHigh, c.adrLow];
   }
 
+  const occupancyLowPct = Math.min(
+    100,
+    Math.max(0, Number(stored.occupancyLowPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyLowPct) || 0)
+  );
+  let occupancyHighPct = Math.min(
+    100,
+    Math.max(0, Number(stored.occupancyHighPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyHighPct) || 0)
+  );
+  if (occupancyLowPct > occupancyHighPct) occupancyHighPct = occupancyLowPct;
+
   return {
     referenceSqFt: Math.max(1, Number(stored.referenceSqFt) || DEFAULT_RETURN_ASSUMPTIONS.referenceSqFt),
-    occupancyLowPct: Math.min(
-      100,
-      Math.max(0, Number(stored.occupancyLowPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyLowPct) || 0)
-    ),
-    occupancyHighPct: Math.min(
-      100,
-      Math.max(0, Number(stored.occupancyHighPct ?? DEFAULT_RETURN_ASSUMPTIONS.occupancyHighPct) || 0)
-    ),
+    occupancyLowPct,
+    occupancyHighPct,
     operatingCostPct: Math.min(
       100,
       Math.max(0, Number(stored.operatingCostPct ?? DEFAULT_RETURN_ASSUMPTIONS.operatingCostPct) || 0)
     ),
     categories
   };
+}
+
+/** Admin occupancy bounds, low first. */
+export function occupancyBounds(
+  assumptions: Pick<ReturnAssumptions, 'occupancyLowPct' | 'occupancyHighPct'>
+) {
+  const a = Number(assumptions.occupancyLowPct) || 0;
+  const b = Number(assumptions.occupancyHighPct) || 0;
+  return { low: Math.min(a, b), high: Math.max(a, b) };
+}
+
+/**
+ * The admin ADR band is a hard bound, not a hint — a buyer-adjusted rate must
+ * never project income outside the range the resort published.
+ */
+export function clampAdr(
+  adr: number,
+  band?: { adrLow: number; adrHigh: number } | null
+): number {
+  const n = Math.max(0, Number(adr) || 0);
+  if (!band) return n;
+  const low = Math.min(band.adrLow, band.adrHigh);
+  const high = Math.max(band.adrLow, band.adrHigh);
+  return Math.min(high, Math.max(low, n));
+}
+
+/** Same rule for occupancy: the admin bounds cap what a buyer can dial in. */
+export function clampOccupancyPct(
+  pct: number,
+  assumptions: Pick<ReturnAssumptions, 'occupancyLowPct' | 'occupancyHighPct'>
+): number {
+  const { low, high } = occupancyBounds(assumptions);
+  const n = Number(pct);
+  if (!Number.isFinite(n)) return low;
+  return Math.min(high, Math.max(low, n));
 }
 
 /** ADR band for a specific suite after category + sq ft scaling. */
